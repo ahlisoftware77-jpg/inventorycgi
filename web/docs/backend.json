@@ -1,0 +1,83 @@
+
+{
+  "entities": {
+    "Asset": {
+      "title": "Asset",
+      "description": "Represents an individual company asset.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "code": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "location": { "type": "string" },
+        "status": { "type": "string" },
+        "condition": { "type": "string" }
+      }
+    },
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Represents a user's profile and settings.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string" },
+        "department": { "type": "string" }
+      }
+    },
+    "ITProblemReport": {
+      "title": "IT Problem Report",
+      "description": "Represents a filled IT hardware/software problem form (0-32-028).",
+      "type": "object",
+      "properties": {
+        "ticketId": { "type": "string", "description": "Linked Helpdesk Ticket ID" },
+        "department": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "problem": { "type": "string" },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "poNo": { "type": "string" },
+              "beforeChange": { "type": "string" },
+              "afterChange": { "type": "string" },
+              "note": { "type": "string" }
+            }
+          }
+        },
+        "signatures": {
+          "type": "object",
+          "properties": {
+            "manager": { "type": "string", "description": "Base64 signature image" },
+            "sectionHead": { "type": "string", "description": "Base64 signature image" },
+            "madeBy": { "type": "string", "description": "Base64 signature image" },
+            "solutionSectionHead": { "type": "string", "description": "Base64 signature image" },
+            "solver": { "type": "string", "description": "Base64 signature image" }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "createdBy": { "type": "string" }
+      }
+    }
+  },
+  "auth": {
+    "providers": ["email"]
+  },
+  "firestore": {
+    "/assets/{assetId}": {
+      "schema": "#/backend/entities/Asset",
+      "description": "Collection of company assets."
+    },
+    "/users/{userId}": {
+      "schema": "#/backend/entities/UserProfile",
+      "description": "User profiles."
+    },
+    "/it_problem_reports/{reportId}": {
+      "schema": "#/backend/entities/ITProblemReport",
+      "description": "Stored IT problem reports."
+    }
+  }
+}

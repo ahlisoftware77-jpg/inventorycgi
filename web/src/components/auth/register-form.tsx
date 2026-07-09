@@ -1,0 +1,245 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { doc, setDoc, onSnapshot } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase/config';
+
+import { Button } from '@/components/ui/button';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2, User as UserIcon, Building, Mail, Lock, ShieldCheck, ChevronLeft } from 'lucide-react';
+import Image from 'next/image';
+
+const formSchema = z.object({
+  name: z.string().min(2, { message: 'Nama harus memiliki setidaknya 2 karakter.' }),
+  department: z.string().min(1, { message: 'Departemen harus dipilih.' }),
+  email: z.string().email({ message: 'Format email tidak valid.' }),
+  password: z.string().min(6, { message: 'Password minimal 6 karakter.' }),
+});
+
+const defaultDepartments = ['ACCOUNTING', 'APP', 'APP-R&D', 'FRIT', 'GA', 'HR & GA', 'IT', 'LAB', 'MANAGEMENT', 'MARKETING', 'MIXER', 'PPIC', 'PURCHASING', 'QC', 'R&D'];
+
+export function RegisterForm() {
+  const router = useRouter();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [companyName, setCompanyName] = useState('Sistem Aset');
+  const [departmentOptions, setDepartmentOptions] = useState<string[]>(defaultDepartments);
+
+  useEffect(() => {
+    const generalDocRef = doc(db, 'settings', 'general');
+    const unsub = onSnapshot(generalDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data.companyName) setCompanyName(data.companyName);
+            if (data.departments) setDepartmentOptions(data.departments);
+        }
+    });
+    return () => unsub();
+  }, []);
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: '',
+      department: '',
+      email: '',
+      password: '',
+    },
+  });
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsLoading(true);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+      const user = userCredential.user;
+
+      await updateProfile(user, {
+        displayName: values.name,
+      });
+
+      await setDoc(doc(db, 'users', user.uid), {
+        uid: user.uid,
+        name: values.name,
+        email: values.email,
+        department: values.department,
+        role: 'Pending',
+      });
+      
+      await auth.signOut();
+
+      toast({
+        title: 'Pendaftaran Terkirim',
+        description: 'Akun Anda telah dibuat dan menunggu persetujuan Admin.',
+      });
+      router.push('/login');
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      let description = 'Terjadi kesalahan. Silakan coba lagi.';
+      if (error.code === 'auth/email-already-in-use') {
+        description = 'Email ini sudah terdaftar. Silakan gunakan email lain atau login.';
+      }
+      
+      toast({
+        variant: 'destructive',
+        title: 'Pendaftaran Gagal',
+        description: description,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  return (
+    <Card className="w-full max-w-[420px] border-none shadow-2xl bg-white/90 dark:bg-slate-950/90 backdrop-blur-xl rounded-[2.5rem] overflow-hidden animate-in fade-in zoom-in duration-700">
+      <CardHeader className="pt-10 pb-6 flex flex-col items-center space-y-4">
+        <div className="p-3 bg-cyan-600 rounded-2xl shadow-lg shadow-cyan-600/20">
+          <Image src="/cgi.png" alt="Logo" width={40} height={40} className="brightness-0 invert" />
+        </div>
+        <div className="text-center space-y-1">
+          <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white uppercase line-clamp-2">{companyName}</h1>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">New Employee Registration</p>
+        </div>
+      </CardHeader>
+
+      <CardContent className="px-8 pb-8">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem className="space-y-1.5">
+                  <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Full Name</FormLabel>
+                  <div className="relative group">
+                    <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-cyan-600 transition-colors" />
+                    <FormControl>
+                      <Input
+                        placeholder="Nama Lengkap"
+                        className="pl-11 h-11 bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-800 rounded-xl font-medium focus:ring-2 focus:ring-cyan-600/10"
+                        {...field}
+                      />
+                    </FormControl>
+                  </div>
+                  <FormMessage className="text-[10px] font-bold text-rose-500 pl-1" />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="department"
+              render={({ field }) => (
+                <FormItem className="space-y-1.5">
+                  <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Department</FormLabel>
+                  <div className="relative group">
+                    <Building className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 z-10 group-focus-within:text-cyan-600 transition-colors" />
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="pl-11 h-11 bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-800 rounded-xl font-medium focus:ring-2 focus:ring-cyan-600/10">
+                          <SelectValue placeholder="Pilih unit kerja" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="rounded-xl">
+                        {departmentOptions.sort().map(d => <SelectItem key={d} value={d} className="font-medium text-xs">{d}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <FormMessage className="text-[10px] font-bold text-rose-500 pl-1" />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem className="space-y-1.5">
+                  <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Work Email</FormLabel>
+                  <div className="relative group">
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-cyan-600 transition-colors" />
+                    <FormControl>
+                      <Input
+                        type="email"
+                        placeholder="nama@company.co.id"
+                        className="pl-11 h-11 bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-800 rounded-xl font-medium focus:ring-2 focus:ring-cyan-600/10"
+                        {...field}
+                      />
+                    </FormControl>
+                  </div>
+                  <FormMessage className="text-[10px] font-bold text-rose-500 pl-1" />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem className="space-y-1.5">
+                  <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Access Key</FormLabel>
+                  <div className="relative group">
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-cyan-600 transition-colors" />
+                    <FormControl>
+                      <Input
+                        type="password"
+                        placeholder="Min. 6 Karakter"
+                        className="pl-11 h-11 bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-800 rounded-xl font-medium focus:ring-2 focus:ring-cyan-600/10"
+                        {...field}
+                      />
+                    </FormControl>
+                  </div>
+                  <FormMessage className="text-[10px] font-bold text-rose-500 pl-1" />
+                </FormItem>
+              )}
+            />
+            
+            <div className="pt-4 space-y-4">
+              <Button 
+                type="submit" 
+                className="w-full h-12 bg-cyan-600 hover:bg-cyan-700 text-white font-black uppercase tracking-[0.2em] rounded-xl shadow-xl shadow-cyan-600/20 transition-all active:scale-95" 
+                disabled={isLoading}
+              >
+                {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Kirim Pendaftaran"}
+              </Button>
+              
+              <p className="text-center text-xs text-slate-400 font-bold uppercase tracking-tight">
+                Sudah punya akun?{' '}
+                <Link href="/login" className="text-cyan-600 hover:text-cyan-700 font-black tracking-widest">
+                  LOGIN DISINI
+                </Link>
+              </p>
+            </div>
+          </form>
+        </Form>
+      </CardContent>
+      
+      <div className="px-8 py-4 bg-slate-50 dark:bg-slate-900/50 border-t flex items-center justify-center gap-2 grayscale opacity-40">
+        <ShieldCheck className="h-3.5 w-3.5" />
+        <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">Corporate Identity Verification</span>
+      </div>
+    </Card>
+  );
+}

@@ -1,0 +1,18 @@
+{
+  "hosting": {
+    "site": "inventorycgi",
+    "source": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "frameworksBackend": {
+      "region": "us-central1"
+    }
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "src/firestore.indexes.json"
+  }
+}

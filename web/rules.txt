@@ -1,0 +1,99 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+  
+ 
+   // match /{document=**} {
+   // allow read, write: if true;
+   // }
+  
+    match /{document=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+   
+    // Allow users to create their own user document upon registration
+    match /users/{userId} {
+      allow create: if request.auth != null;
+    }
+    
+    // Mengizinkan baca/tulis untuk user yang sudah login
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+    
+     // --- USERS COLLECTION ---
+    match /users/{userId} {
+      // hanya user sendiri & admin bisa membaca profil user
+      allow read: if request.auth != null && 
+                  (request.auth.uid == userId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "Admin");
+      
+      // hanya admin boleh menulis data user
+      allow write: if request.auth != null && 
+                   get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "Admin";
+    }
+
+    // --- ASSETS COLLECTION ---
+    match /assets/{assetId} {
+      // semua yang login bisa melihat aset
+      allow read: if request.auth != null;
+
+      // ADMIN bisa membuat, edit, hapus aset
+      allow create, update, delete: if request.auth != null &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "Admin";
+
+      // KARYAWAN bisa menambah atau update status waiting (mutasi/disposal) pada aset
+      allow update: if request.auth != null &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "Karyawan" &&
+          request.resource.data.status in ["waiting_mutasi", "waiting_disposal"];
+           
+      // MANAGER bisa menambah atau update status waiting (mutasi/disposal) pada aset
+      allow create,update: if request.auth != null &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "Manager" &&
+          request.resource.data.status in ["waiting_mutasi", "waiting_disposal", "waiting_edit", "approved_mutasi", "approved_disposal", "handleAction", "Reject", "action", "asset.requesterName", "requesterName", "requesterSectionHead", "waiting_creation", "karyawan_approved","addDoc","assets", "assetId", "onSubmit", "assetSchema", "users"];
+          
+      // SECTION HEAD bisa menambah atau update status waiting (mutasi/disposal) pada aset
+      allow create,update: if request.auth != null &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "Section Head" &&
+          request.resource.data.status in ["waiting_mutasi", "waiting_disposal", "waiting_edit", "approved_mutasi", "approved_disposal", "handleAction", "Reject", "action", "asset.requesterName", "requesterName", "requesterSectionHead", "waiting_creation", "karyawan_approved","addDoc","assets", "assetId", "onSubmit", "assetSchema", "users"];
+          
+      // Pending Requests (edit/tambah aset)
+    match /pendingRequests/{reqId} {
+      allow read: if request.auth != null;
+      allow update: if request.auth != null;
+      allow write: if request.auth != null &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ["Manager", "Section Head","Karyawan"]);
+    }
+
+    // Mutasi
+    match /mutasi/{mutasiId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null &&
+        (
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "Admin" ||
+          (
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "Manager" &&
+            resource.data.fromDepartemen != get(/databases/$(database)/documents/users/$(request.auth.uid)).data.departemen &&
+            resource.data.toDepartemen == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.departemen
+          )
+        );
+    }
+
+    // Disposal
+    match /disposal/{disposalId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null &&
+        (
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "Admin" ||
+          (
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "Manager" &&
+            resource.data.fromDepartemen != get(/databases/$(database)/documents/users/$(request.auth.uid)).data.departemen &&
+            resource.data.toDepartemen == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.departemen
+          )
+        );
+    }
+
+      // USER (viewer) hanya read-only (tidak ada izin menulis)
+    }
+  }
+  }
