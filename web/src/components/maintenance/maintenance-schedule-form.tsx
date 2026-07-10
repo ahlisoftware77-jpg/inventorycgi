@@ -179,7 +179,8 @@ export default function MaintenanceScheduleForm({ schedule, children }: Maintena
     if (value.trim()) {
         const filtered = assets.filter(a => 
             a.code.toLowerCase().includes(value.toLowerCase()) ||
-            a.name.toLowerCase().includes(value.toLowerCase())
+            a.name.toLowerCase().includes(value.toLowerCase()) ||
+            (a.user && a.user.toLowerCase().includes(value.toLowerCase()))
         );
         setSuggestions(filtered);
     } else {
@@ -364,9 +365,9 @@ export default function MaintenanceScheduleForm({ schedule, children }: Maintena
                     <h3 className="font-black text-[10px] uppercase tracking-wider text-foreground/70">Pemilihan Objek Aset</h3>
                 </div>
                 
-                <div className="space-y-2 relative">
-                    <Label className="font-bold text-xs uppercase tracking-widest text-muted-foreground ml-1">Ketik Kode Aset atau Nama Barang</Label>
-                    <div className="relative group">
+                <div className="space-y-3 relative group">
+                    <Label className="font-bold text-xs uppercase tracking-widest text-muted-foreground ml-1">Ketik Kode, Nama, atau Pengguna/Penanggung Jawab</Label>
+                    <div className="relative">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-primary transition-colors" />
                         <Input 
                             placeholder="Contoh: A3-2024 atau Pompa Air..." 
