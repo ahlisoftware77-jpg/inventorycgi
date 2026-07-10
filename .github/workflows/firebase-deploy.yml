@@ -21,6 +21,13 @@ jobs:
       - name: Build Next.js App
         working-directory: ./web
         run: npm run build
+        env:
+          NEXT_PUBLIC_FIREBASE_API_KEY: AIzaSyDAtN6jfrr-pnaCBOY0I6y8KiX2PG3kRkY
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: login-604d8.firebaseapp.com
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: login-604d8
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: login-604d8.firebasestorage.app
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: 101182835365
+          NEXT_PUBLIC_FIREBASE_APP_ID: 1:101182835365:web:ff29de4769c43758fc9b4c
 
       - name: Deploy to Firebase
         uses: FirebaseExtended/action-hosting-deploy@v0
