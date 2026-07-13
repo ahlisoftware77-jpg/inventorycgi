@@ -55,6 +55,8 @@ type ScheduleFormValues = z.infer<typeof maintenanceScheduleSchema>;
 
 interface MaintenanceScheduleFormProps {
   schedule?: MaintenanceSchedule;
+  prefilledTicketId?: string;
+  prefilledTicket?: HelpdeskTicket;
   children: ReactNode;
 }
 
@@ -90,7 +92,7 @@ const DetailTileMini = ({ label, value, icon: Icon }: { label: string, value: st
     </div>
 );
 
-export default function MaintenanceScheduleForm({ schedule, children }: MaintenanceScheduleFormProps) {
+export default function MaintenanceScheduleForm({ schedule, prefilledTicketId, prefilledTicket, children }: MaintenanceScheduleFormProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -141,7 +143,11 @@ export default function MaintenanceScheduleForm({ schedule, children }: Maintena
         if (user.role === 'Admin' || user.permissions?.canApproveMutation) {
             const qTickets = query(collection(db, 'helpdesk_tickets'), where('status', 'in', ['Menunggu', 'Diproses']));
             const ticketSnapshot = await getDocs(qTickets);
-            setWaitingTickets(ticketSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as HelpdeskTicket)));
+            let ticketsData = ticketSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as HelpdeskTicket));
+            if (prefilledTicket && !ticketsData.some(t => t.id === prefilledTicket.id)) {
+                ticketsData = [prefilledTicket, ...ticketsData];
+            }
+            setWaitingTickets(ticketsData);
         }
     }
     fetchData();
@@ -154,7 +160,7 @@ export default function MaintenanceScheduleForm({ schedule, children }: Maintena
         assetName: schedule?.assetName || '',
         assetCode: schedule?.assetCode || '',
         assetUser: schedule?.assetUser || '',
-        department: schedule?.department || user?.department || '',
+        department: schedule?.department || prefilledTicket?.reporterDept || user?.department || '',
         scheduledDate: schedule?.scheduledDate?.toDate() || new Date(),
         type: schedule?.type || undefined,
         status: schedule?.status || 'Dijadwalkan',
@@ -169,10 +175,10 @@ export default function MaintenanceScheduleForm({ schedule, children }: Maintena
       } else {
         setSearchTerm('');
         setSelectedAssetDetails(null);
-        setSelectedTicketId('NEW');
+        setSelectedTicketId(prefilledTicketId || 'NEW');
       }
     }
-  }, [isOpen, schedule, form, assets, user]);
+  }, [isOpen, schedule, form, assets, user, prefilledTicketId, prefilledTicket]);
 
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);

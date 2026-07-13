@@ -51,6 +51,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import EmojiPicker from 'emoji-picker-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useRouter } from 'next/navigation';
+import MaintenanceScheduleForm from '@/components/maintenance/maintenance-schedule-form';
 import { errorEmitter } from '@/lib/firebase/error-emitter';
 import { FirestorePermissionError, type SecurityRuleContext } from '@/lib/firebase/errors';
 import { recycleDocument } from '@/lib/recycle-bin-utils';
@@ -570,7 +571,7 @@ export default function TicketDetail({ ticketId, onBack }: TicketDetailProps) {
                     <DetailBlock label="Tanggal Lapor" value={formattedReportedAt} icon={Calendar} />
                 </div>
 
-                {maintenanceSchedule && (
+                {maintenanceSchedule ? (
                   <>
                     <SectionLabel title="Integrasi Maintenance" />
                     <div className="space-y-3">
@@ -579,6 +580,19 @@ export default function TicketDetail({ ticketId, onBack }: TicketDetailProps) {
                         <DetailBlock label="Status Jadwal" value={maintenanceSchedule.status} icon={Clock} />
                     </div>
                   </>
+                ) : (
+                  isAdmin && (
+                    <>
+                      <SectionLabel title="Integrasi Maintenance" />
+                      <div className="space-y-3">
+                        <MaintenanceScheduleForm prefilledTicketId={ticketId} prefilledTicket={ticket}>
+                          <Button className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-widest text-[9px] rounded-xl shadow-lg shadow-indigo-600/20">
+                            <Wrench className="mr-2 h-5 w-5" /> Buat Jadwal Maintenance
+                          </Button>
+                        </MaintenanceScheduleForm>
+                      </div>
+                    </>
+                  )
                 )}
 
                 <SectionLabel title="Status Dokumen" />
@@ -624,6 +638,28 @@ export default function TicketDetail({ ticketId, onBack }: TicketDetailProps) {
                                 onGoToOfficialForm={handleGoToOfficialForm}
                                 onViewFilledForm={handleViewFilledForm}
                             />
+
+                            {maintenanceSchedule ? (
+                              <div className="space-y-3">
+                                <SectionLabel title="Integrasi Maintenance" />
+                                <div className="space-y-3">
+                                  <DetailBlock label="Kategori Pekerjaan" value={maintenanceSchedule.type} icon={Wrench} />
+                                  <DetailBlock label="Teknisi PIC" value={maintenanceSchedule.technician} icon={User} />
+                                  <DetailBlock label="Status Jadwal" value={maintenanceSchedule.status} icon={Clock} />
+                                </div>
+                              </div>
+                            ) : (
+                              isAdmin && (
+                                <div className="space-y-3">
+                                  <SectionLabel title="Integrasi Maintenance" />
+                                  <MaintenanceScheduleForm prefilledTicketId={ticketId} prefilledTicket={ticket}>
+                                      <Button className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-widest text-[9px] rounded-xl shadow-lg shadow-indigo-600/20">
+                                          <Wrench className="mr-2 h-5 w-5" /> Buat Jadwal Maintenance
+                                      </Button>
+                                  </MaintenanceScheduleForm>
+                                </div>
+                              )
+                            )}
                             
                             {ticket.photoURL && (
                                 <div className="space-y-3">
