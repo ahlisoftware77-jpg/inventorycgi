@@ -384,6 +384,8 @@ export default function AssetForm({ asset, children, isOpen: isOpenProp, onOpenC
             finalStatus = 'Aktif_creation';
             const transactionCode = await generateTransactionCode('CRT', values.location);
             dataToSave.transactionCode = transactionCode;
+            dataToSave.requestedBy = user.uid;
+            dataToSave.requestedAt = serverTimestamp();
             dataToSave.approvedBy = user.uid;
             dataToSave.approvedAt = serverTimestamp();
             const creatorName = user.displayName || 'Admin';

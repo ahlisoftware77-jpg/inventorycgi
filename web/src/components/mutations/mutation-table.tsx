@@ -151,7 +151,8 @@ async function fetchUser(userId: string): Promise<Partial<User>> {
 const enrichAssets = async (assetsToEnrich: Asset[]): Promise<EnrichedAsset[]> => {
     const userIds = new Set<string>();
     assetsToEnrich.forEach(asset => {
-        if (asset.requestedBy) userIds.add(asset.requestedBy);
+        const reqId = asset.requestedBy || asset.approvedBy;
+        if (reqId) userIds.add(reqId);
         if (asset.approvedBy) userIds.add(asset.approvedBy);
         if (asset.accountingUpdatedBy) userIds.add(asset.accountingUpdatedBy);
     });
@@ -159,7 +160,8 @@ const enrichAssets = async (assetsToEnrich: Asset[]): Promise<EnrichedAsset[]> =
     await Promise.all(Array.from(userIds).map(id => fetchUser(id)));
     
     return assetsToEnrich.map(asset => {
-        const requester = asset.requestedBy ? userCache.get(asset.requestedBy) : undefined;
+        const reqId = asset.requestedBy || asset.approvedBy;
+        const requester = reqId ? userCache.get(reqId) : undefined;
         const approver = asset.approvedBy ? userCache.get(asset.approvedBy) : undefined;
         const accountingUpdater = asset.accountingUpdatedBy ? userCache.get(asset.accountingUpdatedBy) : undefined;
         return {
