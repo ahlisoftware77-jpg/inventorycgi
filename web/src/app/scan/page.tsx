@@ -166,12 +166,13 @@ export default function ScanPage() {
                 if (videoRef.current) {
                     videoRef.current.srcObject = stream;
                     
-                    // Mulai proses decode zxing setelah stream aktif
-                    codeReader.current.decodeFromVideoDevice(undefined, videoRef.current, (result, error, ctrls) => {
-                        if (ctrls) controlsRef.current = ctrls;
+                    // Mulai proses decode zxing menggunakan stream aktif untuk mencegah bentrok kamera
+                    codeReader.current.decodeFromStream(stream, videoRef.current, (result, error) => {
                         if (result) {
                             handleScanResult(result.getText());
                         }
+                    }).then(ctrls => {
+                        if (ctrls) controlsRef.current = ctrls;
                     }).catch(err => console.error("Decoding failure", err));
                 }
                 setHasCameraPermission(true);

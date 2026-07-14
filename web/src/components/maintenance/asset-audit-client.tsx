@@ -864,32 +864,51 @@ export default function AssetAuditClient() {
   }, [allAssets, toast]);
 
   useEffect(() => {
-    let controls: any;
-    if (isScannerOpen && videoRef.current) {
-        setIsScanning(true);
-        codeReader.current.decodeFromVideoDevice(undefined, videoRef.current, (result, error, ctrls) => {
-          controls = ctrls;
-          if (result) {
-            handleScanResult(result.getText());
-          }
-        }).catch(err => {
-            console.error("Failed to start decoding", err);
-            setHasCameraPermission(false);
-        });
-    }
-    return () => { if (controls) controls.stop(); };
-  }, [isScannerOpen, handleScanResult]);
+    let activeStream: MediaStream | null = null;
+    let controls: any = null;
 
-  useEffect(() => {
     if (isScannerOpen) {
+        setIsScanning(true);
         navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
             .then(stream => {
-                if (videoRef.current) videoRef.current.srcObject = stream;
+                activeStream = stream;
+                if (videoRef.current) {
+                    videoRef.current.srcObject = stream;
+                    
+                    codeReader.current.decodeFromStream(stream, videoRef.current, (result, error) => {
+                        if (result) {
+                            handleScanResult(result.getText());
+                        }
+                    }).then(ctrls => {
+                        controls = ctrls;
+                    }).catch(err => {
+                        console.error("Failed to start decoding", err);
+                    });
+                }
                 setHasCameraPermission(true);
             })
-            .catch(() => setHasCameraPermission(false));
+            .catch((err) => {
+                console.error("Error accessing camera:", err);
+                setHasCameraPermission(false);
+            });
     }
-  }, [isScannerOpen]);
+
+    return () => {
+        if (controls) {
+            controls.stop();
+        }
+        codeReader.current.reset();
+        if (activeStream) {
+            activeStream.getTracks().forEach(track => {
+                track.stop();
+                track.enabled = false;
+            });
+        }
+        if (videoRef.current) {
+            videoRef.current.srcObject = null;
+        }
+    };
+  }, [isScannerOpen, handleScanResult]);
 
   const handleShareSignatureLink = async () => {
     if (selectedDepartments.length === 0 || selectedDepartments.includes('ALL')) {
