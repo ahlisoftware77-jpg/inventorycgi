@@ -99,6 +99,7 @@ export default function SettingsPage() {
   const [appVersion, setAppVersion] = useState('1.0');
   const [companyName, setCompanyName] = useState('PT. CHINA GLAZE INDONESIA');
   const [publicFooter, setPublicFooter] = useState('© 2026 PT. China Glaze Indonesia. Seluruh hak cipta dilindungi undang-undang.');
+  const [geminiApiKey, setGeminiApiKey] = useState('');
   
   const [departments, setDepartments] = useState<string[]>([]);
   const [categories, setCategories] = useState<CategoryObject[]>([]);
@@ -181,6 +182,7 @@ export default function SettingsPage() {
             setAppVersion(data.appVersion || '1.0');
             setCompanyName(data.companyName || 'PT. CHINA GLAZE INDONESIA');
             setPublicFooter(data.publicFooter || '© 2026 PT. China Glaze Indonesia. Seluruh hak cipta dilindungi undang-undang.');
+            setGeminiApiKey(data.geminiApiKey || '');
             setDepartments(data.departments || defaultDepts);
             setSeriesList(data.seriesList || ['Seri A', 'Seri B', 'Fasilitas']);
             setCostCenters(data.costCenters || []);
@@ -280,6 +282,7 @@ export default function SettingsPage() {
         categoryLabels,
         assetStatuses,
         assetConditions,
+        geminiApiKey,
         mainMenuOrder: mainMenuOrder.map(m => m.id),
         systemMenuOrder: systemMenuOrder.map(m => m.id),
       }, { merge: true });
@@ -611,6 +614,42 @@ export default function SettingsPage() {
                 placeholder="Teks footer untuk halaman verifikasi..."
                 className="min-h-[100px] rounded-2xl bg-slate-50 dark:bg-slate-800 border-none shadow-inner resize-none font-medium text-sm leading-relaxed"
               />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* GEMINI AI CONFIGURATION */}
+        <Card className="rounded-[2.5rem] border-none shadow-2xl overflow-hidden bg-white dark:bg-slate-900 text-black border-2 border-indigo-500/20">
+          <CardHeader className="p-8 sm:p-10 pb-4 bg-indigo-500/5 text-left">
+            <CardTitle className="flex items-center gap-2 text-xl font-black uppercase tracking-tight text-indigo-600 text-left">
+              <Sparkles className="w-6 h-6 text-indigo-600 animate-pulse" /> Integrasi Kecerdasan Buatan (Gemini AI)
+            </CardTitle>
+            <CardDescription className="text-[10px] font-black uppercase tracking-widest text-left">Konfigurasi API Key Google Gemini untuk fitur Analis Aset Pintar.</CardDescription>
+          </CardHeader>
+          <CardContent className="p-8 sm:p-10 space-y-6">
+            <div className="p-5 rounded-3xl bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-800/20 flex items-start gap-4 mb-6">
+              <Info className="h-5 w-5 text-indigo-600 mt-0.5" />
+              <p className="text-[11px] leading-relaxed text-indigo-800 dark:text-indigo-200 font-medium text-left">
+                Gunakan API Key dari Google AI Studio (Gemini) agar sistem dapat menghasilkan wawasan otomatis, mendeteksi tren kerusakan barang, dan memberikan rekomendasi preventif bagi tim manajemen.
+              </p>
+            </div>
+            
+            <div className="space-y-2 text-left">
+              <Label htmlFor="gemini-api-key" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Gemini API Key</Label>
+              <div className="relative">
+                <Input
+                  id="gemini-api-key"
+                  type="password"
+                  value={geminiApiKey}
+                  onChange={(e) => setGeminiApiKey(e.target.value)}
+                  placeholder="AIzaSy..."
+                  className="rounded-xl h-12 bg-slate-50 dark:bg-slate-800 border-none shadow-inner font-mono text-sm pr-10 text-black dark:text-white"
+                />
+                <Sparkles className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-indigo-400" />
+              </div>
+              <p className="text-[9px] text-muted-foreground italic px-1 text-left">
+                Kunci API ini disimpan secara aman di database dan hanya digunakan di server internal untuk pemrosesan data wawasan.
+              </p>
             </div>
           </CardContent>
         </Card>
