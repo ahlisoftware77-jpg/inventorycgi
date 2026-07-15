@@ -16,6 +16,7 @@ import RecentActivity from './recent-activity';
 import AnalogClock from './analog-clock';
 import QuickActions from './quick-actions';
 import TopLocations from './top-locations';
+import AIInsights from './ai-insights';
 import { Search, Info, ShieldCheck, Activity } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
@@ -171,9 +172,14 @@ export default function DashboardContent() {
             <SummaryCards data={summaryData} />
         </div>
 
-        <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
-            <QuickActions />
-            <TopLocations assets={assets} />
+        <div className="grid gap-6 grid-cols-1 lg:grid-cols-12">
+            <div className="lg:col-span-8 grid gap-6 grid-cols-1 md:grid-cols-2">
+                <QuickActions />
+                <TopLocations assets={assets} />
+            </div>
+            <div className="lg:col-span-4">
+                <AIInsights />
+            </div>
         </div>
 
         <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
