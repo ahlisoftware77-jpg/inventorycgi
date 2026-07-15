@@ -336,6 +336,38 @@ export default function TicketDetail({ ticketId, onBack }: TicketDetailProps) {
         }
         
         await updateDoc(ticketRef, updateData);
+
+        // GENERATE EMAIL FOR OUTLOOK (WHEN STARTING WORK VIA HELPDESK)
+        if (user.role === 'Admin' && newStatus === 'Diproses' && ticket.status !== 'Diproses') {
+            try {
+                const ticketDept = ticket.reporterDept || 'IT';
+                const ticketDesc = ticket.description || 'Blocked Login';
+                const adminName = user.displayName || user.email?.split('@')[0] || 'Yadi';
+
+                const reportLink = linkedReportId 
+                    ? `${window.location.origin}/public/it-report?id=${linkedReportId}`
+                    : `${window.location.origin}/public/it-report?ticketId=${ticket.id}&problem=${encodeURIComponent(ticketDesc)}&dept=${encodeURIComponent(ticketDept)}`;
+
+                const subject = `Update Data Glaze System ${ticketDept}`;
+                const body = `Dear Mr. Kiros,
+ 
+Please correct this PO with the following details:
+
+1.	${reportLink} (${ticketDesc})
+
+
+Thank you,
+ 
+Rgds,
+${adminName}`;
+
+                const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                window.location.href = mailtoUrl;
+            } catch (err) {
+                console.error("Failed to generate Outlook email from Helpdesk:", err);
+            }
+        }
+
         setIsSent(true);
         setTimeout(() => setIsSent(false), 3000);
         setUpdateNote('');

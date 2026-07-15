@@ -159,6 +159,48 @@ export default function MaintenanceDetailCard({ schedule }: MaintenanceDetailCar
             })
         });
 
+        // GENERATE EMAIL FOR OUTLOOK (WHEN STARTING WORK)
+        if (newStatus === 'Diproses') {
+            try {
+                const ticketSnap = await getDoc(ticketRef);
+                if (ticketSnap.exists()) {
+                    const ticketData = ticketSnap.data();
+                    const ticketDept = ticketData.reporterDept || 'IT';
+                    const ticketDesc = ticketData.description || 'Blocked Login';
+                    const adminName = user?.displayName || user?.email?.split('@')[0] || 'Yadi';
+
+                    const qReports = query(collection(db, 'it_problem_reports'), where('ticketId', '==', schedule.ticketId));
+                    const reportSnap = await getDocs(qReports);
+                    let reportId = '';
+                    if (!reportSnap.empty) {
+                        reportId = reportSnap.docs[0].id;
+                    }
+
+                    const reportLink = reportId 
+                        ? `${window.location.origin}/public/it-report?id=${reportId}`
+                        : `${window.location.origin}/public/it-report?ticketId=${schedule.ticketId}&problem=${encodeURIComponent(ticketDesc)}&dept=${encodeURIComponent(ticketDept)}`;
+
+                    const subject = `Update Data Glaze System ${ticketDept}`;
+                    const body = `Dear Mr. Kiros,
+ 
+Please correct this PO with the following details:
+
+1.	${reportLink} (${ticketDesc})
+
+
+Thank you,
+ 
+Rgds,
+${adminName}`;
+
+                    const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                    window.location.href = mailtoUrl;
+                }
+            } catch (err) {
+                console.error("Failed to generate Outlook email:", err);
+            }
+        }
+
         // REAKSI SINKRONISASI TANGGAL SELESAI PADA FORM 0-32-028
         if (newStatus === 'Selesai') {
           const qReports = query(collection(db, 'it_problem_reports'), where('ticketId', '==', schedule.ticketId));
