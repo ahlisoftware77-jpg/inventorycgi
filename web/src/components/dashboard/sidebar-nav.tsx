@@ -61,38 +61,38 @@ import type { User, Asset } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
-const itemColorMap: Record<string, { activeBg: string, shadow: string, iconColor: string, inactiveIconBg: string }> = {
-  dashboard: { activeBg: 'bg-teal-900/60', shadow: 'shadow-teal-900/10', iconColor: 'text-sky-300', inactiveIconBg: 'bg-teal-950/40' },
-  workflow: { activeBg: 'bg-teal-900/60', shadow: 'shadow-teal-900/10', iconColor: 'text-indigo-300', inactiveIconBg: 'bg-teal-950/40' },
-  announcements: { activeBg: 'bg-teal-900/60', shadow: 'shadow-teal-900/10', iconColor: 'text-purple-300', inactiveIconBg: 'bg-teal-950/40' },
-  assets_a: { activeBg: 'bg-teal-900/60', shadow: 'shadow-teal-900/10', iconColor: 'text-emerald-300', inactiveIconBg: 'bg-teal-950/40' },
-  assets_util: { activeBg: 'bg-teal-900/60', shadow: 'shadow-teal-900/10', iconColor: 'text-yellow-300', inactiveIconBg: 'bg-teal-950/40' },
-  assets_report: { activeBg: 'bg-teal-900/60', shadow: 'shadow-teal-900/10', iconColor: 'text-cyan-300', inactiveIconBg: 'bg-teal-950/40' },
-  assets_it: { activeBg: 'bg-teal-900/60', shadow: 'shadow-teal-900/10', iconColor: 'text-sky-200', inactiveIconBg: 'bg-teal-950/40' },
-  iso: { activeBg: 'bg-teal-900/60', shadow: 'shadow-teal-900/10', iconColor: 'text-teal-300', inactiveIconBg: 'bg-teal-950/40' },
-  maintenance: { activeBg: 'bg-teal-900/60', shadow: 'shadow-teal-900/10', iconColor: 'text-violet-300', inactiveIconBg: 'bg-teal-950/40' },
-  helpdesk: { activeBg: 'bg-teal-900/60', shadow: 'shadow-teal-900/10', iconColor: 'text-pink-300', inactiveIconBg: 'bg-teal-950/40' },
-  inventory: { activeBg: 'bg-teal-900/60', shadow: 'shadow-teal-900/10', iconColor: 'text-rose-300', inactiveIconBg: 'bg-teal-950/40' },
-  inventory_requests: { activeBg: 'bg-teal-900/60', shadow: 'shadow-teal-900/10', iconColor: 'text-orange-300', inactiveIconBg: 'bg-teal-950/40' },
-  mutations: { activeBg: 'bg-teal-900/60', shadow: 'shadow-teal-900/10', iconColor: 'text-amber-300', inactiveIconBg: 'bg-teal-950/40' },
-  inventory_report: { activeBg: 'bg-teal-900/60', shadow: 'shadow-teal-900/10', iconColor: 'text-lime-300', inactiveIconBg: 'bg-teal-950/40' },
-  logs: { activeBg: 'bg-teal-900/60', shadow: 'shadow-teal-900/10', iconColor: 'text-slate-300', inactiveIconBg: 'bg-teal-950/40' },
+const itemColorMap: Record<string, { activeIconColor: string, shadow: string, iconColor: string, inactiveIconBg: string }> = {
+  dashboard: { activeIconColor: 'text-teal-700', shadow: 'shadow-teal-900/5', iconColor: 'text-sky-305', inactiveIconBg: 'bg-teal-950/40' },
+  workflow: { activeIconColor: 'text-indigo-700', shadow: 'shadow-teal-900/5', iconColor: 'text-indigo-305', inactiveIconBg: 'bg-teal-950/40' },
+  announcements: { activeIconColor: 'text-purple-700', shadow: 'shadow-teal-900/5', iconColor: 'text-purple-305', inactiveIconBg: 'bg-teal-950/40' },
+  assets_a: { activeIconColor: 'text-emerald-700', shadow: 'shadow-teal-900/5', iconColor: 'text-emerald-305', inactiveIconBg: 'bg-teal-950/40' },
+  assets_util: { activeIconColor: 'text-teal-800', shadow: 'shadow-teal-900/5', iconColor: 'text-yellow-305', inactiveIconBg: 'bg-teal-950/40' },
+  assets_report: { activeIconColor: 'text-cyan-700', shadow: 'shadow-teal-900/5', iconColor: 'text-cyan-305', inactiveIconBg: 'bg-teal-950/40' },
+  assets_it: { activeIconColor: 'text-sky-750', shadow: 'shadow-teal-900/5', iconColor: 'text-sky-205', inactiveIconBg: 'bg-teal-950/40' },
+  iso: { activeIconColor: 'text-teal-700', shadow: 'shadow-teal-900/5', iconColor: 'text-teal-305', inactiveIconBg: 'bg-teal-950/40' },
+  maintenance: { activeIconColor: 'text-violet-700', shadow: 'shadow-teal-900/5', iconColor: 'text-violet-305', inactiveIconBg: 'bg-teal-950/40' },
+  helpdesk: { activeIconColor: 'text-pink-700', shadow: 'shadow-teal-900/5', iconColor: 'text-pink-305', inactiveIconBg: 'bg-teal-950/40' },
+  inventory: { activeIconColor: 'text-rose-700', shadow: 'shadow-teal-900/5', iconColor: 'text-rose-305', inactiveIconBg: 'bg-teal-950/40' },
+  inventory_requests: { activeIconColor: 'text-orange-700', shadow: 'shadow-teal-900/5', iconColor: 'text-orange-305', inactiveIconBg: 'bg-teal-950/40' },
+  mutations: { activeIconColor: 'text-amber-700', shadow: 'shadow-teal-900/5', iconColor: 'text-amber-305', inactiveIconBg: 'bg-teal-950/40' },
+  inventory_report: { activeIconColor: 'text-lime-700', shadow: 'shadow-teal-900/5', iconColor: 'text-lime-350', inactiveIconBg: 'bg-teal-950/40' },
+  logs: { activeIconColor: 'text-slate-700', shadow: 'shadow-teal-900/5', iconColor: 'text-slate-305', inactiveIconBg: 'bg-teal-950/40' },
   
-  users: { activeBg: 'bg-teal-900/60', shadow: 'shadow-teal-900/10', iconColor: 'text-sky-300', inactiveIconBg: 'bg-teal-950/40' },
-  kategori: { activeBg: 'bg-teal-900/60', shadow: 'shadow-teal-900/10', iconColor: 'text-indigo-300', inactiveIconBg: 'bg-teal-950/40' },
-  cost_center: { activeBg: 'bg-teal-900/60', shadow: 'shadow-teal-900/10', iconColor: 'text-emerald-300', inactiveIconBg: 'bg-teal-950/40' },
-  scan_qr: { activeBg: 'bg-teal-900/60', shadow: 'shadow-teal-900/10', iconColor: 'text-violet-300', inactiveIconBg: 'bg-teal-950/40' },
-  scan_nfc: { activeBg: 'bg-teal-900/60', shadow: 'shadow-teal-900/10', iconColor: 'text-purple-300', inactiveIconBg: 'bg-teal-950/40' },
-  preview_forms: { activeBg: 'bg-teal-900/60', shadow: 'shadow-teal-900/10', iconColor: 'text-cyan-300', inactiveIconBg: 'bg-teal-950/40' },
-  it_problem: { activeBg: 'bg-teal-900/60', shadow: 'shadow-teal-900/10', iconColor: 'text-rose-300', inactiveIconBg: 'bg-teal-950/40' },
-  compare: { activeBg: 'bg-teal-900/60', shadow: 'shadow-teal-900/10', iconColor: 'text-amber-300', inactiveIconBg: 'bg-teal-950/40' },
-  stamps: { activeBg: 'bg-teal-900/60', shadow: 'shadow-teal-900/10', iconColor: 'text-orange-300', inactiveIconBg: 'bg-teal-950/40' },
-  thermal: { activeBg: 'bg-teal-900/60', shadow: 'shadow-teal-900/10', iconColor: 'text-teal-300', inactiveIconBg: 'bg-teal-950/40' },
-  recycle: { activeBg: 'bg-teal-900/60', shadow: 'shadow-teal-900/10', iconColor: 'text-red-300', inactiveIconBg: 'bg-teal-950/40' },
-  settings: { activeBg: 'bg-teal-900/60', shadow: 'shadow-teal-900/10', iconColor: 'text-slate-300', inactiveIconBg: 'bg-teal-950/40' },
-  backup: { activeBg: 'bg-teal-900/60', shadow: 'shadow-teal-900/10', iconColor: 'text-indigo-300', inactiveIconBg: 'bg-teal-950/40' },
-  roles: { activeBg: 'bg-teal-900/60', shadow: 'shadow-teal-900/10', iconColor: 'text-cyan-300', inactiveIconBg: 'bg-teal-950/40' },
-  help: { activeBg: 'bg-teal-900/60', shadow: 'shadow-teal-900/10', iconColor: 'text-sky-300', inactiveIconBg: 'bg-teal-950/40' }
+  users: { activeIconColor: 'text-teal-700', shadow: 'shadow-teal-900/5', iconColor: 'text-sky-305', inactiveIconBg: 'bg-teal-950/40' },
+  kategori: { activeIconColor: 'text-teal-700', shadow: 'shadow-teal-900/5', iconColor: 'text-indigo-305', inactiveIconBg: 'bg-teal-950/40' },
+  cost_center: { activeIconColor: 'text-emerald-700', shadow: 'shadow-teal-900/5', iconColor: 'text-emerald-305', inactiveIconBg: 'bg-teal-950/40' },
+  scan_qr: { activeIconColor: 'text-violet-700', shadow: 'shadow-teal-900/5', iconColor: 'text-violet-305', inactiveIconBg: 'bg-teal-950/40' },
+  scan_nfc: { activeIconColor: 'text-purple-700', shadow: 'shadow-teal-900/5', iconColor: 'text-purple-305', inactiveIconBg: 'bg-teal-950/40' },
+  preview_forms: { activeIconColor: 'text-cyan-700', shadow: 'shadow-teal-900/5', iconColor: 'text-cyan-305', inactiveIconBg: 'bg-teal-950/40' },
+  it_problem: { activeIconColor: 'text-rose-700', shadow: 'shadow-teal-900/5', iconColor: 'text-rose-305', inactiveIconBg: 'bg-teal-950/40' },
+  compare: { activeIconColor: 'text-amber-700', shadow: 'shadow-teal-900/5', iconColor: 'text-amber-305', inactiveIconBg: 'bg-teal-950/40' },
+  stamps: { activeIconColor: 'text-orange-700', shadow: 'shadow-teal-900/5', iconColor: 'text-orange-305', inactiveIconBg: 'bg-teal-950/40' },
+  thermal: { activeIconColor: 'text-teal-700', shadow: 'shadow-teal-900/5', iconColor: 'text-teal-305', inactiveIconBg: 'bg-teal-950/40' },
+  recycle: { activeIconColor: 'text-red-700', shadow: 'shadow-teal-900/5', iconColor: 'text-red-305', inactiveIconBg: 'bg-teal-950/40' },
+  settings: { activeIconColor: 'text-slate-700', shadow: 'shadow-teal-900/5', iconColor: 'text-slate-305', inactiveIconBg: 'bg-teal-950/40' },
+  backup: { activeIconColor: 'text-teal-700', shadow: 'shadow-teal-900/5', iconColor: 'text-indigo-305', inactiveIconBg: 'bg-teal-950/40' },
+  roles: { activeIconColor: 'text-cyan-700', shadow: 'shadow-teal-900/5', iconColor: 'text-cyan-305', inactiveIconBg: 'bg-teal-950/40' },
+  help: { activeIconColor: 'text-sky-700', shadow: 'shadow-teal-900/5', iconColor: 'text-sky-305', inactiveIconBg: 'bg-teal-950/40' }
 };
 
 export default function SidebarNav() {
@@ -285,19 +285,19 @@ export default function SidebarNav() {
                   <span className="text-xs font-black uppercase tracking-wider leading-none truncate text-white">
                       {fullCompanyName}
                   </span>
-                  <span className="text-[7.5px] font-black text-teal-350 tracking-[0.25em] uppercase truncate mt-1">Asset Control</span>
+                  <span className="text-[7.5px] font-black text-teal-300 tracking-[0.25em] uppercase truncate mt-1">Asset Control</span>
                 </div>
             </Link>
              <SidebarTrigger className="hidden md:flex rounded-full text-teal-150 hover:bg-teal-900/40 hover:text-white ml-auto transition-transform active:scale-95" />
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="bg-teal-700 text-teal-50 selection:bg-teal-900 custom-scrollbar border-r border-teal-800/40">
+      <SidebarContent className="bg-teal-700 text-teal-50 selection:bg-teal-900 custom-scrollbar border-r border-teal-800/40 relative overflow-x-hidden">
         <div className="w-full">
-          <SidebarMenu className="gap-1 px-2 py-4">
+          <SidebarMenu className="gap-1 pl-2 pr-0 py-4">
             {filteredMainItems.map((item) => {
               const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href.split('?')[0]));
-              const colors = itemColorMap[item.id] || { activeBg: 'bg-teal-900/60', shadow: 'shadow-teal-900/10', iconColor: 'text-teal-300', inactiveIconBg: 'bg-teal-950/40' };
+              const colors = itemColorMap[item.id] || { activeIconColor: 'text-teal-700', shadow: 'shadow-teal-900/5', iconColor: 'text-teal-355', inactiveIconBg: 'bg-teal-950/40' };
               return (
                 <div key={item.id} className="w-full">
                   <SidebarMenuItem className="list-none">
@@ -306,14 +306,14 @@ export default function SidebarNav() {
                       className={cn(
                         "w-full px-3 py-2 rounded-xl flex items-center gap-3 transition-all duration-200 group relative border border-transparent",
                         isActive 
-                          ? `${colors.activeBg} text-white font-extrabold shadow-md ${colors.shadow} border-teal-800/25 scale-[1.02]` 
+                          ? "w-[calc(100%+8px)] px-3 py-2.5 rounded-l-2xl rounded-r-none bg-slate-50 text-teal-900 font-extrabold shadow-md border-y border-l border-teal-800/10 relative z-20" 
                           : "text-teal-100 hover:text-white hover:bg-teal-600/50 font-semibold"
                       )}
                     >
                       <span className={cn(
                         "p-1.5 rounded-lg flex items-center justify-center shrink-0 transition-all duration-300",
                         isActive 
-                          ? "bg-white/20 text-white" 
+                          ? "bg-teal-100/60 " + colors.activeIconColor 
                           : `${colors.inactiveIconBg} border border-teal-900/10 ${colors.iconColor} group-hover:scale-110 group-hover:border-teal-900/20`
                       )}>
                         <item.icon className="size-4 shrink-0" />
@@ -324,7 +324,7 @@ export default function SidebarNav() {
                           <span className={cn(
                               "text-[9px] font-black rounded-lg h-5 min-w-[20px] px-1 flex items-center justify-center shadow-md",
                               isActive
-                                ? "bg-white text-teal-900 font-extrabold"
+                                ? "bg-teal-100 text-teal-900 font-extrabold"
                                 : item.urgent ? "bg-rose-600 text-white animate-bounce" : "bg-teal-950/55 text-teal-200 border border-teal-900/20"
                           )}>
                               {item.count}
@@ -337,7 +337,7 @@ export default function SidebarNav() {
             })}
 
             {filteredSystemItems.length > 0 && (
-              <div className="mt-6 border-t border-teal-800/50 pt-4">
+              <div className="mt-6 border-t border-teal-850/40 pt-4 mr-2">
                 <Collapsible open={isSystemOpen} onOpenChange={setIsSystemOpen} className="w-full group/collapsible">
                   <SidebarMenuItem className="list-none">
                     <CollapsibleTrigger asChild>
@@ -359,10 +359,10 @@ export default function SidebarNav() {
                     </CollapsibleTrigger>
                   </SidebarMenuItem>
                   <CollapsibleContent className="animate-in fade-in slide-in-from-top-2 duration-300">
-                    <SidebarMenu className="mt-1.5 gap-1 pl-4 pr-1">
+                    <SidebarMenu className="mt-1.5 gap-1 pl-4 pr-0">
                       {filteredSystemItems.map((item) => {
                         const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href.split('?')[0]));
-                        const colors = itemColorMap[item.id] || { activeBg: 'bg-teal-900/60', shadow: 'shadow-teal-900/10', iconColor: 'text-teal-350', inactiveIconBg: 'bg-teal-950/40' };
+                        const colors = itemColorMap[item.id] || { activeIconColor: 'text-teal-700', shadow: 'shadow-teal-900/5', iconColor: 'text-teal-355', inactiveIconBg: 'bg-teal-950/40' };
                         return (
                           <SidebarMenuItem key={item.id} className="list-none">
                             <Link 
@@ -370,14 +370,14 @@ export default function SidebarNav() {
                               className={cn(
                                 "w-full px-3 py-1.5 rounded-xl flex items-center gap-2.5 transition-all duration-200 group border border-transparent",
                                 isActive 
-                                  ? `${colors.activeBg} text-white font-extrabold shadow-md ${colors.shadow} border-teal-800/25 scale-[1.01]` 
+                                  ? "w-[calc(100%+24px)] -translate-x-4 pl-7 pr-3 rounded-l-2xl rounded-r-none bg-slate-50 text-teal-900 font-extrabold shadow-md border-y border-l border-teal-800/10 relative z-20" 
                                   : "text-teal-200/90 hover:text-white hover:bg-teal-600/40 font-medium"
                               )}
                             >
                               <span className={cn(
                                 "p-1 rounded-md flex items-center justify-center shrink-0 transition-all duration-300",
                                 isActive 
-                                  ? "bg-white/20 text-white" 
+                                  ? "bg-teal-100/60 " + colors.activeIconColor 
                                   : `${colors.inactiveIconBg} border border-teal-900/10 ${colors.iconColor} group-hover:scale-105 group-hover:border-teal-900/20`
                               )}>
                                 <item.icon className="size-3.5 shrink-0" />
@@ -386,7 +386,7 @@ export default function SidebarNav() {
                               {item.count && item.count > 0 ? (
                                   <span className={cn(
                                       "text-[8px] font-black rounded-full h-4 min-w-[16px] px-0.5 flex items-center justify-center shadow-sm",
-                                      isActive ? "bg-white text-teal-900" : "bg-teal-950/50 text-teal-200"
+                                      isActive ? "bg-teal-100 text-teal-900 font-bold" : "bg-teal-950/50 text-teal-200"
                                   )}>
                                       {item.count}
                                   </span>
