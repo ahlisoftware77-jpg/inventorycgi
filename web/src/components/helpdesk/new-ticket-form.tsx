@@ -115,7 +115,7 @@ export default function NewTicketForm({ onComplete }: NewTicketFormProps) {
     formData.append('file', selectedFile);
     formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
     try {
-      const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+      const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`, {
         method: 'POST',
         body: formData,
       });
@@ -365,23 +365,27 @@ export default function NewTicketForm({ onComplete }: NewTicketFormProps) {
                     </div>
 
                     <div className="space-y-4">
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1 tracking-widest text-left block">Lampiran Visual (Bisa Paste Screenshot)</Label>
+                        <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1 tracking-widest text-left block">Lampiran Masalah (Gambar atau Dokumen - Bisa Paste Screenshot)</Label>
                         <div className="grid grid-cols-2 gap-3">
                             <Button type="button" variant="outline" className="h-12 rounded-xl font-bold border-slate-200 bg-white text-black" onClick={() => fileInputRef.current?.click()}>
-                                <FileImage className="mr-2 h-4 w-4 text-blue-600" /> Pilih File
+                                <UploadCloud className="mr-2 h-4 w-4 text-blue-600" /> Pilih File / Dokumen
                             </Button>
                             <Button type="button" variant="outline" className="h-12 rounded-xl font-bold border-slate-200 bg-white text-black" onClick={() => setIsCameraOpen(true)}>
                                 <Camera className="mr-2 h-4 w-4 text-blue-600" /> Buka Kamera
                             </Button>
-                            <Input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+                            <Input ref={fileInputRef} type="file" className="hidden" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar" onChange={handleFileChange} />
                         </div>
-                        {previewUrl && (
+                        {selectedFile && (
                             <div className="p-4 border-2 border-dashed border-primary/20 rounded-3xl bg-white dark:bg-slate-900 flex items-center gap-4 animate-in zoom-in-95 shadow-xl">
-                                <div className="relative h-20 w-20 rounded-2xl overflow-hidden border-2 border-white shadow-md shrink-0">
-                                    <Image src={previewUrl} alt="Preview" fill className="object-cover" />
+                                <div className="relative h-20 w-20 rounded-2xl overflow-hidden border-2 border-white bg-slate-100 flex items-center justify-center shrink-0">
+                                    {previewUrl ? (
+                                        <Image src={previewUrl} alt="Preview" fill className="object-cover" />
+                                    ) : (
+                                        <FileText className="h-8 w-8 text-primary" />
+                                    )}
                                 </div>
                                 <div className="min-w-0 flex-1 text-left">
-                                    <p className="text-xs font-black truncate text-slate-900 dark:text-white uppercase leading-tight text-left">{selectedFile?.name || 'Lampiran Gambar'}</p>
+                                    <p className="text-xs font-black truncate text-slate-900 dark:text-white uppercase leading-tight text-left">{selectedFile.name}</p>
                                     <p className="text-[10px] text-emerald-600 font-black tracking-widest mt-1 uppercase text-left">✓ SIAP UNTUK DIKIRIM</p>
                                 </div>
                                 <Button size="icon" variant="ghost" className="h-10 w-10 rounded-full hover:bg-rose-50 hover:text-rose-600 shrink-0 text-black" onClick={() => { setSelectedFile(null); setPreviewUrl(null); }}><X className="h-5 w-5" /></Button>

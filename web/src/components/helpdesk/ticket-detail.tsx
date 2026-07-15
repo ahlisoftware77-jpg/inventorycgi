@@ -69,6 +69,20 @@ import {
 const CLOUDINARY_CLOUD_NAME = 'dbguqcgeq';
 const CLOUDINARY_UPLOAD_PRESET = 'UNSIGNED';
 
+const isImageUrl = (url: string) => {
+  if (!url) return false;
+  if (url.startsWith('data:image/')) return true;
+  if (url.includes('/raw/upload/')) return false;
+  
+  const cleanUrl = url.split('?')[0].split('#')[0].toLowerCase();
+  return cleanUrl.endsWith('.jpg') || 
+         cleanUrl.endsWith('.jpeg') || 
+         cleanUrl.endsWith('.png') || 
+         cleanUrl.endsWith('.webp') || 
+         cleanUrl.endsWith('.gif') || 
+         cleanUrl.endsWith('.svg');
+};
+
 interface TicketDetailProps {
     ticketId: string;
     onBack?: () => void;
@@ -255,7 +269,7 @@ export default function TicketDetail({ ticketId, onBack }: TicketDetailProps) {
     formData.append('file', selectedFile);
     formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
     try {
-      const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+      const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`, {
         method: 'POST',
         body: formData,
       });
@@ -643,16 +657,31 @@ ${adminName}`;
 
                 {ticket.photoURL && (
                     <>
-                        <SectionLabel title="Bukti Visual" />
-                        <div 
-                            className="relative aspect-video rounded-2xl overflow-hidden border-2 border-slate-100 dark:border-slate-800 shadow-xl group cursor-pointer" 
-                            onClick={() => window.open(ticket.photoURL, '_blank')}
-                        >
-                            <Image src={ticket.photoURL} alt="Bukti Visual" fill className="object-cover transition-transform duration-700 group-hover:scale-110" />
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
-                                <Button variant="secondary" size="sm" className="rounded-full font-black text-[10px] uppercase text-left">Buka Foto</Button>
+                        <SectionLabel title="Bukti Lampiran" />
+                        {isImageUrl(ticket.photoURL) ? (
+                            <div 
+                                className="relative aspect-video rounded-2xl overflow-hidden border-2 border-slate-100 dark:border-slate-800 shadow-xl group cursor-pointer" 
+                                onClick={() => window.open(ticket.photoURL, '_blank')}
+                            >
+                                <Image src={ticket.photoURL} alt="Bukti Visual" fill className="object-cover transition-transform duration-700 group-hover:scale-110" />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
+                                    <Button variant="secondary" size="sm" className="rounded-full font-black text-[10px] uppercase text-left">Buka Foto</Button>
+                                </div>
                             </div>
-                        </div>
+                        ) : (
+                            <div 
+                                className="p-4 border border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-900/50 flex items-center gap-3 cursor-pointer shadow-sm hover:shadow transition-all group"
+                                onClick={() => window.open(ticket.photoURL, '_blank')}
+                            >
+                                <div className="p-3 bg-blue-50 dark:bg-blue-950/40 rounded-xl text-blue-600 dark:text-blue-400 group-hover:scale-105 transition-transform">
+                                    <FileText className="h-6 w-6" />
+                                </div>
+                                <div className="min-w-0 flex-1 text-left">
+                                    <p className="text-xs font-black text-slate-950 dark:text-white uppercase leading-tight truncate text-left">Dokumen Lampiran</p>
+                                    <p className="text-[9px] text-slate-400 font-bold tracking-widest mt-1 uppercase text-left">Klik untuk buka/unduh</p>
+                                </div>
+                            </div>
+                        )}
                     </>
                 )}
             </aside>
@@ -696,13 +725,28 @@ ${adminName}`;
                             {ticket.photoURL && (
                                 <div className="space-y-3">
                                     <SectionLabel title="Lampiran Utama" />
-                                    <div 
-                                        className="relative aspect-video rounded-[2.5rem] overflow-hidden border-4 border-white shadow-2xl bg-slate-200 cursor-pointer" 
-                                        onClick={() => window.open(ticket.photoURL, '_blank')}
-                                    >
-                                        <Image src={ticket.photoURL} alt="Lampiran Utama" fill className="object-cover" />
-                                        <div className="absolute bottom-4 right-6 bg-black/60 backdrop-blur-md text-white text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg text-left">TAP UNTUK PERBESAR</div>
-                                    </div>
+                                    {isImageUrl(ticket.photoURL) ? (
+                                        <div 
+                                            className="relative aspect-video rounded-[2.5rem] overflow-hidden border-4 border-white shadow-2xl bg-slate-200 cursor-pointer" 
+                                            onClick={() => window.open(ticket.photoURL, '_blank')}
+                                        >
+                                            <Image src={ticket.photoURL} alt="Lampiran Utama" fill className="object-cover" />
+                                            <div className="absolute bottom-4 right-6 bg-black/60 backdrop-blur-md text-white text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg text-left">TAP UNTUK PERBESAR</div>
+                                        </div>
+                                    ) : (
+                                        <div 
+                                            className="p-4 border border-slate-200 dark:border-slate-800 rounded-3xl bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-900/50 flex items-center gap-3 cursor-pointer shadow-xl transition-all group"
+                                            onClick={() => window.open(ticket.photoURL, '_blank')}
+                                        >
+                                            <div className="p-3 bg-blue-50 dark:bg-blue-950/40 rounded-xl text-blue-600 dark:text-blue-400 group-hover:scale-105 transition-transform">
+                                                <FileText className="h-6 w-6" />
+                                            </div>
+                                            <div className="min-w-0 flex-1 text-left">
+                                                <p className="text-xs font-black text-slate-950 dark:text-white uppercase leading-tight truncate text-left">Dokumen Lampiran</p>
+                                                <p className="text-[9px] text-slate-400 font-bold tracking-widest mt-1 uppercase text-left">Klik untuk buka/unduh</p>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -753,13 +797,28 @@ ${adminName}`;
                                         )}>
                                             {update.note && <p className="font-medium whitespace-pre-wrap text-left">{update.note}</p>}
                                             {update.attachmentURL && (
-                                                <div 
-                                                    className="mt-4 relative aspect-video rounded-2xl overflow-hidden border border-white/20 bg-black/20 cursor-pointer hover:opacity-90 transition-opacity shadow-inner text-left" 
-                                                    onClick={() => window.open(update.attachmentURL, '_blank')}
-                                                >
-                                                    <Image src={update.attachmentURL} alt="update lampiran" fill className="object-cover" />
-                                                    <div className="absolute bottom-2 right-3 bg-black/40 text-white text-[7px] font-black px-2 py-0.5 rounded-md text-left">TAP UNTUK PERBESAR</div>
-                                                </div>
+                                                isImageUrl(update.attachmentURL) ? (
+                                                    <div 
+                                                        className="mt-4 relative aspect-video rounded-2xl overflow-hidden border border-white/20 bg-black/20 cursor-pointer hover:opacity-90 transition-opacity shadow-inner text-left" 
+                                                        onClick={() => window.open(update.attachmentURL, '_blank')}
+                                                    >
+                                                        <Image src={update.attachmentURL} alt="update lampiran" fill className="object-cover" />
+                                                        <div className="absolute bottom-2 right-3 bg-black/40 text-white text-[7px] font-black px-2 py-0.5 rounded-md text-left">TAP UNTUK PERBESAR</div>
+                                                    </div>
+                                                ) : (
+                                                    <div 
+                                                        className={cn(
+                                                            "mt-4 p-3 rounded-xl flex items-center gap-2.5 cursor-pointer border shadow-inner transition-all hover:bg-white/5",
+                                                            isMe 
+                                                                ? "bg-black/10 border-white/10 text-white" 
+                                                                : "bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-black dark:text-white"
+                                                        )}
+                                                        onClick={() => window.open(update.attachmentURL, '_blank')}
+                                                    >
+                                                        <FileText className="h-5 w-5 shrink-0 text-blue-400" />
+                                                        <span className="text-[10px] font-bold uppercase tracking-wider truncate text-left">Buka Dokumen</span>
+                                                    </div>
+                                                )
                                             )}
                                         </div>
                                         {!isMe && canDelete && (
@@ -840,14 +899,21 @@ ${adminName}`;
                                 <div className="flex items-center gap-2 text-left">
                                     <Button variant="outline" size="icon" className="rounded-full h-10 w-10 sm:h-12 sm:w-12 border-slate-200 dark:border-slate-800 hover:bg-primary/5 hover:text-primary transition-all shrink-0 text-black text-left" onClick={() => fileInputRef.current?.click()} title="Lampirkan File"><Paperclip className="h-5 w-5" /></Button>
                                     <Button variant="outline" size="icon" className="rounded-full h-10 w-10 sm:h-12 sm:w-12 border-slate-200 dark:border-slate-800 hover:bg-primary/5 hover:text-primary transition-all shrink-0 text-black text-left" onClick={() => setIsCameraOpen(true)} title="Gunakan Kamera"><Camera className="h-5 w-5" /></Button>
-                                    <Input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+                                    <Input ref={fileInputRef} type="file" className="hidden" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar" onChange={handleFileChange} />
                                     
-                                    {previewUrl && (
-                                        <div className="flex items-center gap-2 p-1.5 pl-3 border border-primary/20 rounded-full bg-primary/5 animate-in zoom-in-95 max-w-[150px] sm:max-w-none text-left">
-                                            <div className="relative h-6 w-6 sm:h-8 sm:w-8 rounded-full overflow-hidden border border-primary/30 shrink-0"><Image src={previewUrl} alt="prev" fill className="object-cover" /></div>
-                                            <Button size="icon" variant="ghost" className="h-6 w-6 sm:h-8 sm:w-8 rounded-full hover:bg-rose-50 hover:text-rose-600 text-black" onClick={() => { setSelectedFile(null); setPreviewUrl(null); }}><X className="h-4 w-4" /></Button>
-                                        </div>
-                                    )}
+                                    {selectedFile && (
+                                         <div className="flex items-center gap-2 p-1.5 pl-3 border border-primary/20 rounded-full bg-primary/5 animate-in zoom-in-95 max-w-[150px] sm:max-w-none text-left">
+                                             <div className="relative h-6 w-6 sm:h-8 sm:w-8 rounded-full overflow-hidden border border-primary/30 shrink-0 bg-white flex items-center justify-center">
+                                                 {previewUrl ? (
+                                                     <Image src={previewUrl} alt="prev" fill className="object-cover" />
+                                                 ) : (
+                                                     <FileText className="h-4 w-4 text-primary" />
+                                                 )}
+                                             </div>
+                                             <span className="text-[10px] font-bold truncate max-w-[80px] sm:max-w-[120px] text-slate-700 dark:text-slate-300 text-left">{selectedFile.name}</span>
+                                             <Button size="icon" variant="ghost" className="h-6 w-6 sm:h-8 sm:w-8 rounded-full hover:bg-rose-50 hover:text-rose-600 text-black" onClick={() => { setSelectedFile(null); setPreviewUrl(null); }}><X className="h-4 w-4" /></Button>
+                                         </div>
+                                     )}
                                 </div>
 
                                 <Button 

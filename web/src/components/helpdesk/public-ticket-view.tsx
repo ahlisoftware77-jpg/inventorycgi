@@ -39,6 +39,20 @@ import { id as localeID } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
+const isImageUrl = (url: string) => {
+  if (!url) return false;
+  if (url.startsWith('data:image/')) return true;
+  if (url.includes('/raw/upload/')) return false;
+  
+  const cleanUrl = url.split('?')[0].split('#')[0].toLowerCase();
+  return cleanUrl.endsWith('.jpg') || 
+         cleanUrl.endsWith('.jpeg') || 
+         cleanUrl.endsWith('.png') || 
+         cleanUrl.endsWith('.webp') || 
+         cleanUrl.endsWith('.gif') || 
+         cleanUrl.endsWith('.svg');
+};
+
 interface PublicTicketViewProps {
   ticketId: string;
 }
@@ -195,10 +209,25 @@ export default function PublicTicketView({ ticketId }: PublicTicketViewProps) {
 
                 {ticket.photoURL && (
                     <div className="space-y-4">
-                        <p className="text-[10px] font-black text-primary uppercase tracking-[0.3em] pl-1 border-l-2 border-primary text-left">Lampiran Visual</p>
-                        <div className="relative aspect-video rounded-3xl overflow-hidden border-2 border-white shadow-xl bg-slate-200">
-                            <Image src={ticket.photoURL} alt="Bukti Kendala" fill className="object-cover" />
-                        </div>
+                        <p className="text-[10px] font-black text-primary uppercase tracking-[0.3em] pl-1 border-l-2 border-primary text-left">Dokumen / Lampiran</p>
+                        {isImageUrl(ticket.photoURL) ? (
+                            <div className="relative aspect-video rounded-3xl overflow-hidden border-2 border-white shadow-xl bg-slate-200">
+                                <Image src={ticket.photoURL} alt="Bukti Kendala" fill className="object-cover" />
+                            </div>
+                        ) : (
+                            <div 
+                                className="p-4 border border-slate-200 rounded-3xl bg-white hover:bg-slate-50 flex items-center gap-3 cursor-pointer shadow-xl transition-all group"
+                                onClick={() => window.open(ticket.photoURL, '_blank')}
+                            >
+                                <div className="p-3 bg-blue-50 rounded-xl text-blue-600 group-hover:scale-105 transition-transform">
+                                    <FileText className="h-6 w-6" />
+                                </div>
+                                <div className="min-w-0 flex-1 text-left">
+                                    <p className="text-xs font-black text-slate-950 uppercase leading-tight truncate text-left">Dokumen Lampiran</p>
+                                    <p className="text-[9px] text-slate-400 font-bold tracking-widest mt-1 uppercase text-left">Klik untuk buka/unduh</p>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
