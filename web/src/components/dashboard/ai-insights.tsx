@@ -4,7 +4,7 @@ import { useActionState } from 'react';
 import { getAssetInsightsAction } from '@/lib/actions';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Sparkles, Loader2, RefreshCw, ShieldCheck } from 'lucide-react';
+import { Sparkles, Loader2, RefreshCw, ShieldCheck, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const initialState = {
@@ -107,7 +107,18 @@ export default function AIInsights() {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="h-[350px] p-5 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 shadow-inner overflow-y-auto custom-scrollbar">
-          {state.message ? (
+          {state.error ? (
+            <div className="h-full flex flex-col items-center justify-center text-center gap-3 text-red-200 animate-in fade-in duration-300">
+              <div className="p-3 bg-red-500/20 rounded-full border border-red-500/30">
+                <AlertCircle className="h-8 w-8 text-red-300" />
+              </div>
+              <p className="text-xs font-black uppercase tracking-wider text-red-200">Gagal Menghubungkan AI</p>
+              <p className="text-[10px] font-medium leading-relaxed opacity-90 max-w-[240px] mx-auto text-red-100 bg-red-950/20 p-2 rounded-lg border border-red-500/10">
+                {state.error}
+              </p>
+              <p className="text-[9px] font-bold text-amber-300 uppercase tracking-widest mt-1">Periksa kembali API Key di Pengaturan</p>
+            </div>
+          ) : state.message ? (
             <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500 text-left">
               {renderContent(state.message)}
             </div>
