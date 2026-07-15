@@ -301,15 +301,19 @@ export default function SidebarNav() {
                         <item.icon className="size-4 shrink-0" />
                       </span>
                       <span className="flex-1 group-data-[collapsible=icon]:hidden text-[11px] uppercase tracking-wider truncate font-semibold">{item.label}</span>
-                      {item.badge && <span className="h-2 w-2 rounded-full bg-rose-400 animate-pulse shadow-[0_0_10px_rgba(251,113,133,0.8)]" />}
+                      {item.badge && (
+                        <span className="h-2 w-2 rounded-full bg-rose-450 animate-pulse shadow-[0_0_10px_rgba(251,113,133,0.8)] group-data-[state=collapsed]:absolute group-data-[state=collapsed]:top-1.5 group-data-[state=collapsed]:right-1.5 group-data-[state=collapsed]:border group-data-[state=collapsed]:border-teal-700" />
+                      )}
                       {item.count && item.count > 0 ? (
                           <span className={cn(
                               "text-[9px] font-black rounded-lg h-5 min-w-[20px] px-1 flex items-center justify-center shadow-md",
                               isActive
                                 ? "bg-teal-100 text-teal-900 font-extrabold"
-                                : item.urgent ? "bg-rose-600 text-white animate-bounce" : "bg-teal-950/55 text-teal-200 border border-teal-900/20"
+                                : item.urgent ? "bg-rose-600 text-white animate-bounce" : "bg-teal-950/55 text-teal-200 border border-teal-900/20",
+                              // Collapsed state classes for a clean pulsing red dot:
+                              "group-data-[state=collapsed]:absolute group-data-[state=collapsed]:top-1.5 group-data-[state=collapsed]:right-1.5 group-data-[state=collapsed]:h-2 group-data-[state=collapsed]:w-2 group-data-[state=collapsed]:min-w-0 group-data-[state=collapsed]:p-0 group-data-[state=collapsed]:rounded-full group-data-[state=collapsed]:bg-rose-500 group-data-[state=collapsed]:border group-data-[state=collapsed]:border-teal-700 group-data-[state=collapsed]:shadow-none group-data-[state=collapsed]:animate-pulse"
                           )}>
-                              {item.count}
+                              <span className="group-data-[state=collapsed]:hidden">{item.count}</span>
                           </span>
                       ) : null}
                     </Link>
@@ -367,9 +371,11 @@ export default function SidebarNav() {
                               {item.count && item.count > 0 ? (
                                   <span className={cn(
                                       "text-[8px] font-black rounded-full h-4 min-w-[16px] px-0.5 flex items-center justify-center shadow-sm",
-                                      isActive ? "bg-teal-100 text-teal-900 font-bold" : "bg-teal-950/50 text-teal-200"
+                                      isActive ? "bg-teal-100 text-teal-900 font-bold" : "bg-teal-950/50 text-teal-200",
+                                      // Collapsed state classes:
+                                      "group-data-[state=collapsed]:absolute group-data-[state=collapsed]:top-1.5 group-data-[state=collapsed]:right-1.5 group-data-[state=collapsed]:h-2 group-data-[state=collapsed]:w-2 group-data-[state=collapsed]:min-w-0 group-data-[state=collapsed]:p-0 group-data-[state=collapsed]:rounded-full group-data-[state=collapsed]:bg-rose-500 group-data-[state=collapsed]:border group-data-[state=collapsed]:border-teal-700 group-data-[state=collapsed]:shadow-none group-data-[state=collapsed]:animate-pulse"
                                   )}>
-                                      {item.count}
+                                      <span className="group-data-[state=collapsed]:hidden">{item.count}</span>
                                   </span>
                               ) : null}
                             </Link>
