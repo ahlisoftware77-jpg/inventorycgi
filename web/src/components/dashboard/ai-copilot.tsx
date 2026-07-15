@@ -8,6 +8,7 @@ import { Sparkles, Loader2, Send, X, FileDown, FileText, Bot, User, Trash2, Arro
 import { cn } from '@/lib/utils';
 import { doc, getDoc, collection, getDocs, query, orderBy, limit, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
+import { useAuth } from '@/hooks/use-auth';
 
 interface Message {
   role: 'user' | 'model';
@@ -17,6 +18,7 @@ interface Message {
 export default function AICopilot() {
   const pathname = usePathname();
   const router = useRouter();
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
@@ -33,13 +35,51 @@ export default function AICopilot() {
     }
   }, [messages, isPending]);
 
-  // Reset chat if user switches page
+  // Load from local storage cache when pathname or user changes
   useEffect(() => {
-    setMessages([]);
-    setHasGeneratedInitial(false);
-    setError(null);
-    setPageContextText('');
-  }, [pathname]);
+    if (!user) return;
+    
+    const cacheKey = `cgi_ai_chat_${user.uid}_${pathname}`;
+    const cachedDataStr = localStorage.getItem(cacheKey);
+    
+    if (cachedDataStr) {
+      try {
+        const cachedData = JSON.parse(cachedDataStr);
+        setMessages(cachedData.messages || []);
+        setHasGeneratedInitial(cachedData.hasGeneratedInitial || false);
+        setPageContextText(cachedData.pageContextText || '');
+        setError(null);
+      } catch (e) {
+        console.error('Failed to parse cached AI chat history:', e);
+        setMessages([]);
+        setHasGeneratedInitial(false);
+        setPageContextText('');
+        setError(null);
+      }
+    } else {
+      setMessages([]);
+      setHasGeneratedInitial(false);
+      setPageContextText('');
+      setError(null);
+    }
+  }, [pathname, user]);
+
+  // Save to local storage cache when messages or context changes
+  useEffect(() => {
+    if (!user) return;
+
+    const cacheKey = `cgi_ai_chat_${user.uid}_${pathname}`;
+    if (messages.length > 0) {
+      const dataToCache = {
+        messages,
+        hasGeneratedInitial,
+        pageContextText
+      };
+      localStorage.setItem(cacheKey, JSON.stringify(dataToCache));
+    } else {
+      localStorage.removeItem(cacheKey);
+    }
+  }, [messages, hasGeneratedInitial, pageContextText, pathname, user]);
 
   // Friendly page title mapper
   const pageDetails = useMemo(() => {
