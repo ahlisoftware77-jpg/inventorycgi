@@ -304,10 +304,9 @@ export default function SidebarNav() {
                     <Link 
                       href={item.href}
                       className={cn(
-                        "w-full px-3 py-2 rounded-xl flex items-center gap-3 transition-all duration-200 group relative border border-transparent",
                         isActive 
-                          ? "w-[calc(100%+8px)] px-3 py-2.5 rounded-l-2xl rounded-r-none bg-slate-50 text-teal-900 font-extrabold shadow-md border-y border-l border-teal-800/10 relative z-20" 
-                          : "text-teal-100 hover:text-white hover:bg-teal-600/50 font-semibold"
+                          ? "btn-active-pipe flex items-center gap-3 transition-all duration-200" 
+                          : "w-full px-3 py-2 rounded-xl text-teal-100 hover:text-white hover:bg-teal-650/40 font-semibold flex items-center gap-3 transition-all duration-200 group relative border border-transparent"
                       )}
                     >
                       <span className={cn(
@@ -368,10 +367,9 @@ export default function SidebarNav() {
                             <Link 
                               href={item.href}
                               className={cn(
-                                "w-full px-3 py-1.5 rounded-xl flex items-center gap-2.5 transition-all duration-200 group border border-transparent",
                                 isActive 
-                                  ? "w-[calc(100%+24px)] -translate-x-4 pl-7 pr-3 rounded-l-2xl rounded-r-none bg-slate-50 text-teal-900 font-extrabold shadow-md border-y border-l border-teal-800/10 relative z-20" 
-                                  : "text-teal-200/90 hover:text-white hover:bg-teal-600/40 font-medium"
+                                  ? "btn-active-pipe-sub flex items-center gap-2.5 transition-all duration-200" 
+                                  : "w-full px-3 py-1.5 rounded-xl text-teal-200/90 hover:text-white hover:bg-teal-650/30 font-medium flex items-center gap-2.5 transition-all duration-200 group border border-transparent"
                               )}
                             >
                               <span className={cn(
