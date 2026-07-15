@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Sparkles, Loader2, Send, X, FileDown, FileText, Bot, User, Trash2, ArrowRight } from 'lucide-react';
@@ -16,6 +16,7 @@ interface Message {
 
 export default function AICopilot() {
   const pathname = usePathname();
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
@@ -207,7 +208,14 @@ export default function AICopilot() {
       prompt = `Anda adalah Asisten Cerdas AI untuk sistem logistik PT. China Glaze Indonesia. Tanyakan kepada pengguna topik apa yang ingin didiskusikan karena sistem gagal terhubung ke database.`;
     }
 
-    return { context, prompt };
+    const globalGuideline = `\n\nPENTING: Jika menjelaskan alur kerja, petunjuk langkah demi langkah, atau memberikan tutorial bagi user, Anda WAJIB menyertakan tombol aksi navigasi cepat di bawah langkah tersebut agar user dapat mengkliknya langsung. Gunakan format Markdown link khusus: [Teks Tombol](action:navigate:/rute-halaman).
+Contoh penggunaan:
+- Jika menyarankan membuat tiket helpdesk: "1. Silakan buat tiket masalah IT di menu Helpdesk. [Buat Tiket Baru](action:navigate:/helpdesk/new)"
+- Jika menyarankan melihat aset: "2. Cek aset Anda di halaman aset utama. [Buka Aset Utama](action:navigate:/assets)"
+- Jika menyarankan melihat stok: "3. Periksa stok barang di Laporan Stok. [Cek Laporan Stok](action:navigate:/inventory/report)"
+Sistem kami secara otomatis akan merubah format link khusus tersebut menjadi tombol aksi klik yang indah dan fungsional bagi user. Jangan gunakan rute eksternal atau rute selain yang ada di menu.`;
+
+    return { context, prompt: prompt + globalGuideline };
   };
 
   const handleGenerateInitialInsights = async () => {
@@ -503,43 +511,103 @@ export default function AICopilot() {
     }, 500);
   };
 
+  const renderLineText = (lineText: string, key: number) => {
+    const parts = [];
+    const linkRegex = /\[(.*?)\]\((.*?)\)/g;
+    let lastIndex = 0;
+    let match;
+
+    while ((match = linkRegex.exec(lineText)) !== null) {
+      if (match.index > lastIndex) {
+        const textPart = lineText.substring(lastIndex, match.index);
+        parts.push(...renderBoldText(textPart, `${key}-text-${lastIndex}`));
+      }
+
+      const label = match[1];
+      const url = match[2];
+
+      if (url.startsWith('action:navigate:')) {
+        const targetPath = url.replace('action:navigate:', '');
+        parts.push(
+          <Button
+            key={`${key}-btn-${match.index}`}
+            onClick={() => {
+              router.push(targetPath);
+              setIsOpen(false);
+            }}
+            className="mt-2.5 mb-1 bg-gradient-to-r from-teal-400 to-emerald-500 hover:from-teal-500 hover:to-emerald-600 text-slate-950 font-black uppercase text-[9px] tracking-wider px-3.5 py-1.5 h-7 rounded-xl flex items-center gap-1.5 shadow-md active:scale-95 transition-all w-fit border-none"
+          >
+            {label} <ArrowRight className="h-3 w-3" />
+          </Button>
+        );
+      } else {
+        parts.push(
+          <a
+            key={`${key}-link-${match.index}`}
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-teal-450 hover:underline font-bold"
+          >
+            {label}
+          </a>
+        );
+      }
+
+      lastIndex = linkRegex.lastIndex;
+    }
+
+    if (lastIndex < lineText.length) {
+      const remainingText = lineText.substring(lastIndex);
+      parts.push(...renderBoldText(remainingText, `${key}-text-end`));
+    }
+
+    return parts;
+  };
+
+  const renderBoldText = (text: string, keyPrefix: string) => {
+    const parts = text.split(/\*\*(.*?)\*\*/g);
+    return parts.map((part, i) => {
+      if (i % 2 === 1) {
+        return <strong key={`${keyPrefix}-bold-${i}`} className="font-extrabold text-amber-300 drop-shadow-sm">{part}</strong>;
+      }
+      return part;
+    });
+  };
+
   const renderMarkdown = (text: string) => {
     return text.split('\n').map((line, idx) => {
-      const parts = line.split(/\*\*(.*?)\*\*/g);
-      const lineElements = parts.map((part, i) => {
-        if (i % 2 === 1) {
-          return <strong key={i} className="font-extrabold text-amber-300 drop-shadow-sm">{part}</strong>;
-        }
-        return part;
-      });
-
       const trimmedLine = line.trim();
 
       if (trimmedLine.startsWith('### ')) {
-        return <h4 key={idx} className="text-xs sm:text-sm font-black uppercase tracking-wider text-amber-400 mt-4 mb-1.5 border-l-2 border-amber-400 pl-2">{trimmedLine.replace('### ', '')}</h4>;
+        return (
+          <h4 key={idx} className="text-xs sm:text-sm font-black uppercase tracking-wider text-amber-400 mt-4 mb-1.5 border-l-2 border-amber-400 pl-2">
+            {renderLineText(trimmedLine.replace('### ', ''), idx)}
+          </h4>
+        );
       }
       if (trimmedLine.startsWith('## ')) {
-        return <h3 key={idx} className="text-sm sm:text-base font-black uppercase tracking-widest text-white mt-5 mb-2 border-b border-white/10 pb-0.5">{trimmedLine.replace('## ', '')}</h3>;
+        return (
+          <h3 key={idx} className="text-sm sm:text-base font-black uppercase tracking-widest text-white mt-5 mb-2 border-b border-white/10 pb-0.5">
+            {renderLineText(trimmedLine.replace('## ', ''), idx)}
+          </h3>
+        );
       }
       if (trimmedLine.startsWith('# ')) {
-        return <h2 key={idx} className="text-base sm:text-lg font-black uppercase tracking-widest text-teal-200 mt-6 mb-3 border-b-2 border-teal-800 pb-1">{trimmedLine.replace('# ', '')}</h2>;
+        return (
+          <h2 key={idx} className="text-base sm:text-lg font-black uppercase tracking-widest text-teal-200 mt-6 mb-3 border-b-2 border-teal-800 pb-1">
+            {renderLineText(trimmedLine.replace('# ', ''), idx)}
+          </h2>
+        );
       }
       if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
         const contentStr = trimmedLine.replace(/^[-*]\s+/, '');
-        const contentParts = contentStr.split(/\*\*(.*?)\*\*/g);
-        const contentElements = contentParts.map((part, i) => {
-          if (i % 2 === 1) {
-            return <strong key={i} className="font-extrabold text-amber-300 drop-shadow-sm">{part}</strong>;
-          }
-          return part;
-        });
-
         return (
           <div key={idx} className="flex items-start gap-2 ml-3 my-1">
             <span className="text-amber-400 shrink-0 mt-1 select-none text-[8px]">•</span>
-            <p className="text-xs leading-relaxed text-slate-100">
-              {contentElements}
-            </p>
+            <div className="text-xs leading-relaxed text-slate-100 flex-1">
+              {renderLineText(contentStr, idx)}
+            </div>
           </div>
         );
       }
@@ -556,7 +624,7 @@ export default function AICopilot() {
             <div key={idx} className="grid grid-cols-4 gap-1.5 py-1.5 px-2.5 border-b border-white/5 bg-white/5 text-left text-[10px] font-bold rounded-lg my-1 text-slate-100">
               {columns.map((col, colIdx) => (
                 <div key={colIdx} className={cn("truncate", colIdx === 0 && "font-black text-amber-300")}>
-                  {col}
+                  {renderLineText(col, colIdx)}
                 </div>
               ))}
             </div>
@@ -565,9 +633,9 @@ export default function AICopilot() {
       }
       
       return (
-        <p key={idx} className="text-xs leading-relaxed text-slate-100 my-1">
-          {lineElements}
-        </p>
+        <div key={idx} className="text-xs leading-relaxed text-slate-100 my-1">
+          {renderLineText(trimmedLine, idx)}
+        </div>
       );
     });
   };
