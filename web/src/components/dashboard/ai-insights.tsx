@@ -4,7 +4,7 @@ import { useActionState } from 'react';
 import { getAssetInsightsAction } from '@/lib/actions';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Sparkles, Loader2, RefreshCw, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Sparkles, Loader2, RefreshCw, ShieldCheck, AlertCircle, FileDown, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const initialState = {
@@ -14,6 +14,170 @@ const initialState = {
 
 export default function AIInsights() {
   const [state, formAction, isPending] = useActionState(getAssetInsightsAction, initialState);
+
+  const exportToWord = () => {
+    if (!state.message) return;
+    
+    const htmlContent = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <title>Laporan Analisis Aset AI</title>
+        <style>
+          body { font-family: 'Arial', sans-serif; line-height: 1.6; color: #333; padding: 20px; }
+          h2 { color: #1e3a8a; border-bottom: 2px solid #3b82f6; padding-bottom: 5px; font-size: 16pt; margin-top: 20px; font-weight: bold; }
+          h3 { color: #1e3a8a; border-bottom: 1px solid #93c5fd; padding-bottom: 3px; font-size: 13pt; margin-top: 15px; font-weight: bold; }
+          h4 { color: #2563eb; font-size: 11pt; margin-top: 10px; margin-bottom: 5px; font-weight: bold; }
+          p { font-size: 10pt; margin-bottom: 10px; text-align: justify; color: #334155; }
+          ul, li { font-size: 10pt; margin-left: 20px; margin-bottom: 5px; color: #334155; }
+          table { width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 15px; }
+          th, td { border: 1px solid #cbd5e1; padding: 8px; font-size: 9pt; text-align: left; }
+          th { background-color: #f1f5f9; font-weight: bold; color: #1e3a8a; }
+          .header-title { text-align: center; font-size: 20pt; font-weight: bold; color: #1e3a8a; margin-bottom: 5px; }
+          .header-subtitle { text-align: center; font-size: 9pt; color: #64748b; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 30px; font-weight: bold; }
+          .footer { text-align: center; font-size: 8pt; color: #94a3b8; margin-top: 50px; border-top: 1px solid #e2e8f0; padding-top: 10px; }
+        </style>
+      </head>
+      <body>
+        <div class="header-title">LAPORAN ANALISIS ASET AI</div>
+        <div class="header-subtitle">PT. CHINA GLAZE INDONESIA</div>
+        
+        ${state.message.split('\n').map(line => {
+          const trimmed = line.trim();
+          const withBold = trimmed.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+          
+          if (trimmed.startsWith('### ')) {
+            return `<h4>${trimmed.replace('### ', '')}</h4>`;
+          }
+          if (trimmed.startsWith('## ')) {
+            return `<h3>${trimmed.replace('## ', '')}</h3>`;
+          }
+          if (trimmed.startsWith('# ')) {
+            return `<h2>${trimmed.replace('# ', '')}</h2>`;
+          }
+          if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+            return `<li>${withBold.replace(/^[-*]\s+/, '')}</li>`;
+          }
+          if (trimmed === '') {
+            return '<br/>';
+          }
+          if (trimmed.includes('|')) {
+            const cols = trimmed.split('|').map(c => c.trim()).filter(Boolean);
+            if (cols.length > 0) {
+              if (trimmed.includes('---')) return '';
+              const isHeader = line.includes('Kode') || line.includes('Aset') || line.includes('Status');
+              const cellTag = isHeader ? 'th' : 'td';
+              return `<tr>${cols.map(c => `<${cellTag}>${c}</${cellTag}>`).join('')}</tr>`;
+            }
+          }
+          return `<p>${withBold}</p>`;
+        }).join('\n')}
+        
+        <div class="footer">Dibuat otomatis oleh Sistem Analis AI Aset pada ${new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+      </body>
+      </html>
+    `;
+    
+    let processedHtml = htmlContent.replace(/<\/tr>\n<tr>/g, '</tr><tr>');
+    processedHtml = processedHtml.replace(/(<tr>.*?<\/tr>)+/g, (match) => `<table>${match}</table>`);
+    
+    const blob = new Blob(['\ufeff' + processedHtml], {
+      type: 'application/msword'
+    });
+    
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Laporan_Analisis_AI_${new Date().toISOString().split('T')[0]}.doc`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const exportToPDF = () => {
+    if (!state.message) return;
+    
+    const printWindow = window.open('', '', 'width=900,height=800');
+    if (!printWindow) return;
+    
+    const htmlContent = `
+      <html>
+      <head>
+        <title>Ekspor Laporan Analisis Aset AI</title>
+        <style>
+          body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; line-height: 1.6; color: #334155; padding: 40px; }
+          h2 { color: #1e3a8a; border-bottom: 2px solid #3b82f6; padding-bottom: 8px; font-size: 15pt; margin-top: 25px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+          h3 { color: #2563eb; border-bottom: 1px solid #cbd5e1; padding-bottom: 5px; font-size: 12pt; margin-top: 20px; font-weight: 700; text-transform: uppercase; }
+          h4 { color: #1e3a8a; font-size: 10.5pt; margin-top: 15px; margin-bottom: 5px; font-weight: 700; }
+          p { font-size: 9.5pt; margin-bottom: 12px; text-align: justify; color: #475569; }
+          ul, li { font-size: 9.5pt; margin-left: 20px; margin-bottom: 6px; color: #475569; }
+          table { width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 15px; }
+          th, td { border: 1px solid #e2e8f0; padding: 10px; font-size: 8.5pt; text-align: left; }
+          th { background-color: #f8fafc; font-weight: bold; color: #1e3a8a; }
+          .header-container { text-align: center; border-bottom: 3px double #cbd5e1; padding-bottom: 15px; margin-bottom: 30px; }
+          .header-title { font-size: 18pt; font-weight: 900; color: #1e3a8a; letter-spacing: 0.5px; }
+          .header-subtitle { font-size: 8.5pt; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; margin-top: 5px; }
+          .footer { text-align: center; font-size: 8pt; color: #94a3b8; margin-top: 60px; border-top: 1px solid #e2e8f0; padding-top: 15px; font-weight: 500; }
+          @media print {
+            body { padding: 0; }
+            @page { size: A4; margin: 2cm; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header-container">
+          <div class="header-title">LAPORAN ANALISIS ASET AI</div>
+          <div class="header-subtitle">PT. CHINA GLAZE INDONESIA</div>
+        </div>
+        
+        ${state.message.split('\n').map(line => {
+          const trimmed = line.trim();
+          const withBold = trimmed.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+          
+          if (trimmed.startsWith('### ')) {
+            return `<h4>${trimmed.replace('### ', '')}</h4>`;
+          }
+          if (trimmed.startsWith('## ')) {
+            return `<h3>${trimmed.replace('## ', '')}</h3>`;
+          }
+          if (trimmed.startsWith('# ')) {
+            return `<h2>${trimmed.replace('# ', '')}</h2>`;
+          }
+          if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+            return `<li>${withBold.replace(/^[-*]\s+/, '')}</li>`;
+          }
+          if (trimmed === '') {
+            return '<br/>';
+          }
+          if (trimmed.includes('|')) {
+            const cols = trimmed.split('|').map(c => c.trim()).filter(Boolean);
+            if (cols.length > 0) {
+              if (trimmed.includes('---')) return '';
+              const isHeader = line.includes('Kode') || line.includes('Aset') || line.includes('Status');
+              const cellTag = isHeader ? 'th' : 'td';
+              return `<tr>${cols.map(c => `<${cellTag}>${c}</${cellTag}>`).join('')}</tr>`;
+            }
+          }
+          return `<p>${withBold}</p>`;
+        }).join('\n')}
+        
+        <div class="footer">Dibuat otomatis oleh Sistem Analis AI Aset pada ${new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+      </body>
+      </html>
+    `;
+    
+    let processedHtml = htmlContent.replace(/<\/tr>\n<tr>/g, '</tr><tr>');
+    processedHtml = processedHtml.replace(/(<tr>.*?<\/tr>)+/g, (match) => `<table>${match}</table>`);
+    
+    printWindow.document.write(processedHtml);
+    printWindow.document.close();
+    
+    setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+      printWindow.close();
+    }, 500);
+  };
 
   const renderContent = (text: string | null) => {
     if (!text) return null;
@@ -130,6 +294,27 @@ export default function AIInsights() {
           )}
         </div>
         
+        {state.message && !isPending && (
+          <div className="grid grid-cols-2 gap-3 mb-1">
+            <Button
+              type="button"
+              onClick={exportToPDF}
+              variant="outline"
+              className="h-11 bg-white/10 hover:bg-white/20 border-white/20 text-white rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all active:scale-95"
+            >
+              <FileDown className="h-4 w-4 text-rose-300" /> Ekspor PDF
+            </Button>
+            <Button
+              type="button"
+              onClick={exportToWord}
+              variant="outline"
+              className="h-11 bg-white/10 hover:bg-white/20 border-white/20 text-white rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all active:scale-95"
+            >
+              <FileText className="h-4 w-4 text-blue-300" /> Ekspor Word
+            </Button>
+          </div>
+        )}
+
         <form action={formAction}>
           <Button 
             disabled={isPending}
