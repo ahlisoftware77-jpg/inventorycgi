@@ -178,6 +178,16 @@
 
   /* Active Tab Pipe Connection with Inverted Balloon Curves */
   .btn-active-pipe {
+    width: 100% !important;
+    border-radius: 0.75rem !important; /* rounded-xl */
+    background-color: rgba(255, 255, 255, 0.15) !important;
+    color: #ffffff !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .group[data-state=expanded] .btn-active-pipe {
     position: relative;
     background-color: #f8fafc !important; /* matches bg-slate-50 */
     color: #0f766e !important; /* matches text-teal-800 */
@@ -192,7 +202,7 @@
     z-index: 20;
   }
 
-  .btn-active-pipe::before {
+  .group[data-state=expanded] .btn-active-pipe::before {
     content: '';
     position: absolute;
     right: 0;
@@ -206,7 +216,7 @@
     z-index: 20;
   }
 
-  .btn-active-pipe::after {
+  .group[data-state=expanded] .btn-active-pipe::after {
     content: '';
     position: absolute;
     right: 0;
@@ -221,6 +231,16 @@
   }
 
   .btn-active-pipe-sub {
+    width: 100% !important;
+    border-radius: 0.75rem !important;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .group[data-state=expanded] .btn-active-pipe-sub {
     position: relative;
     background-color: #f8fafc !important; /* matches bg-slate-50 */
     color: #0f766e !important; /* matches text-teal-850 */
@@ -235,7 +255,7 @@
     z-index: 20;
   }
 
-  .btn-active-pipe-sub::before {
+  .group[data-state=expanded] .btn-active-pipe-sub::before {
     content: '';
     position: absolute;
     right: 0;
@@ -249,7 +269,7 @@
     z-index: 20;
   }
 
-  .btn-active-pipe-sub::after {
+  .group[data-state=expanded] .btn-active-pipe-sub::after {
     content: '';
     position: absolute;
     right: 0;
