@@ -53,26 +53,34 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
             </Sidebar>
           )}
 
-          <SidebarInset className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900/90 transition-colors duration-300 relative">
-            {/* Loader diletakkan di dalam area konten utama agar tidak menutup menu/header */}
-            {loading ? (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/50 backdrop-blur-sm z-50 gap-4">
-                <svg className="pl" viewBox="0 0 240 240">
-                    <circle className="pl__ring pl__ring--a" cx="120" cy="120" r="105" fill="none" stroke="#000" strokeWidth="20" strokeDasharray="0 660" strokeDashoffset="-330" strokeLinecap="round"></circle>
-                    <circle className="pl__ring pl__ring--b" cx="120" cy="120" r="35" fill="none" stroke="#000" strokeWidth="20" strokeDasharray="0 220" strokeDashoffset="-110" strokeLinecap="round"></circle>
-                    <circle className="pl__ring pl__ring--c" cx="85" cy="120" r="70" fill="none" stroke="#000" strokeWidth="20" strokeDasharray="0 440" strokeLinecap="round"></circle>
-                    <circle className="pl__ring pl__ring--d" cx="155" cy="120" r="70" fill="none" stroke="#000" strokeWidth="20" strokeDasharray="0 440" strokeLinecap="round"></circle>
-                </svg>
-                <p className="text-muted-foreground animate-pulse font-bold tracking-widest uppercase text-[10px]">Sinkronisasi Identitas...</p>
-              </div>
-            ) : (
-              <div className={cn(
-                "p-4 md:p-10 lg:p-12 min-h-full pb-40 transition-all duration-500",
-                isPublicPage && "p-0 md:p-0 lg:p-0"
-              )}>
-                {children}
-              </div>
-            )}
+          <SidebarInset className={cn(
+            "flex-1 flex flex-col overflow-hidden bg-slate-50 dark:bg-slate-900 transition-colors duration-300 relative",
+            !isPublicPage && "bg-teal-700 dark:bg-teal-900"
+          )}>
+            <div className={cn(
+              "flex-1 overflow-y-auto relative custom-scrollbar",
+              !isPublicPage && "m-3 ml-0 bg-slate-50 dark:bg-slate-900 rounded-r-[24px] rounded-l-none border-y border-r border-slate-200/20 shadow-[0_10px_40px_rgba(0,0,0,0.06)]"
+            )}>
+              {/* Loader diletakkan di dalam area konten utama agar tidak menutup menu/header */}
+              {loading ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/50 backdrop-blur-sm z-50 gap-4">
+                  <svg className="pl" viewBox="0 0 240 240">
+                      <circle className="pl__ring pl__ring--a" cx="120" cy="120" r="105" fill="none" stroke="#000" strokeWidth="20" strokeDasharray="0 660" strokeDashoffset="-330" strokeLinecap="round"></circle>
+                      <circle className="pl__ring pl__ring--b" cx="120" cy="120" r="35" fill="none" stroke="#000" strokeWidth="20" strokeDasharray="0 220" strokeDashoffset="-110" strokeLinecap="round"></circle>
+                      <circle className="pl__ring pl__ring--c" cx="85" cy="120" r="70" fill="none" stroke="#000" strokeWidth="20" strokeDasharray="0 440" strokeLinecap="round"></circle>
+                      <circle className="pl__ring pl__ring--d" cx="155" cy="120" r="70" fill="none" stroke="#000" strokeWidth="20" strokeDasharray="0 440" strokeLinecap="round"></circle>
+                  </svg>
+                  <p className="text-muted-foreground animate-pulse font-bold tracking-widest uppercase text-[10px]">Sinkronisasi Identitas...</p>
+                </div>
+              ) : (
+                <div className={cn(
+                  "p-4 md:p-10 lg:p-12 min-h-full pb-40 transition-all duration-500",
+                  isPublicPage && "p-0 md:p-0 lg:p-0"
+                )}>
+                  {children}
+                </div>
+              )}
+            </div>
             
             {!isPublicPage && (
               <Button
