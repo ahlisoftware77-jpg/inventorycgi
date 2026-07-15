@@ -277,7 +277,7 @@ export default function SidebarNav() {
     <>
       <SidebarContent className="bg-teal-700 text-teal-50 selection:bg-teal-900 scrollbar-hide border-r border-teal-800/40 relative overflow-x-hidden">
         <div className="w-full">
-          <SidebarMenu className="gap-1 pl-2 pr-0 pt-0 pb-4">
+          <SidebarMenu className="gap-1 pl-2 pr-0 pt-4 pb-4">
             {filteredMainItems.map((item, index) => {
               const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href.split('?')[0]));
               const colors = itemColorMap[item.id] || { activeIconColor: 'text-teal-700', shadow: 'shadow-teal-900/5', iconColor: 'text-teal-355', inactiveIconBg: 'bg-teal-950/40' };
@@ -288,7 +288,7 @@ export default function SidebarNav() {
                       href={item.href}
                       className={cn(
                         isActive 
-                          ? cn("btn-active-pipe flex items-center gap-3 transition-all duration-200", index === 0 && "first-active") 
+                          ? "btn-active-pipe flex items-center gap-3 transition-all duration-200" 
                           : "w-full px-3 py-2 rounded-xl text-teal-100 hover:text-white hover:bg-teal-650/40 font-semibold flex items-center gap-3 transition-all duration-200 group relative border border-transparent"
                       )}
                     >
