@@ -48,7 +48,12 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
           {/* Sidebar tetap dirender jika showSidebar true. 
               PENTING: Jangan letakkan loading check di atas block ini agar sidebar tidak hilang saat navigasi. */}
           {showSidebar && (
-            <Sidebar side="left" variant="sidebar" collapsible="icon">
+            <Sidebar 
+              side="left" 
+              variant="sidebar" 
+              collapsible="icon"
+              className="p-3 pr-0 bg-transparent border-none [&>[data-sidebar=sidebar]]:rounded-[24px] [&>[data-sidebar=sidebar]]:overflow-hidden [&>[data-sidebar=sidebar]]:border [&>[data-sidebar=sidebar]]:border-teal-800/30"
+            >
               <SidebarNav />
             </Sidebar>
           )}
