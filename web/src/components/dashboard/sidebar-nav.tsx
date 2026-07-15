@@ -275,26 +275,9 @@ export default function SidebarNav() {
 
   return (
     <>
-      <SidebarHeader className="border-b border-teal-900/30 bg-teal-800 text-white shrink-0 shadow-sm z-10">
-        <div className="flex items-center gap-3 p-3">
-            <Link href="/" className="flex items-center gap-3 min-w-0">
-                <div className="bg-white rounded-xl p-1.5 shadow-md ring-1 ring-teal-950/20 shrink-0">
-                  <Image src="/cgi.png" alt="Logo" width={28} height={28} priority />
-                </div>
-                <div className="flex flex-col min-w-0 group-data-[collapsible=icon]:hidden text-left">
-                  <span className="text-xs font-black uppercase tracking-wider leading-none truncate text-white">
-                      {fullCompanyName}
-                  </span>
-                  <span className="text-[7.5px] font-black text-teal-300 tracking-[0.25em] uppercase truncate mt-1">Asset Control</span>
-                </div>
-            </Link>
-             <SidebarTrigger className="hidden md:flex rounded-full text-teal-150 hover:bg-teal-900/40 hover:text-white ml-auto transition-transform active:scale-95" />
-        </div>
-      </SidebarHeader>
-
       <SidebarContent className="bg-teal-700 text-teal-50 selection:bg-teal-900 scrollbar-hide border-r border-teal-800/40 relative overflow-x-hidden">
         <div className="w-full">
-          <SidebarMenu className="gap-1 pl-2 pr-0 py-4">
+          <SidebarMenu className="gap-1 pl-2 pr-0 pt-0 pb-4">
             {filteredMainItems.map((item, index) => {
               const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href.split('?')[0]));
               const colors = itemColorMap[item.id] || { activeIconColor: 'text-teal-700', shadow: 'shadow-teal-900/5', iconColor: 'text-teal-355', inactiveIconBg: 'bg-teal-950/40' };

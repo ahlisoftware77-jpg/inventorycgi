@@ -52,7 +52,7 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
               side="left" 
               variant="sidebar" 
               collapsible="icon"
-              className="top-16 h-[calc(100vh-64px)] p-3 pr-0 bg-transparent border-none [&>[data-sidebar=sidebar]]:rounded-[24px] [&>[data-sidebar=sidebar]]:overflow-hidden [&>[data-sidebar=sidebar]]:border [&>[data-sidebar=sidebar]]:border-teal-800/30"
+              className="top-16 h-[calc(100vh-64px)] pt-0 pb-3 pl-3 pr-0 bg-transparent border-none [&>[data-sidebar=sidebar]]:rounded-b-[24px] [&>[data-sidebar=sidebar]]:rounded-t-none [&>[data-sidebar=sidebar]]:overflow-hidden [&>[data-sidebar=sidebar]]:border-b [&>[data-sidebar=sidebar]]:border-l [&>[data-sidebar=sidebar]]:border-teal-850/30"
             >
               <SidebarNav />
             </Sidebar>
@@ -64,7 +64,7 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
           )}>
             <div className={cn(
               "flex-1 overflow-y-auto relative custom-scrollbar",
-              !isPublicPage && "m-3 ml-0 bg-slate-50 dark:bg-slate-900 rounded-r-[24px] rounded-l-none border-y border-r border-slate-200/20 shadow-[0_10px_40px_rgba(0,0,0,0.06)]"
+              !isPublicPage && "m-3 mt-0 ml-0 bg-slate-50 dark:bg-slate-900 rounded-br-[24px] rounded-l-none rounded-tr-none border-b border-r border-slate-200/20 shadow-[0_10px_40px_rgba(0,0,0,0.06)]"
             )}>
               {/* Loader diletakkan di dalam area konten utama agar tidak menutup menu/header */}
               {loading ? (
