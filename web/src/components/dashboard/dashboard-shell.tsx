@@ -52,7 +52,7 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
               side="left" 
               variant="sidebar" 
               collapsible="icon"
-              className="p-3 pr-0 bg-transparent border-none [&>[data-sidebar=sidebar]]:rounded-[24px] [&>[data-sidebar=sidebar]]:overflow-hidden [&>[data-sidebar=sidebar]]:border [&>[data-sidebar=sidebar]]:border-teal-800/30"
+              className="top-16 h-[calc(100vh-64px)] p-3 pr-0 bg-transparent border-none [&>[data-sidebar=sidebar]]:rounded-[24px] [&>[data-sidebar=sidebar]]:overflow-hidden [&>[data-sidebar=sidebar]]:border [&>[data-sidebar=sidebar]]:border-teal-800/30"
             >
               <SidebarNav />
             </Sidebar>
