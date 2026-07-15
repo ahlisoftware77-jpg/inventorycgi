@@ -275,7 +275,7 @@ export default function SidebarNav() {
 
   return (
     <>
-      <SidebarContent className="bg-teal-700 text-teal-50 selection:bg-teal-900 scrollbar-hide relative overflow-visible">
+      <SidebarContent className="bg-teal-700 text-teal-50 selection:bg-teal-900 scrollbar-hide relative overflow-x-hidden">
         <div className="w-full">
           <SidebarMenu className="gap-1 pl-2 pr-0 group-data-[state=collapsed]:px-1 pt-4 pb-4">
             {filteredMainItems.map((item, index) => {

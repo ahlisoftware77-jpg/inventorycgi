@@ -176,12 +176,6 @@
     opacity: 0;
   }
 
-  /* Allow active pipe curves to overflow to the right without clipping */
-  .group[data-state=expanded] [data-sidebar=sidebar],
-  .group[data-state=expanded] [data-sidebar=content] {
-    overflow: visible !important;
-  }
-
   /* Active Tab Pipe Connection with Inverted Balloon Curves */
   .btn-active-pipe {
     width: 100% !important;
