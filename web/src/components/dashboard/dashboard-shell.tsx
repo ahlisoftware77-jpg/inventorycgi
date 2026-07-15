@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar';
 import Header from './header';
 import SidebarNav from './sidebar-nav';
+import AICopilot from './ai-copilot';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ArrowUp, Loader2 } from 'lucide-react';
@@ -88,17 +89,20 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
             </div>
             
             {!isPublicPage && (
-              <Button
-                variant="default"
-                size="icon"
-                onClick={scrollToTop}
-                className={cn(
-                  'fixed bottom-8 right-8 z-50 rounded-full shadow-2xl transition-all duration-500 bg-primary hover:bg-primary/90 text-white hover:scale-110 active:scale-95 border-4 border-white dark:border-slate-800',
-                  isVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-10 scale-50 pointer-events-none'
-                )}
-              >
-                <ArrowUp className="h-6 w-6" />
-              </Button>
+              <>
+                <AICopilot />
+                <Button
+                  variant="default"
+                  size="icon"
+                  onClick={scrollToTop}
+                  className={cn(
+                    'fixed bottom-28 right-9 z-50 rounded-full shadow-2xl transition-all duration-500 bg-primary hover:bg-primary/90 text-white hover:scale-110 active:scale-95 border-4 border-white dark:border-slate-800',
+                    isVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-10 scale-50 pointer-events-none'
+                  )}
+                >
+                  <ArrowUp className="h-6 w-6" />
+                </Button>
+              </>
             )}
           </SidebarInset>
         </div>
