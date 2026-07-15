@@ -275,7 +275,7 @@ export default function SidebarNav() {
 
   return (
     <>
-      <SidebarContent className="bg-teal-700 text-teal-50 selection:bg-teal-900 scrollbar-hide border-r border-teal-800/40 relative overflow-x-hidden">
+      <SidebarContent className="bg-teal-700 text-teal-50 selection:bg-teal-900 scrollbar-hide relative overflow-visible">
         <div className="w-full">
           <SidebarMenu className="gap-1 pl-2 pr-0 group-data-[state=collapsed]:px-1 pt-4 pb-4">
             {filteredMainItems.map((item, index) => {
@@ -393,7 +393,7 @@ export default function SidebarNav() {
 
       <SidebarSeparator className="bg-teal-900/30 h-px mx-4 opacity-50" />
 
-      <SidebarFooter className="bg-teal-800 text-teal-100 p-3 border-t border-teal-900/30">
+      <SidebarFooter className="bg-teal-800 text-teal-100 p-3 border-t border-teal-900/30 rounded-b-[24px]">
         {user && (
           <div className="mx-1 mb-3 p-3 rounded-2xl bg-teal-900/40 border border-teal-900/20 backdrop-blur-md flex items-center gap-3 group-data-[collapsible=icon]:hidden">
             <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-teal-500 via-teal-600 to-emerald-500 flex items-center justify-center text-white font-black text-xs uppercase shadow-md shadow-teal-500/10">
