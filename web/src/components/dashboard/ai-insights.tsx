@@ -1,22 +1,20 @@
 'use client';
 
-import { useActionState } from 'react';
-import { getAssetInsightsAction } from '@/lib/actions';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Sparkles, Loader2, RefreshCw, ShieldCheck, AlertCircle, FileDown, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-const initialState = {
-  message: null,
-  error: null,
-};
+import { doc, getDoc, collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
 
 export default function AIInsights() {
-  const [state, formAction, isPending] = useActionState(getAssetInsightsAction, initialState);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, setIsPending] = useState(false);
 
   const exportToWord = () => {
-    if (!state.message) return;
+    if (!message) return;
     
     const htmlContent = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
@@ -41,7 +39,7 @@ export default function AIInsights() {
         <div class="header-title">LAPORAN ANALISIS ASET AI</div>
         <div class="header-subtitle">PT. CHINA GLAZE INDONESIA</div>
         
-        ${state.message.split('\n').map(line => {
+        ${message.split('\n').map(line => {
           const trimmed = line.trim();
           const withBold = trimmed.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
           
@@ -95,7 +93,7 @@ export default function AIInsights() {
   };
 
   const exportToPDF = () => {
-    if (!state.message) return;
+    if (!message) return;
     
     const printWindow = window.open('', '', 'width=900,height=800');
     if (!printWindow) return;
@@ -130,7 +128,7 @@ export default function AIInsights() {
           <div class="header-subtitle">PT. CHINA GLAZE INDONESIA</div>
         </div>
         
-        ${state.message.split('\n').map(line => {
+        ${message.split('\n').map(line => {
           const trimmed = line.trim();
           const withBold = trimmed.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
           
@@ -182,7 +180,6 @@ export default function AIInsights() {
   const renderContent = (text: string | null) => {
     if (!text) return null;
     return text.split('\n').map((line, idx) => {
-      // Bold parsing
       const parts = line.split(/\*\*(.*?)\*\*/g);
       const lineElements = parts.map((part, i) => {
         if (i % 2 === 1) {
@@ -203,7 +200,6 @@ export default function AIInsights() {
         return <h2 key={idx} className="text-base sm:text-lg font-black uppercase tracking-widest text-white mt-7 mb-4 border-b-2 border-white/20 pb-2 text-left">{trimmedLine.replace('# ', '')}</h2>;
       }
       if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
-        // Strip out bold markers if they are parsed separately
         const contentStr = trimmedLine.replace(/^[-*]\s+/, '');
         const contentParts = contentStr.split(/\*\*(.*?)\*\*/g);
         const contentElements = contentParts.map((part, i) => {
@@ -226,7 +222,6 @@ export default function AIInsights() {
         return <div key={idx} className="h-2" />;
       }
       
-      // Check for table rows (contains | )
       if (trimmedLine.includes('|')) {
         const columns = trimmedLine.split('|').map(c => c.trim()).filter(Boolean);
         if (columns.length > 0) {
@@ -252,6 +247,128 @@ export default function AIInsights() {
     });
   };
 
+  const handleGenerateInsights = async () => {
+    setIsPending(true);
+    setError(null);
+    try {
+      // 1. Get API Key from Firestore settings
+      const docRef = doc(db, 'settings', 'general');
+      const docSnap = await getDoc(docRef);
+      let apiKey = '';
+      if (docSnap.exists()) {
+        apiKey = docSnap.data().geminiApiKey || '';
+      }
+
+      if (!apiKey) {
+        throw new Error('Gemini API Key belum dikonfigurasi. Silakan masuk ke menu Pengaturan untuk memasukkan kunci API.');
+      }
+
+      // 2. Fetch all assets
+      const assetsSnapshot = await getDocs(collection(db, 'assets'));
+      const assetsList = assetsSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          code: data.code || '',
+          name: data.name || '',
+          category: data.category || '',
+          status: data.status || '',
+          condition: data.condition || '',
+          location: data.location || '',
+          user: data.user || '',
+        };
+      });
+
+      // 3. Fetch maintenance schedules
+      const maintSnapshot = await getDocs(collection(db, 'maintenance_schedules'));
+      const maintList = maintSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          assetCode: data.assetCode || '',
+          assetName: data.assetName || '',
+          type: data.type || '',
+          status: data.status || '',
+          technician: data.technician || '',
+          notes: data.notes || '',
+          date: data.scheduledDate && typeof data.scheduledDate.toDate === 'function' 
+            ? data.scheduledDate.toDate().toISOString().split('T')[0] 
+            : '',
+        };
+      });
+
+      // 4. Fetch system logs (limit to 100)
+      const logsQuery = query(collection(db, 'system_logs'), orderBy('timestamp', 'desc'), limit(100));
+      const logsSnapshot = await getDocs(logsQuery);
+      const logsList = logsSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          type: data.type || '',
+          action: data.action || '',
+          description: data.description || '',
+          targetCode: data.targetCode || '',
+          userName: data.userName || '',
+          date: data.timestamp && typeof data.timestamp.toDate === 'function'
+            ? data.timestamp.toDate().toISOString().split('T')[0]
+            : '',
+        };
+      });
+
+      // 5. Build the context prompt
+      const prompt = `Anda adalah analis AI manajemen aset profesional untuk PT. China Glaze Indonesia.
+Berikut adalah data aset perusahaan, data riwayat pemeliharaan (maintenance), dan log aktivitas sistem:
+
+--- DATA ASET ---
+${JSON.stringify(assetsList, null, 2)}
+
+--- DATA MAINTENANCE ---
+${JSON.stringify(maintList, null, 2)}
+
+--- LOG RIWAYAT & AKTIVITAS SISTEM ---
+${JSON.stringify(logsList, null, 2)}
+
+Berdasarkan data di atas, buatlah LAPORAN RINGKASAN EKSEKUTIF (SUMMARY REPORT) yang profesional dalam format Markdown. Laporan harus mencakup:
+1. **Analisis Statistik Aset**: Total aset aktif, sebaran per departemen, dan sebaran kondisi aset (misalnya berapa persen yang baik, perlu perbaikan, rusak). Tampilkan dalam format tabel atau daftar terperinci yang mudah dibaca.
+2. **Kesehatan & Kesiapan Operasional**: Ringkasan status pemeliharaan (Dijadwalkan, Diproses, Selesai, Ditunda) dan tren kerusakan/masalah yang sering muncul berdasarkan riwayat pemeliharaan.
+3. **Analisis Riwayat & Mutasi**: Ulasan singkat mengenai perubahan terbaru dalam log sistem (misal: mutasi aset antar unit, penghapusan, atau penambahan aset baru).
+4. **Temuan & Rekomendasi Strategis**: Deteksi dini jika ada aset yang kritis, bermasalah, atau sudah melewati masa pakai, serta saran perbaikan manajemen aset agar lebih efisien dan memperpanjang usia pakai aset.
+
+Gunakan Bahasa Indonesia yang formal, taktis, analitis, dan mudah dipahami oleh manajemen puncak. Format laporan dengan Markdown yang indah (gunakan tabel, poin-poin, dan teks tebal jika perlu agar mudah dibaca).`;
+
+      // 6. Fetch from Gemini REST API directly on the client side
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{ text: prompt }]
+            }]
+          })
+        }
+      );
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error?.message || `HTTP error! status: ${response.status}`);
+      }
+
+      const resData = await response.json();
+      const text = resData.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text) {
+        throw new Error('Respons dari Gemini kosong atau tidak valid.');
+      }
+      
+      setMessage(text);
+    } catch (err: any) {
+      console.error('Error generating AI insights:', err);
+      setError(err.message || 'Terjadi kesalahan yang tidak diketahui.');
+    } finally {
+      setIsPending(false);
+    }
+  };
+
   return (
     <Card className="h-full border-none shadow-lg bg-gradient-to-br from-indigo-600 to-blue-700 text-white overflow-hidden relative group">
       <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform duration-700">
@@ -271,20 +388,20 @@ export default function AIInsights() {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="h-[350px] p-5 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 shadow-inner overflow-y-auto custom-scrollbar">
-          {state.error ? (
+          {error ? (
             <div className="h-full flex flex-col items-center justify-center text-center gap-3 text-red-200 animate-in fade-in duration-300">
               <div className="p-3 bg-red-500/20 rounded-full border border-red-500/30">
                 <AlertCircle className="h-8 w-8 text-red-300" />
               </div>
               <p className="text-xs font-black uppercase tracking-wider text-red-200">Gagal Menghubungkan AI</p>
               <p className="text-[10px] font-medium leading-relaxed opacity-90 max-w-[240px] mx-auto text-red-100 bg-red-950/20 p-2 rounded-lg border border-red-500/10">
-                {state.error}
+                {error}
               </p>
               <p className="text-[9px] font-bold text-amber-300 uppercase tracking-widest mt-1">Periksa kembali API Key di Pengaturan</p>
             </div>
-          ) : state.message ? (
+          ) : message ? (
             <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500 text-left">
-              {renderContent(state.message)}
+              {renderContent(message)}
             </div>
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-center gap-3 opacity-60">
@@ -294,7 +411,7 @@ export default function AIInsights() {
           )}
         </div>
         
-        {state.message && !isPending && (
+        {message && !isPending && (
           <div className="grid grid-cols-2 gap-3 mb-1">
             <Button
               type="button"
@@ -315,19 +432,18 @@ export default function AIInsights() {
           </div>
         )}
 
-        <form action={formAction}>
-          <Button 
-            disabled={isPending}
-            className="w-full h-11 bg-white text-blue-700 hover:bg-blue-50 font-black uppercase tracking-tighter shadow-xl shadow-black/10 rounded-xl transition-all active:scale-95"
-          >
-            {isPending ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="mr-2 h-4 w-4" />
-            )}
-            {state.message ? 'Perbarui Wawasan' : 'Hasilkan Analisis AI'}
-          </Button>
-        </form>
+        <Button 
+          onClick={handleGenerateInsights}
+          disabled={isPending}
+          className="w-full h-11 bg-white text-blue-700 hover:bg-blue-50 font-black uppercase tracking-tighter shadow-xl shadow-black/10 rounded-xl transition-all active:scale-95"
+        >
+          {isPending ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <RefreshCw className="mr-2 h-4 w-4" />
+          )}
+          {message ? 'Perbarui Wawasan' : 'Hasilkan Analisis AI'}
+        </Button>
       </CardContent>
     </Card>
   );
