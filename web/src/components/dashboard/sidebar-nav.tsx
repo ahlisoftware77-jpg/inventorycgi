@@ -49,7 +49,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { useEffect, useState, useMemo } from 'react';
@@ -98,6 +98,34 @@ const itemColorMap: Record<string, { activeIconColor: string, shadow: string, ic
 export default function SidebarNav() {
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const category = searchParams.get('category');
+
+  // Helper to check if a menu item is active
+  const isItemActive = (itemHref: string, itemId: string) => {
+    const [itemPath, itemQuery] = itemHref.split('?');
+    
+    if (itemId === 'assets_util') {
+      return pathname === '/assets' && category === 'UTILITY';
+    }
+    
+    if (itemId === 'assets_a') {
+      if (pathname === '/assets') {
+        return category !== 'UTILITY';
+      }
+      return pathname.startsWith('/assets/') && !pathname.startsWith('/assets/report');
+    }
+    
+    if (itemId === 'assets_report') {
+      return pathname === '/assets/report';
+    }
+    
+    if (itemHref === '/') {
+      return pathname === '/';
+    }
+    
+    return pathname === itemPath || pathname.startsWith(itemPath + '/');
+  };
   const { user } = useAuth();
   const [userData, setUserData] = useState<Partial<User> | null>(null);
   const [waitingCount, setWaitingCount] = useState(0);
@@ -275,11 +303,11 @@ export default function SidebarNav() {
 
   return (
     <>
-      <SidebarContent className="bg-teal-700 text-teal-50 selection:bg-teal-900 scrollbar-hide relative overflow-x-hidden">
+      <SidebarContent className="bg-teal-700 text-teal-50 selection:bg-teal-900 scrollbar-hide relative overflow-y-auto overflow-x-hidden">
         <div className="w-full">
           <SidebarMenu className="gap-1 pl-2 pr-0 group-data-[state=collapsed]:px-1 pt-4 pb-4">
             {filteredMainItems.map((item, index) => {
-              const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href.split('?')[0]));
+              const isActive = isItemActive(item.href, item.id);
               const colors = itemColorMap[item.id] || { activeIconColor: 'text-teal-700', shadow: 'shadow-teal-900/5', iconColor: 'text-teal-355', inactiveIconBg: 'bg-teal-950/40' };
               return (
                 <div key={item.id} className="w-full">
@@ -347,7 +375,7 @@ export default function SidebarNav() {
                   <CollapsibleContent className="animate-in fade-in slide-in-from-top-2 duration-300">
                     <SidebarMenu className="mt-1.5 gap-1 pl-4 pr-0">
                       {filteredSystemItems.map((item) => {
-                        const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href.split('?')[0]));
+                        const isActive = isItemActive(item.href, item.id);
                         const colors = itemColorMap[item.id] || { activeIconColor: 'text-teal-700', shadow: 'shadow-teal-900/5', iconColor: 'text-teal-355', inactiveIconBg: 'bg-teal-950/40' };
                         return (
                           <SidebarMenuItem key={item.id} className="list-none">
@@ -393,7 +421,7 @@ export default function SidebarNav() {
 
       <SidebarSeparator className="bg-teal-900/30 h-px mx-4 opacity-50" />
 
-      <SidebarFooter className="bg-teal-800 text-teal-100 p-3 border-t border-teal-900/30 rounded-b-[24px] relative z-10">
+      <SidebarFooter className="bg-teal-800 text-teal-100 p-3 border-t border-teal-900/30 rounded-b-[24px] relative z-10 shrink-0">
         {user && (
           <div className="mx-1 mb-3 p-3 rounded-2xl bg-teal-900/40 border border-teal-900/20 backdrop-blur-md flex items-center gap-3 group-data-[collapsible=icon]:hidden">
             <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-teal-500 via-teal-600 to-emerald-500 flex items-center justify-center text-white font-black text-xs uppercase shadow-md shadow-teal-500/10">
