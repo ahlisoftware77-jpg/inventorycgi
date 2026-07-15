@@ -292,7 +292,7 @@ export default function SidebarNav() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="bg-teal-700 text-teal-50 selection:bg-teal-900 custom-scrollbar border-r border-teal-800/40 relative overflow-x-hidden">
+      <SidebarContent className="bg-teal-700 text-teal-50 selection:bg-teal-900 scrollbar-hide border-r border-teal-800/40 relative overflow-x-hidden">
         <div className="w-full">
           <SidebarMenu className="gap-1 pl-2 pr-0 py-4">
             {filteredMainItems.map((item) => {

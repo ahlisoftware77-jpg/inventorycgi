@@ -694,3 +694,12 @@
 .theme-popup__list label:hover, .theme-popup__button:hover, #checkbox:checked~.theme-popup__button { background-color: var(--list_btn_hover_bg); }
 #default:checked~.theme-popup__list-container label[for="default"], #light:checked~.theme-popup__list-container label[for="light"], #dark:checked~.theme-popup__list-container label[for="dark"] { background-color: var(--list_btn_active); outline: var(--list_btn_outline_width) solid var(--list_btn_outline_color); }
 #default:checked~label svg.default, #light:checked~label svg.sun, #dark:checked~label svg.moon { display: block; }
+
+/* Scrollbar utilities */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none !important;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none !important;  /* IE and Edge */
+  scrollbar-width: none !important;  /* Firefox */
+}
