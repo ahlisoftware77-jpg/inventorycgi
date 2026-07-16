@@ -213,11 +213,13 @@ export default function AssetAuditClient() {
   
   const [isSignDialogOpen, setIsSignDialogOpen] = useState(false);
   const [currentSignRole, setCurrentSignRole] = useState<SignatureRole | null>(null);
-  const [signatures, setSignatures] = useState<SignatureState>(initialSignatureState);
+  const [currentSignGroup, setCurrentSignGroup] = useState<{ name: string, departments: string[] } | null>(null);
+  const [signaturesMap, setSignaturesMap] = useState<Record<string, SignatureState>>({});
   const [isSigning, setIsSigning] = useState(false);
   const sigPadRef = useRef<SignatureCanvas | null>(null);
 
   const [roleToDelete, setRoleToDelete] = useState<SignatureRole | null>(null);
+  const [groupToDelete, setGroupToDelete] = useState<{ name: string, departments: string[] } | null>(null);
   const [isConfirmDeleteSigOpen, setIsConfirmDeleteSigOpen] = useState(false);
   const [isDeletingSig, setIsDeletingSig] = useState(false);
   
@@ -239,6 +241,41 @@ export default function AssetAuditClient() {
   const isAuthorizedForSecondCheck = useMemo(() => {
     return isAdmin || (user?.department && secondCheckerDepts.includes(user.department));
   }, [isAdmin, user?.department, secondCheckerDepts]);
+
+  const getSelectedGroups = useCallback(() => {
+    const depts = selectedDepartments.includes('ALL') 
+      ? departmentOptions.filter(d => d !== 'ALL')
+      : selectedDepartments;
+      
+    if (depts.length === 0) return [];
+
+    const grouped: { name: string; departments: string[] }[] = [];
+    const processedDepts = new Set<string>();
+
+    // 1. Group by deptGroups config
+    deptGroups.forEach(group => {
+      const matchingDepts = group.departments.filter(d => depts.includes(d));
+      if (matchingDepts.length > 0) {
+        grouped.push({
+          name: group.name,
+          departments: matchingDepts
+        });
+        matchingDepts.forEach(d => processedDepts.add(d));
+      }
+    });
+
+    // 2. Add remaining departments as individual groups
+    depts.forEach(d => {
+      if (!processedDepts.has(d)) {
+        grouped.push({
+          name: d,
+          departments: [d]
+        });
+      }
+    });
+
+    return grouped;
+  }, [selectedDepartments, departmentOptions, deptGroups]);
   
   const saveQueue = useRef<Map<string, AuditSaveRequest>>(new Map());
   const isSavingRef = useRef(false);
@@ -424,25 +461,32 @@ export default function AssetAuditClient() {
   }, [filteredAssets, auditPeriod]);
   
   useEffect(() => {
-    setSignatures(initialSignatureState);
-    if (selectedDepartments.length !== 1 || selectedDepartments[0] === 'ALL' || !auditPeriod) {
-      return;
-    }
-
-    const departmentId = selectedDepartments[0];
+    if (!auditPeriod || departmentOptions.length === 0) return;
+    
     const periodId = auditPeriod.replace(' ', '-');
-    const signatureDocRef = doc(db, 'audits', periodId, 'signatures', departmentId);
-
-    const unsubscribe = onSnapshot(signatureDocRef, (docSnap) => {
-      if (docSnap.exists()) {
-        setSignatures(docSnap.data() as SignatureState);
-      } else {
-        setSignatures(initialSignatureState);
-      }
+    const deptsToListen = departmentOptions.filter(d => d !== 'ALL');
+    
+    const unsubscribers = deptsToListen.map(deptId => {
+      const signatureDocRef = doc(db, 'audits', periodId, 'signatures', deptId);
+      return onSnapshot(signatureDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          setSignaturesMap(prev => ({
+            ...prev,
+            [deptId]: docSnap.data() as SignatureState
+          }));
+        } else {
+          setSignaturesMap(prev => ({
+            ...prev,
+            [deptId]: initialSignatureState
+          }));
+        }
+      });
     });
 
-    return () => unsubscribe();
-  }, [selectedDepartments, auditPeriod]);
+    return () => {
+      unsubscribers.forEach(unsub => unsub());
+    };
+  }, [departmentOptions, auditPeriod]);
 
 
   const handleDepartmentChange = (departments: string[]) => {
@@ -488,10 +532,10 @@ export default function AssetAuditClient() {
     saveAuditData(assetId, { remark: value });
   };
   
-  const openSignDialog = (role: SignatureRole) => {
+  const openSignDialog = (role: SignatureRole, group: { name: string, departments: string[] }) => {
     const isGlobalAdminSign = isAdmin && selectedDepartments.includes('ALL') && (role === 'userDibuat' || role === 'admin' || role === 'checker2');
 
-    if (!isGlobalAdminSign && (selectedDepartments.length !== 1 || selectedDepartments[0] === 'ALL')) {
+    if (!isGlobalAdminSign && (!group || group.departments.length === 0)) {
       toast({
         variant: "destructive",
         title: "Pilih Satu Departemen",
@@ -500,7 +544,10 @@ export default function AssetAuditClient() {
       return;
     }
     
-    if (!isAdmin && signatures[role]) {
+    const deptId = group.departments[0];
+    const signature = signaturesMap[deptId]?.[role] || '';
+
+    if (!isAdmin && signature) {
       toast({
         title: "Tanda Tangan Terkunci",
         description: "Anda sudah memberikan tanda tangan. Hanya Admin yang dapat mengubahnya.",
@@ -509,11 +556,12 @@ export default function AssetAuditClient() {
     }
 
     setCurrentSignRole(role);
+    setCurrentSignGroup(group);
     setIsSignDialogOpen(true);
   };
 
   const handleSaveSignature = async () => {
-    if (!sigPadRef.current || !currentSignRole || !auditPeriod) return;
+    if (!sigPadRef.current || !currentSignRole || !currentSignGroup || !auditPeriod) return;
 
     const dataUrl = sigPadRef.current.toDataURL('image/png');
     const periodId = auditPeriod.replace(' ', '-');
@@ -533,22 +581,48 @@ export default function AssetAuditClient() {
         });
         
         await batch.commit();
-        setSignatures(prev => ({ ...prev, [currentSignRole]: dataUrl }));
+        
+        setSignaturesMap(prev => {
+          const updated = { ...prev };
+          deptsToSign.forEach(deptId => {
+            updated[deptId] = {
+              ...(updated[deptId] || initialSignatureState),
+              [currentSignRole]: dataUrl
+            };
+          });
+          return updated;
+        });
+
         toast({ 
             title: "Tanda Tangan Global Berhasil", 
             description: `Tanda tangan telah disalin ke ${deptsToSign.length} departemen sekaligus.` 
         });
       } 
-      else if (selectedDepartments.length === 1 && selectedDepartments[0] !== 'ALL') {
-        const departmentId = selectedDepartments[0];
-        const signatureDocRef = doc(db, 'audits', periodId, 'signatures', departmentId);
-        await setDoc(signatureDocRef, { [currentSignRole]: dataUrl }, { merge: true });
-        setSignatures(prev => ({ ...prev, [currentSignRole]: dataUrl }));
-        toast({ title: "Tanda Tangan Disimpan" });
+      else {
+        currentSignGroup.departments.forEach(deptId => {
+          const sigRef = doc(db, 'audits', periodId, 'signatures', deptId);
+          batch.set(sigRef, { [currentSignRole]: dataUrl }, { merge: true });
+        });
+        
+        await batch.commit();
+
+        setSignaturesMap(prev => {
+          const updated = { ...prev };
+          currentSignGroup.departments.forEach(deptId => {
+            updated[deptId] = {
+              ...(updated[deptId] || initialSignatureState),
+              [currentSignRole]: dataUrl
+            };
+          });
+          return updated;
+        });
+
+        toast({ title: "Tanda Tangan Disimpan", description: `Tanda tangan disimpan untuk unit ${currentSignGroup.name}.` });
       }
       
       setIsSignDialogOpen(false);
       setCurrentSignRole(null);
+      setCurrentSignGroup(null);
     } catch (error) {
       console.error("Error saving signature:", error);
       toast({ variant: "destructive", title: "Gagal Menyimpan", description: "Terjadi kesalahan saat menyimpan tanda tangan ke database." });
@@ -557,15 +631,16 @@ export default function AssetAuditClient() {
     }
   };
 
-  const handleOpenDeleteSig = (e: React.MouseEvent, role: SignatureRole) => {
+  const handleOpenDeleteSig = (e: React.MouseEvent, role: SignatureRole, group: { name: string, departments: string[] }) => {
     e.stopPropagation();
     if (!isAdmin) return;
     setRoleToDelete(role);
+    setGroupToDelete(group);
     setIsConfirmDeleteSigOpen(true);
   };
 
   const handleDeleteSignature = async () => {
-    if (!roleToDelete || !isAdmin || !auditPeriod) return;
+    if (!roleToDelete || !groupToDelete || !isAdmin || !auditPeriod) return;
     setIsDeletingSig(true);
     const periodId = auditPeriod.replace(' ', '-');
 
@@ -580,17 +655,46 @@ export default function AssetAuditClient() {
                 const sigRef = doc(db, 'audits', periodId, 'signatures', deptId);
                 batch.update(sigRef, { [roleToDelete]: deleteField() });
             });
+            await batch.commit();
+
+            setSignaturesMap(prev => {
+              const updated = { ...prev };
+              depts.forEach(deptId => {
+                if (updated[deptId]) {
+                  updated[deptId] = {
+                    ...updated[deptId],
+                    [roleToDelete]: ''
+                  };
+                }
+              });
+              return updated;
+            });
         } 
-        else if (selectedDepartments.length === 1 && selectedDepartments[0] !== 'ALL') {
-            const sigRef = doc(db, 'audits', periodId, 'signatures', selectedDepartments[0]);
-            batch.update(sigRef, { [roleToDelete]: deleteField() });
+        else {
+            groupToDelete.departments.forEach(deptId => {
+              const sigRef = doc(db, 'audits', periodId, 'signatures', deptId);
+              batch.update(sigRef, { [roleToDelete]: deleteField() });
+            });
+            await batch.commit();
+
+            setSignaturesMap(prev => {
+              const updated = { ...prev };
+              groupToDelete.departments.forEach(deptId => {
+                if (updated[deptId]) {
+                  updated[deptId] = {
+                    ...updated[deptId],
+                    [roleToDelete]: ''
+                  };
+                }
+              });
+              return updated;
+            });
         }
 
-        await batch.commit();
-        setSignatures(prev => ({ ...prev, [roleToDelete]: '' }));
         toast({ title: 'Tanda Tangan Dihapus' });
         setIsConfirmDeleteSigOpen(false);
         setRoleToDelete(null);
+        setGroupToDelete(null);
     } catch (error) {
         console.error("Delete signature failed:", error);
         toast({ variant: 'destructive', title: 'Gagal Menghapus' });
@@ -599,12 +703,23 @@ export default function AssetAuditClient() {
     }
   };
 
-  const SignatureBox = ({ role, label, name }: { role: SignatureRole, label: string, name?: string }) => {
-    const signature = signatures[role];
+  const SignatureBox = ({ 
+    role, 
+    label, 
+    name, 
+    group 
+  }: { 
+    role: SignatureRole, 
+    label: string, 
+    name?: string, 
+    group: { name: string, departments: string[] } 
+  }) => {
+    const deptId = group.departments[0];
+    const signature = signaturesMap[deptId]?.[role] || '';
     const isSigned = !!signature;
 
     return (
-        <div onClick={() => openSignDialog(role)} className="cursor-pointer group relative text-left">
+        <div onClick={() => openSignDialog(role, group)} className="cursor-pointer group relative text-left">
           <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground group-hover:text-primary transition-colors text-left">{label}</p>
           <div className="h-24 mt-2 border border-dashed border-slate-300 rounded-2xl flex items-center justify-center bg-white/50 group-hover:bg-primary/5 group-hover:border-primary/30 transition-all duration-300 relative text-black">
             {isSigned ? (
@@ -612,7 +727,7 @@ export default function AssetAuditClient() {
                 <Image src={signature} alt={label} fill className="object-contain p-2" />
                 {isAdmin && (
                     <button 
-                        onClick={(e) => handleOpenDeleteSig(e, role)}
+                        onClick={(e) => handleOpenDeleteSig(e, role, group)}
                         className="absolute -top-2 -right-2 p-1.5 bg-rose-600 text-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-rose-700 active:scale-90"
                     >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -642,48 +757,58 @@ export default function AssetAuditClient() {
   }, [filteredAssets, auditData]);
 
   const generateSignatureTableHtml = () => {
-    const atasanDeptName = selectedDepartments.length === 1 && selectedDepartments[0] !== 'ALL' ? selectedDepartments[0] : 'Dept Head';
+    const groups = getSelectedGroups();
     
-    return `
-      <table style="margin-top: 30px; width: 100%; border-collapse: collapse;">
-        <tr>
-            <td style="border: 1px solid black; width: 16.6%; font-weight: bold; font-size: 8pt; text-align: center; background: #f8fafc; padding: 5px;">Atasan Dept</td>
-            <td style="border: 1px solid black; width: 16.6%; font-weight: bold; font-size: 8pt; text-align: center; background: #f8fafc; padding: 5px;">Yang Merawat</td>
-            <td style="border: 1px solid black; width: 16.6%; font-weight: bold; font-size: 8pt; text-align: center; background: #f8fafc; padding: 5px;">1st Checker</td>
-            <td style="border: 1px solid black; width: 16.6%; font-weight: bold; font-size: 8pt; text-align: center; background: #f8fafc; padding: 5px;">2nd Checker</td>
-            <td style="border: 1px solid black; width: 16.6%; font-weight: bold; font-size: 8pt; text-align: center; background: #f8fafc; padding: 5px;">Atasan (GA Dept)</td>
-            <td style="border: 1px solid black; width: 16.6%; font-weight: bold; font-size: 8pt; text-align: center; background: #f8fafc; padding: 5px;">Dibuat</td>
-        </tr>
-        <tr>
-            <td style="border: 1px solid black; height: 75px; vertical-align: middle; text-align: center;">
-                ${signatures.atasan2 ? `<img src="${signatures.atasan2}" style="max-height: 70px; max-width: 90%;" />` : ''}
-            </td>
-            <td style="border: 1px solid black; height: 75px; vertical-align: middle; text-align: center;">
-                ${signatures.atasan1 ? `<img src="${signatures.atasan1}" style="max-height: 70px; max-width: 90%;" />` : ''}
-            </td>
-            <td style="border: 1px solid black; height: 75px; vertical-align: middle; text-align: center;">
-                ${signatures.checker1 ? `<img src="${signatures.checker1}" style="max-height: 70px; max-width: 90%;" />` : ''}
-            </td>
-            <td style="border: 1px solid black; height: 75px; vertical-align: middle; text-align: center;">
-                ${signatures.checker2 ? `<img src="${signatures.checker2}" style="max-height: 70px; max-width: 90%;" />` : ''}
-            </td>
-            <td style="border: 1px solid black; height: 75px; vertical-align: middle; text-align: center;">
-                ${signatures.admin ? `<img src="${signatures.admin}" style="max-height: 70px; max-width: 90%;" />` : ''}
-            </td>
-            <td style="border: 1px solid black; height: 75px; vertical-align: middle; text-align: center;">
-                ${signatures.userDibuat ? `<img src="${signatures.userDibuat}" style="max-height: 70px; max-width: 90%;" />` : ''}
-            </td>
-        </tr>
-        <tr>
-            <td style="border: 1px solid black; font-size: 7pt; text-align: center; padding: 3px;">(${atasanDeptName})</td>
-            <td style="border: 1px solid black; font-size: 7pt; text-align: center; padding: 3px;">(Custodian)</td>
-            <td style="border: 1px solid black; font-size: 7pt; text-align: center; padding: 3px;">(Internal Control)</td>
-            <td style="border: 1px solid black; font-size: 7pt; text-align: center; padding: 3px;">(Finance Dept)</td>
-            <td style="border: 1px solid black; font-size: 7pt; text-align: center; padding: 3px;">(GA Dept)</td>
-            <td style="border: 1px solid black; font-size: 7pt; text-align: center; padding: 3px;">(Reporter)</td>
-        </tr>
-      </table>
-    `;
+    return groups.map(group => {
+      const groupSigs = signaturesMap[group.departments[0]] || initialSignatureState;
+      const displayDeptName = group.name;
+      
+      return `
+        <div style="page-break-inside: avoid; margin-top: 30px;">
+          <h3 style="font-size: 10pt; font-weight: bold; margin-bottom: 5px; text-transform: uppercase; text-align: left; border-left: 3px solid #000; padding-left: 8px;">
+            Pengesahan Unit: ${displayDeptName} (${group.departments.join(', ')})
+          </h3>
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+            <tr>
+                <td style="border: 1px solid black; width: 16.6%; font-weight: bold; font-size: 8pt; text-align: center; background: #f8fafc; padding: 5px;">Atasan Dept</td>
+                <td style="border: 1px solid black; width: 16.6%; font-weight: bold; font-size: 8pt; text-align: center; background: #f8fafc; padding: 5px;">Yang Merawat</td>
+                <td style="border: 1px solid black; width: 16.6%; font-weight: bold; font-size: 8pt; text-align: center; background: #f8fafc; padding: 5px;">1st Checker</td>
+                <td style="border: 1px solid black; width: 16.6%; font-weight: bold; font-size: 8pt; text-align: center; background: #f8fafc; padding: 5px;">2nd Checker</td>
+                <td style="border: 1px solid black; width: 16.6%; font-weight: bold; font-size: 8pt; text-align: center; background: #f8fafc; padding: 5px;">Atasan (GA Dept)</td>
+                <td style="border: 1px solid black; width: 16.6%; font-weight: bold; font-size: 8pt; text-align: center; background: #f8fafc; padding: 5px;">Dibuat</td>
+            </tr>
+            <tr>
+                <td style="border: 1px solid black; height: 75px; vertical-align: middle; text-align: center;">
+                    ${groupSigs.atasan2 ? `<img src="${groupSigs.atasan2}" style="max-height: 70px; max-width: 90%;" />` : ''}
+                </td>
+                <td style="border: 1px solid black; height: 75px; vertical-align: middle; text-align: center;">
+                    ${groupSigs.atasan1 ? `<img src="${groupSigs.atasan1}" style="max-height: 70px; max-width: 90%;" />` : ''}
+                </td>
+                <td style="border: 1px solid black; height: 75px; vertical-align: middle; text-align: center;">
+                    ${groupSigs.checker1 ? `<img src="${groupSigs.checker1}" style="max-height: 70px; max-width: 90%;" />` : ''}
+                </td>
+                <td style="border: 1px solid black; height: 75px; vertical-align: middle; text-align: center;">
+                    ${groupSigs.checker2 ? `<img src="${groupSigs.checker2}" style="max-height: 70px; max-width: 90%;" />` : ''}
+                </td>
+                <td style="border: 1px solid black; height: 75px; vertical-align: middle; text-align: center;">
+                    ${groupSigs.admin ? `<img src="${groupSigs.admin}" style="max-height: 70px; max-width: 90%;" />` : ''}
+                </td>
+                <td style="border: 1px solid black; height: 75px; vertical-align: middle; text-align: center;">
+                    ${groupSigs.userDibuat ? `<img src="${groupSigs.userDibuat}" style="max-height: 70px; max-width: 90%;" />` : ''}
+                </td>
+            </tr>
+            <tr>
+                <td style="border: 1px solid black; font-size: 7pt; text-align: center; padding: 3px;">(${displayDeptName})</td>
+                <td style="border: 1px solid black; font-size: 7pt; text-align: center; padding: 3px;">(Custodian)</td>
+                <td style="border: 1px solid black; font-size: 7pt; text-align: center; padding: 3px;">(Internal Control)</td>
+                <td style="border: 1px solid black; font-size: 7pt; text-align: center; padding: 3px;">(Finance Dept)</td>
+                <td style="border: 1px solid black; font-size: 7pt; text-align: center; padding: 3px;">(GA Dept)</td>
+                <td style="border: 1px solid black; font-size: 7pt; text-align: center; padding: 3px;">(Reporter)</td>
+            </tr>
+          </table>
+        </div>
+      `;
+    }).join('');
   };
 
   const handlePrint = () => {
@@ -1297,79 +1422,83 @@ export default function AssetAuditClient() {
         </CardContent>
         
         <CardFooter className="flex-col items-stretch p-6 md:p-12 bg-slate-50/50 dark:bg-slate-950/50 border-t border-slate-100 dark:border-slate-800 gap-12 text-left">
-            <div className="space-y-8 text-left">
-                <div className="flex items-center justify-between border-l-4 border-primary pl-4 md:pl-6 text-left">
-                    <div className="flex items-center gap-3 text-left">
-                        <div className="p-2 bg-primary/5 rounded-lg text-left"><UserCheck className="h-5 w-5 text-primary" /></div>
-                        <div className="space-y-0.5 text-left">
-                            <h3 className="text-lg md:text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white text-left">Pengesahan Internal Unit</h3>
-                            <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest md:tracking-[0.2em] text-muted-foreground opacity-60 text-left">Verification Cycle: Logistic & End-User</p>
+            {getSelectedGroups().map(group => {
+                return (
+                    <div key={group.name} className="space-y-8 p-6 bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl border border-slate-100 dark:border-slate-800 relative">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4 border-slate-100 dark:border-slate-800">
+                            <div className="flex items-center gap-3 text-left">
+                                <div className="p-2 bg-primary/5 rounded-lg text-left"><UserCheck className="h-5 w-5 text-primary" /></div>
+                                <div className="space-y-0.5 text-left">
+                                    <h3 className="text-lg md:text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white text-left">
+                                        Pengesahan Unit: {group.name}
+                                    </h3>
+                                    <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60 text-left">
+                                        Anggota Unit: {group.departments.join(', ')}
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <Button 
+                                onClick={async () => {
+                                    setIsSharing(true);
+                                    const periodIdShort = auditPeriod.replace(' ', '-');
+                                    const deptList = group.departments.join(',');
+                                    const publicUrl = window.location.origin + "/public/audit?p=" + periodIdShort + "&d=" + encodeURIComponent(deptList);
+                                    try {
+                                        if (navigator.share) {
+                                            await navigator.share({
+                                                title: "Tanda Tangan Audit",
+                                                text: "Silakan berikan tanda tangan audit untuk departemen " + group.name,
+                                                url: publicUrl
+                                            });
+                                            toast({ title: 'Berhasil Dibagikan' });
+                                        } else {
+                                            await navigator.clipboard.writeText(publicUrl);
+                                            toast({ title: 'Link Disalin' });
+                                        }
+                                    } catch (e) {
+                                        await navigator.clipboard.writeText(publicUrl);
+                                        toast({ title: 'Link Disalin' });
+                                    } finally {
+                                        setIsSharing(false);
+                                    }
+                                }} 
+                                variant="outline" 
+                                size="sm" 
+                                className="rounded-xl border-purple-200 text-purple-700 hover:bg-purple-50 font-bold self-start sm:self-auto"
+                            >
+                                {isSharing ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Share2 className="mr-2 h-4 w-4" />} 
+                                <span className="hidden md:inline">Bagikan Link Unit</span><span className="md:hidden">Share</span>
+                            </Button>
+                        </div>
+
+                        {/* Internal Unit Grid */}
+                        <div className="space-y-4">
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Internal Unit Verification Cycle</p>
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-8 text-center px-0">
+                                <SignatureBox role="atasan2" label="Atasan Dept" name={group.name} group={group} />
+                                <SignatureBox role="atasan1" label="Yang Merawat" name="Custodian" group={group} />
+                                <SignatureBox role="checker1" label="1st Checker" name="Internal Control" group={group} />
+                                <SignatureBox role="checker2" label="2nd Checker" name="Finance Dept" group={group} />
+                                <SignatureBox role="admin" label="Atasan" name="GA Dept" group={group} />
+                                <SignatureBox role="userDibuat" label="Dibuat" name="Reporter" group={group} />
+                            </div>
+                        </div>
+
+                        {/* HQ Section within the Group */}
+                        <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Corporate Governance Approval (HQ)</p>
+                            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 md:gap-8 text-center px-0">
+                                <SignatureBox role="userDibuat" label="Dibuat Oleh" name="Logistics Staff" group={group} />
+                                <SignatureBox role="userDiketahui1" label="Diketahui" name="GA Supervisor" group={group} />
+                                <SignatureBox role="userDiketahui2" label="Diverifikasi" name="Accounting Mgr" group={group} />
+                                <SignatureBox role="userDiterima" label="Director" group={group} />
+                                <SignatureBox role="userDisetujui" label="Disetujui" name="Pres. Director" group={group} />
+                            </div>
                         </div>
                     </div>
-                    {selectedDepartments.length > 1 && !selectedDepartments.includes('ALL') ? (
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="sm" className="rounded-xl border-purple-200 text-purple-700 hover:bg-purple-50 font-bold">
-                                    <Share2 className="mr-2 h-4 w-4" /> <span className="hidden md:inline">Bagikan Link Grup</span><span className="md:hidden">Share Group</span>
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-64 rounded-2xl p-2 shadow-2xl bg-white border-slate-100 text-black">
-                                <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 px-4 py-2 text-left">Pilih Unit Untuk Dishare</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <ScrollArea className="h-64">
-                                    <div className="p-1 space-y-1 text-black">
-                                        {selectedDepartments.map(dept => (
-                                            <DropdownMenuItem 
-                                                key={dept} 
-                                                onSelect={() => shareSpecificDept(dept)}
-                                                className="cursor-pointer rounded-xl py-2.5 px-4 text-xs font-bold uppercase hover:bg-primary/5 hover:text-primary transition-all text-black"
-                                            >
-                                                {dept}
-                                            </DropdownMenuItem>
-                                        ))}
-                                    </div>
-                                </ScrollArea>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    ) : (
-                        <Button 
-                            onClick={handleShareSignatureLink} 
-                            variant="outline" 
-                            size="sm" 
-                            className="rounded-xl border-purple-200 text-purple-700 hover:bg-purple-50 font-bold"
-                            disabled={selectedDepartments.length === 0 || (!isAdmin && selectedDepartments.includes('ALL'))}
-                        >
-                            {isSharing ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Share2 className="mr-2 h-4 w-4" />} <span className="hidden md:inline">Bagikan Link</span><span className="md:hidden">Share</span>
-                        </Button>
-                    )}
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-8 text-center px-0 md:px-4">
-                    <SignatureBox role="atasan2" label="Atasan Dept" name={selectedDepartments.length === 1 && selectedDepartments[0] !== 'ALL' ? selectedDepartments[0] : 'Dept Head'} />
-                    <SignatureBox role="atasan1" label="Yang Merawat" name="Custodian" />
-                    <SignatureBox role="checker1" label="1st Checker" name="Internal Control" />
-                    <SignatureBox role="checker2" label="2nd Checker" name="Finance Dept" />
-                    <SignatureBox role="admin" label="Atasan" name="GA Dept" />
-                    <SignatureBox role="userDibuat" label="Dibuat" name="Reporter" />
-                </div>
-            </div>
-
-            <div className="space-y-8 text-left">
-                <div className="flex items-center gap-3 border-l-4 border-slate-400 pl-4 md:pl-6 text-left">
-                    <div className="p-2 bg-slate-100 rounded-lg"><ShieldCheck className="h-5 w-5 text-slate-500" /></div>
-                    <div className="space-y-0.5 text-left">
-                        <h3 className="text-lg md:text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white text-left">Otoritas Pusat (HQ)</h3>
-                        <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest md:tracking-[0.2em] text-muted-foreground opacity-60 text-left">Corporate Governance Approval</p>
-                    </div>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 md:gap-8 text-center bg-white dark:bg-slate-900 p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] shadow-2xl border border-slate-100 dark:border-slate-800 relative">
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/20 via-transparent to-primary/20 text-left" />
-                    <SignatureBox role="userDibuat" label="Dibuat Oleh" name="Logistics Staff" />
-                    <SignatureBox role="userDiketahui1" label="Diketahui" name="GA Supervisor" />
-                    <SignatureBox role="userDiketahui2" label="Diverifikasi" name="Accounting Mgr" />
-                    <SignatureBox role="userDiterima" label="Director" />
-                    <SignatureBox role="userDisetujui" label="Disetujui" name="Pres. Director" />
-                </div>
-            </div>
+                );
+            })}
         </CardFooter>
       </Card>
 

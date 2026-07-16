@@ -76,28 +76,36 @@ export default function PublicReportViewer({ reportId }: PublicReportViewerProps
   }, [reportId]);
 
   const stats = useMemo(() => {
-    if (!report || !report.items) return null;
-    const items = report.items as any[];
+    if (!report) return null;
+    const items = report.items || report.assets || [];
+    if (items.length === 0) return null;
     
     let globalStats: any = { total: items.length };
 
     if (report.type === 'HELPDESK_SUMMARY') {
         globalStats = {
             ...globalStats,
-            done: items.filter(i => i.status === 'Selesai').length,
-            waiting: items.filter(i => i.status === 'Menunggu' || i.status === 'Diproses').length
+            done: items.filter((i: any) => i.status === 'Selesai').length,
+            waiting: items.filter((i: any) => i.status === 'Menunggu' || i.status === 'Diproses').length
         };
     } else if (report.type === 'MAINTENANCE_LOG') {
         globalStats = {
             ...globalStats,
-            done: items.filter(i => i.status === 'Selesai').length,
-            upcoming: items.filter(i => i.status === 'Dijadwalkan' || i.status === 'Diproses').length
+            done: items.filter((i: any) => i.status === 'Selesai').length,
+            upcoming: items.filter((i: any) => i.status === 'Dijadwalkan' || i.status === 'Diproses').length
+        };
+    } else if (!report.type && report.assets) {
+        const approvedCount = items.filter((i: any) => i.status?.toLowerCase().includes('approved') || i.status?.toLowerCase().includes('selesai')).length;
+        globalStats = {
+            ...globalStats,
+            done: approvedCount,
+            waiting: items.length - approvedCount
         };
     }
 
     // Hitung distribusi per departemen
     const deptMap = items.reduce((acc: Record<string, number>, item: any) => {
-        const dept = item.dept || item.location || 'UMUM';
+        const dept = item.dept || item.location || item.newLocation || 'UMUM';
         acc[dept] = (acc[dept] || 0) + 1;
         return acc;
     }, {});
@@ -113,9 +121,10 @@ export default function PublicReportViewer({ reportId }: PublicReportViewerProps
   }, [report]);
 
   const filteredItems = useMemo(() => {
-    if (!report || !report.items) return [];
-    if (!deptFilter) return report.items;
-    return report.items.filter((item: any) => (item.dept || item.location || 'UMUM') === deptFilter);
+    if (!report) return [];
+    const items = report.items || report.assets || [];
+    if (!deptFilter) return items;
+    return items.filter((item: any) => (item.dept || item.location || item.newLocation || 'UMUM') === deptFilter);
   }, [report, deptFilter]);
 
   const toggleDeptFilter = (name: string) => {
@@ -329,25 +338,38 @@ export default function PublicReportViewer({ reportId }: PublicReportViewerProps
                                         </TableCell>
                                         <TableCell>
                                             <Badge variant="outline" className="text-[8px] font-black uppercase tracking-tighter bg-slate-50 border-slate-200">
-                                                {item.type || item.category || 'GENERAL'}
+                                                {report.assets ? 'MUTASI' : (item.type || item.category || 'GENERAL')}
                                             </Badge>
                                         </TableCell>
                                         <TableCell>
                                             <div className="flex flex-col gap-1 py-3 text-left">
-                                                <p className="text-[11px] font-bold text-slate-700 leading-relaxed max-w-sm line-clamp-2 text-left">
-                                                    {item.description || item.descriptionSummary || item.notes || '-'}
-                                                </p>
-                                                {(item.dept || item.location) && (
-                                                    <span className="text-[9px] font-black text-muted-foreground uppercase flex items-center gap-1">
-                                                        <Building className="h-2.5 w-2.5" /> {item.dept || item.location}
-                                                    </span>
+                                                {report.assets ? (
+                                                    <>
+                                                        <p className="text-[11px] font-black text-slate-700 uppercase">
+                                                            Mutasi Lokasi: <span className="text-rose-600 font-bold">{item.prevLocation}</span> → <span className="text-emerald-600 font-bold">{item.newLocation}</span>
+                                                        </p>
+                                                        <span className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                                                            <User className="h-2.5 w-2.5" /> Diajukan Oleh: {item.requester}
+                                                        </span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <p className="text-[11px] font-bold text-slate-700 leading-relaxed max-w-sm line-clamp-2 text-left">
+                                                            {item.description || item.descriptionSummary || item.notes || '-'}
+                                                        </p>
+                                                        {(item.dept || item.location) && (
+                                                            <span className="text-[9px] font-black text-muted-foreground uppercase flex items-center gap-1">
+                                                                <Building className="h-2.5 w-2.5" /> {item.dept || item.location}
+                                                            </span>
+                                                        )}
+                                                    </>
                                                 )}
                                             </div>
                                         </TableCell>
                                         <TableCell className="text-center">
                                             <Badge className={cn(
                                                 "rounded-full px-3 py-0.5 text-[9px] font-black uppercase border-none shadow-sm",
-                                                item.status === 'Selesai' || item.status === 'Aktif' ? "bg-emerald-600 text-white" : "bg-primary text-white"
+                                                item.status === 'Selesai' || item.status === 'Aktif' || item.status?.toLowerCase().includes('approved') ? "bg-emerald-600 text-white" : "bg-primary text-white"
                                             )}>
                                                 {item.status || 'Verified'}
                                             </Badge>

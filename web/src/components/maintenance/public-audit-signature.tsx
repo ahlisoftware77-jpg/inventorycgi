@@ -9,7 +9,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { doc, onSnapshot, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { type Asset } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -70,7 +70,15 @@ export default function PublicAuditSignature() {
   const periodId = searchParams.get('p');
   const deptId = searchParams.get('d');
   
-  const [signatures, setSignatures] = useState<any>({});
+  const depts = useMemo(() => {
+    if (!deptId) return [];
+    return decodeURIComponent(deptId).split(',').map(d => d.trim()).filter(Boolean);
+  }, [deptId]);
+
+  const [signaturesMap, setSignaturesMap] = useState<Record<string, any>>({});
+  const [deptGroups, setDeptGroups] = useState<any[]>([]);
+  const [currentGroup, setCurrentGroup] = useState<{ name: string, departments: string[] } | null>(null);
+  
   const [allAssets, setAllAssets] = useState<Asset[]>([]);
   const [auditProgress, setAuditProgress] = useState<Record<string, AuditProgress>>({});
   const [loading, setLoading] = useState(true);
@@ -92,24 +100,33 @@ export default function PublicAuditSignature() {
 
   useEffect(() => {
     const unsubGen = onSnapshot(doc(db, 'settings', 'general'), (snap) => {
-        if (snap.exists() && snap.data().companyName) setCompanyName(snap.data().companyName);
+        if (snap.exists()) {
+          const data = snap.data();
+          if (data.companyName) setCompanyName(data.companyName);
+          if (data.deptGroups) setDeptGroups(data.deptGroups);
+        }
     });
     
-    if (!periodId || !deptId) {
+    if (!periodId || depts.length === 0) {
         setLoading(false);
         return;
     }
 
-    // 1. Listen to Signatures
-    const unsubSig = onSnapshot(doc(db, 'audits', periodId, 'signatures', deptId), (snap) => {
-        if (snap.exists()) setSignatures(snap.data());
-        else setSignatures({});
+    // 1. Listen to Signatures for all depts
+    const unsubSignatures = depts.map(d => {
+      return onSnapshot(doc(db, 'audits', periodId, 'signatures', d), (snap) => {
+        if (snap.exists()) {
+          setSignaturesMap(prev => ({ ...prev, [d]: snap.data() }));
+        } else {
+          setSignaturesMap(prev => ({ ...prev, [d]: {} }));
+        }
+      });
     });
 
     // 2. Fetch Assets for this Department
     const fetchAssets = async () => {
         try {
-            const q = query(collection(db, 'assets'), where('location', '==', deptId));
+            const q = query(collection(db, 'assets'), where('location', 'in', depts));
             const snap = await getDocs(q);
             const data = snap.docs.map(d => ({ id: d.id, ...d.data() } as Asset));
             setAllAssets(data.sort((a, b) => a.code.localeCompare(b.code)));
@@ -141,8 +158,40 @@ export default function PublicAuditSignature() {
 
     fetchAssets();
 
-    return () => { unsubGen(); unsubSig(); };
-  }, [periodId, deptId]);
+    return () => { 
+      unsubGen(); 
+      unsubSignatures.forEach(unsub => unsub());
+    };
+  }, [periodId, depts]);
+
+  const getSelectedGroups = () => {
+    if (depts.length === 0) return [];
+
+    const grouped: { name: string; departments: string[] }[] = [];
+    const processedDepts = new Set<string>();
+
+    deptGroups.forEach(group => {
+      const matchingDepts = group.departments.filter((d: string) => depts.includes(d));
+      if (matchingDepts.length > 0) {
+        grouped.push({
+          name: group.name,
+          departments: matchingDepts
+        });
+        matchingDepts.forEach((d: string) => processedDepts.add(d));
+      }
+    });
+
+    depts.forEach(d => {
+      if (!processedDepts.has(d)) {
+        grouped.push({
+          name: d,
+          departments: [d]
+        });
+      }
+    });
+
+    return grouped;
+  };
 
   const filteredAssets = useMemo(() => {
     let result = allAssets;
@@ -169,7 +218,7 @@ export default function PublicAuditSignature() {
   }, [allAssets, seriesFilter, ownershipFilter]);
 
   const handleSave = async () => {
-    if (!sigPadRef.current || !currentRole || !periodId || !deptId) return;
+    if (!sigPadRef.current || !currentRole || !periodId || !currentGroup) return;
     
     if (sigPadRef.current.isEmpty()) {
         toast({ variant: 'destructive', title: 'Tanda Tangan Kosong' });
@@ -178,28 +227,34 @@ export default function PublicAuditSignature() {
 
     setIsSaving(true);
     const dataUrl = sigPadRef.current.toDataURL('image/png');
-    const docPath = "audits/" + periodId + "/signatures/" + deptId;
-    const docRef = doc(db, docPath);
     
-    const dataToSave = { [currentRole]: dataUrl };
-
-    setDoc(docRef, dataToSave, { merge: true })
-      .then(() => {
-          toast({ title: 'Berhasil Disimpan', description: 'Tanda tangan Anda telah dikunci ke sistem.' });
-          setIsSignOpen(false);
-      })
-      .catch(async (serverError) => {
-          const permissionError = new FirestorePermissionError({
-              path: docRef.path,
-              operation: 'write',
-              requestResourceData: dataToSave,
-          });
-          errorEmitter.emit('permission-error', permissionError);
-          toast({ variant: 'destructive', title: 'Gagal Menyimpan', description: 'Kendala izin akses database.' });
-      })
-      .finally(() => {
-          setIsSaving(false);
+    try {
+      const batch = writeBatch(db);
+      currentGroup.departments.forEach(d => {
+        const docRef = doc(db, "audits", periodId, "signatures", d);
+        batch.set(docRef, { [currentRole]: dataUrl }, { merge: true });
       });
+      await batch.commit();
+
+      setSignaturesMap(prev => {
+        const updated = { ...prev };
+        currentGroup.departments.forEach(d => {
+          updated[d] = {
+            ...(updated[d] || {}),
+            [currentRole]: dataUrl
+          };
+        });
+        return updated;
+      });
+
+      toast({ title: 'Berhasil Disimpan', description: 'Tanda tangan Anda telah dikunci ke sistem.' });
+      setIsSignOpen(false);
+    } catch (serverError) {
+      console.error("Save signature error:", serverError);
+      toast({ variant: 'destructive', title: 'Gagal Menyimpan', description: 'Kendala izin akses database.' });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handlePreviewCard = (id: string) => {
@@ -216,7 +271,7 @@ export default function PublicAuditSignature() {
     );
   }
 
-  if (!periodId || !deptId) {
+  if (!periodId || depts.length === 0) {
     return (
         <div className="p-12 text-center flex flex-col items-center justify-center min-h-screen gap-6 text-black">
             <AlertCircle className="h-16 w-16 text-rose-500 opacity-20 mx-auto" />
@@ -227,7 +282,7 @@ export default function PublicAuditSignature() {
   }
 
   const roleLabels: Record<SignatureRole, string> = {
-    atasan2: `Atasan Dept (${deptId})`,
+    atasan2: 'Atasan Dept',
     atasan1: 'Yang Merawat (Custodian)',
     checker1: '1st Checker (IC)',
     checker2: '2nd Checker (Finance)',
@@ -244,12 +299,14 @@ export default function PublicAuditSignature() {
     userDibuat: 'Reporter'
   };
 
-  const SignatureTile = ({ role }: { role: SignatureRole }) => {
-    const isSigned = !!signatures[role];
+  const SignatureTile = ({ role, group }: { role: SignatureRole, group: { name: string, departments: string[] } }) => {
+    const deptId = group.departments[0];
+    const signature = signaturesMap[deptId]?.[role] || '';
+    const isSigned = !!signature;
     
     return (
         <Card 
-            onClick={() => { if (!isSigned) { setCurrentRole(role); setIsSignOpen(true); } }}
+            onClick={() => { if (!isSigned) { setCurrentRole(role); setCurrentGroup(group); setIsSignOpen(true); } }}
             className={cn(
                 "transition-all duration-300 rounded-3xl overflow-hidden bg-white shadow-sm border",
                 isSigned ? "cursor-default border-emerald-100 bg-emerald-50/10" : "cursor-pointer group hover:border-primary hover:shadow-md"
@@ -257,7 +314,9 @@ export default function PublicAuditSignature() {
         >
             <CardHeader className="p-4 pb-2 bg-slate-50 border-b flex flex-row items-center justify-between">
                 <div className="text-left flex flex-col">
-                    <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground group-hover:text-primary transition-colors text-left">{roleLabels[role]}</CardTitle>
+                    <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground group-hover:text-primary transition-colors text-left">
+                        {role === 'atasan2' ? `Atasan Dept (${group.name})` : roleLabels[role]}
+                    </CardTitle>
                     <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">{roleSubLabels[role]}</span>
                 </div>
                 {isSigned && <CheckCircle2 className="h-3 w-3 text-emerald-500" />}
@@ -265,7 +324,7 @@ export default function PublicAuditSignature() {
             <CardContent className="p-6 h-32 flex items-center justify-center relative text-black">
                 {isSigned ? (
                     <div className="relative w-full h-full animate-in fade-in zoom-in duration-500">
-                        <Image src={signatures[role]} alt={role} fill className="object-contain" />
+                        <Image src={signature} alt={role} fill className="object-contain" />
                     </div>
                 ) : (
                     <div className="flex flex-col items-center gap-2 opacity-20 group-hover:opacity-40 transition-opacity">
@@ -432,7 +491,7 @@ export default function PublicAuditSignature() {
         </div>
 
         {/* Kolom Pengesahan */}
-        <div className="space-y-6">
+        <div className="space-y-8">
             <div className="flex items-center gap-3 border-l-4 border-emerald-500 pl-6 text-left">
                 <div className="p-2 bg-emerald-50 rounded-lg"><ShieldCheck className="h-5 w-5 text-emerald-600" /></div>
                 <div className="space-y-0.5 text-left">
@@ -441,14 +500,21 @@ export default function PublicAuditSignature() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                <SignatureTile role="atasan2" />
-                <SignatureTile role="atasan1" />
-                <SignatureTile role="checker1" />
-                <SignatureTile role="checker2" />
-                <SignatureTile role="admin" />
-                <SignatureTile role="userDibuat" />
-            </div>
+            {getSelectedGroups().map(group => (
+                <div key={group.name} className="space-y-4 p-6 bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-xl text-left">
+                    <p className="text-sm font-black uppercase tracking-tight text-slate-900 dark:text-white">
+                        Unit Kerja: {group.name} <span className="text-[10px] font-normal text-muted-foreground">({group.departments.join(', ')})</span>
+                    </p>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-6 mt-4">
+                        <SignatureTile role="atasan2" group={group} />
+                        <SignatureTile role="atasan1" group={group} />
+                        <SignatureTile role="checker1" group={group} />
+                        <SignatureTile role="checker2" group={group} />
+                        <SignatureTile role="admin" group={group} />
+                        <SignatureTile role="userDibuat" group={group} />
+                    </div>
+                </div>
+            ))}
         </div>
 
         <div className="bg-amber-50 border border-amber-100 p-6 rounded-[2.5rem] flex items-start gap-4 shadow-sm text-left">

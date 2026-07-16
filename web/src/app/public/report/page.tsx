@@ -1,16 +1,13 @@
 'use client';
 
-import { Suspense, use } from 'react';
+import { Suspense } from 'react';
 import PublicReportViewer from '@/components/reports/public-report-viewer';
+import { useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
-export default function PublicReportPage({ 
-  searchParams 
-}: { 
-  searchParams: Promise<{ s?: string }> 
-}) {
-  const params = use(searchParams);
-  const reportId = params.s;
+function PublicReportViewerWrapper() {
+  const searchParams = useSearchParams();
+  const reportId = searchParams.get('s');
 
   if (!reportId) {
     return (
@@ -21,6 +18,10 @@ export default function PublicReportPage({
     );
   }
 
+  return <PublicReportViewer reportId={reportId} />;
+}
+
+export default function PublicReportPage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <Suspense fallback={
@@ -29,7 +30,7 @@ export default function PublicReportPage({
           <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">Menyiapkan Laporan Audit...</p>
         </div>
       }>
-        <PublicReportViewer reportId={reportId} />
+        <PublicReportViewerWrapper />
       </Suspense>
     </div>
   );
