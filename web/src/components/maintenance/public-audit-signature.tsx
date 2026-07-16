@@ -35,7 +35,8 @@ import {
   Filter,
   Eye,
   User,
-  Building
+  Building,
+  Search
 } from 'lucide-react';
 import {
   Dialog,
@@ -47,6 +48,7 @@ import {
 } from '@/components/ui/dialog';
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import SignatureCanvas from 'react-signature-canvas';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -90,6 +92,7 @@ export default function PublicAuditSignature() {
   // Filter States
   const [seriesFilter, setSeriesFilter] = useState<'ALL' | 'A' | 'B'>('ALL');
   const [ownershipFilter, setOwnershipFilter] = useState<'ALL' | 'COMPANY' | 'PERSONAL' | 'UTILITY'>('ALL');
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Preview States
   const [previewAssetId, setPreviewAssetId] = useState<string | null>(null);
@@ -214,8 +217,17 @@ export default function PublicAuditSignature() {
         });
     }
 
+    if (searchTerm.trim() !== '') {
+        const term = searchTerm.toLowerCase().trim();
+        result = result.filter(asset => 
+            (asset.name || '').toLowerCase().includes(term) ||
+            (asset.code || '').toLowerCase().includes(term) ||
+            (asset.user || '').toLowerCase().includes(term)
+        );
+    }
+
     return result;
-  }, [allAssets, seriesFilter, ownershipFilter]);
+  }, [allAssets, seriesFilter, ownershipFilter, searchTerm]);
 
   const handleSave = async () => {
     if (!sigPadRef.current || !currentRole || !periodId || !currentGroup) return;
@@ -380,7 +392,7 @@ export default function PublicAuditSignature() {
         {/* Filter Section */}
         <Card className="border-none shadow-lg rounded-[2.5rem] bg-white dark:bg-slate-900 overflow-hidden">
             <CardContent className="p-8 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
                     <div className="space-y-3">
                         <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Klasifikasi Seri</Label>
                         <ToggleGroup 
@@ -409,6 +421,19 @@ export default function PublicAuditSignature() {
                             <ToggleGroupItem value="UTILITY" className="flex-1 rounded-xl font-black text-[10px] uppercase tracking-widest data-[state=on]:bg-white dark:data-[state=on]:bg-slate-900 data-[state=on]:text-primary data-[state=on]:shadow-lg gap-1.5"><Zap className="h-3 w-3" /> Util</ToggleGroupItem>
                         </ToggleGroup>
                     </div>
+
+                    <div className="space-y-3">
+                        <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Pencarian Barang</Label>
+                        <div className="relative">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                            <Input 
+                                placeholder="Cari nama, kode, atau PIC..." 
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="h-12 pl-11 rounded-2xl border-slate-200 shadow-inner bg-slate-50 font-medium text-black dark:bg-slate-800 dark:border-slate-700 dark:text-white"
+                            />
+                        </div>
+                    </div>
                 </div>
             </CardContent>
         </Card>
@@ -432,6 +457,7 @@ export default function PublicAuditSignature() {
                             <TableRow className="border-none">
                                 <TableHead className="pl-8 text-[10px] font-black uppercase tracking-widest">Identitas</TableHead>
                                 <TableHead className="text-[10px] font-black uppercase tracking-widest">Nama Barang</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase tracking-widest">PIC/User</TableHead>
                                 <TableHead className="text-center text-[10px] font-black uppercase tracking-widest">Kuantitas</TableHead>
                                 <TableHead className="text-center text-[10px] font-black uppercase tracking-widest">1st Check</TableHead>
                                 <TableHead className="text-center text-[10px] font-black uppercase tracking-widest">2nd Check</TableHead>
@@ -450,6 +476,9 @@ export default function PublicAuditSignature() {
                                                 <span className="font-bold text-sm uppercase text-slate-900 text-left">{asset.name}</span>
                                                 <span className="text-[9px] font-bold text-muted-foreground uppercase text-left">{asset.category}</span>
                                             </div>
+                                        </TableCell>
+                                        <TableCell className="font-bold text-xs uppercase text-slate-800">
+                                            {asset.user || '-'}
                                         </TableCell>
                                         <TableCell className="text-center">
                                             <Badge variant="outline" className="rounded-lg font-black text-[10px] bg-white border-slate-200 px-3 py-1">
@@ -479,7 +508,7 @@ export default function PublicAuditSignature() {
                                 );
                             }) : (
                                 <TableRow>
-                                    <TableCell colSpan={7} className="h-32 text-center text-muted-foreground italic text-xs uppercase tracking-widest opacity-40">
+                                    <TableCell colSpan={8} className="h-32 text-center text-muted-foreground italic text-xs uppercase tracking-widest opacity-40">
                                         Tidak ada data aset terdaftar untuk filter ini.
                                     </TableCell>
                                 </TableRow>
