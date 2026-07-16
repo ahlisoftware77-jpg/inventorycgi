@@ -833,6 +833,7 @@ export default function AssetAuditClient() {
             <td>${asset.costCenter || ''}</td>
             <td>${asset.code}</td>
             <td>${asset.name}</td>
+            <td>${asset.user || ''}</td>
             <td>Unit</td>
             <td>${asset.qty}</td>
             <td>${data.checked1 ? '✓' : ''}</td>
@@ -866,6 +867,7 @@ export default function AssetAuditClient() {
                             <th>Cost Center<br><span class="th-sub">成本中心</span></th>
                             <th>Kode Aset<br><span class="th-sub">財產編號</span></th>
                             <th>Nama Aset<br><span class="th-sub">財產名稱</span></th>
+                            <th>PIC/User<br><span class="th-sub">保管人員</span></th>
                             <th>Unit<br><span class="th-sub">單位</span></th>
                             <th>Qty</th><th>1st</th><th>2nd</th><th>Update</th><th>Remark</th>
                         </tr>
@@ -903,6 +905,7 @@ export default function AssetAuditClient() {
             <td>${index + 1}</td>
             <td>${asset.code}</td>
             <td>${asset.name}</td>
+            <td>${asset.user || ''}</td>
             <td>${asset.location}</td>
             <td>${asset.qty}</td>
             <td>${data.checked1 ? '✓' : ''}</td>
@@ -935,6 +938,7 @@ export default function AssetAuditClient() {
                             <th>No</th>
                             <th>Kode Aset<br><span class="th-sub">財產編號</span></th>
                             <th>Nama Aset<br><span class="th-sub">財產名稱</span></th>
+                            <th>PIC/User<br><span class="th-sub">保管人員</span></th>
                             <th>Lokasi<br><span class="th-sub">存放地點</span></th>
                             <th>Qty</th><th>1st</th><th>2nd</th><th>Update</th><th>Remark</th>
                         </tr>
