@@ -8,7 +8,7 @@
  */
 
 import { useState, useEffect, useMemo } from 'react';
-import { collection, onSnapshot, query, orderBy, limit, getDocs, where, writeBatch, doc, Timestamp } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, limit, getDocs, where, writeBatch, doc, Timestamp, startAfter } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { type SystemLog, type InventoryTransaction } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -44,36 +44,112 @@ export default function LogTable() {
   const [systemLogs, setSystemLogs] = useState<SystemLog[]>([]);
   const [inventoryLogs, setInventoryLogs] = useState<InventoryTransaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('system');
   const { toast } = useToast();
   const { user } = useAuth();
 
-  useEffect(() => {
-    setLoading(true);
-    
-    // Listen to System Logs
-    const qSystem = query(collection(db, 'system_logs'), orderBy('timestamp', 'desc'), limit(200));
-    const unsubSystem = onSnapshot(qSystem, (snap) => {
-      setSystemLogs(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as SystemLog)));
-    });
+  // Pagination states
+  const [lastSystemDoc, setLastSystemDoc] = useState<any>(null);
+  const [lastInventoryDoc, setLastInventoryDoc] = useState<any>(null);
+  const [hasMoreSystem, setHasMoreSystem] = useState(true);
+  const [hasMoreInventory, setHasMoreInventory] = useState(true);
 
-    // Listen to Inventory Transactions
-    const qInventory = query(collection(db, 'inventory_transactions'), orderBy('createdAt', 'desc'), limit(200));
-    const unsubInventory = onSnapshot(qInventory, (snap) => {
-      setInventoryLogs(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as InventoryTransaction)));
+  const PAGE_SIZE = 25;
+
+  const fetchLogs = async (tab: string, loadMore = false) => {
+    if (loadMore) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
+
+    try {
+      if (tab === 'system') {
+        let q = query(
+          collection(db, 'system_logs'),
+          orderBy('timestamp', 'desc'),
+          limit(PAGE_SIZE)
+        );
+
+        if (loadMore && lastSystemDoc) {
+          q = query(
+            collection(db, 'system_logs'),
+            orderBy('timestamp', 'desc'),
+            startAfter(lastSystemDoc),
+            limit(PAGE_SIZE)
+          );
+        }
+
+        const snap = await getDocs(q);
+        const docs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as SystemLog));
+        
+        if (loadMore) {
+          setSystemLogs(prev => [...prev, ...docs]);
+        } else {
+          setSystemLogs(docs);
+        }
+
+        if (snap.docs.length < PAGE_SIZE) {
+          setHasMoreSystem(false);
+        } else {
+          setHasMoreSystem(true);
+          setLastSystemDoc(snap.docs[snap.docs.length - 1]);
+        }
+      } else {
+        let q = query(
+          collection(db, 'inventory_transactions'),
+          orderBy('createdAt', 'desc'),
+          limit(PAGE_SIZE)
+        );
+
+        if (loadMore && lastInventoryDoc) {
+          q = query(
+            collection(db, 'inventory_transactions'),
+            orderBy('createdAt', 'desc'),
+            startAfter(lastInventoryDoc),
+            limit(PAGE_SIZE)
+          );
+        }
+
+        const snap = await getDocs(q);
+        const docs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as InventoryTransaction));
+
+        if (loadMore) {
+          setInventoryLogs(prev => [...prev, ...docs]);
+        } else {
+          setInventoryLogs(docs);
+        }
+
+        if (snap.docs.length < PAGE_SIZE) {
+          setHasMoreInventory(false);
+        } else {
+          setHasMoreInventory(true);
+          setLastInventoryDoc(snap.docs[snap.docs.length - 1]);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching logs:", error);
+      toast({ variant: 'destructive', title: 'Gagal Memuat Log' });
+    } finally {
       setLoading(false);
-    });
+      setLoadingMore(false);
+    }
+  };
 
-    // Trigger cleanup for Admin
+  useEffect(() => {
+    setLastSystemDoc(null);
+    setLastInventoryDoc(null);
+    setHasMoreSystem(true);
+    setHasMoreInventory(true);
+    fetchLogs(activeTab, false);
+  }, [activeTab]);
+
+  useEffect(() => {
     if (user?.role === 'Admin') {
       handleAutoCleanup();
     }
-
-    return () => {
-      unsubSystem();
-      unsubInventory();
-    };
   }, [user]);
 
   const handleAutoCleanup = async () => {
@@ -237,6 +313,20 @@ export default function LogTable() {
                   )}
                 </TableBody>
               </Table>
+              {hasMoreSystem && (
+                <div className="p-4 border-t flex justify-center bg-slate-50/50 dark:bg-slate-900/50">
+                  <Button 
+                    onClick={() => fetchLogs('system', true)} 
+                    disabled={loading || loadingMore}
+                    variant="outline" 
+                    size="sm" 
+                    className="rounded-xl font-black text-[10px] uppercase tracking-widest px-6"
+                  >
+                    {loadingMore ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : null}
+                    Muat Lebih Banyak
+                  </Button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="border rounded-[2rem] overflow-hidden bg-white dark:bg-slate-950">
@@ -252,7 +342,7 @@ export default function LogTable() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {loading ? (
+                  {loading && !loadingMore ? (
                     Array.from({ length: 5 }).map((_, i) => (
                       <TableRow key={i}><TableCell colSpan={6} className="p-6"><Skeleton className="h-10 w-full rounded-2xl" /></TableCell></TableRow>
                     ))
@@ -296,6 +386,20 @@ export default function LogTable() {
                   )}
                 </TableBody>
               </Table>
+              {hasMoreInventory && (
+                <div className="p-4 border-t flex justify-center bg-slate-50/50 dark:bg-slate-900/50">
+                  <Button 
+                    onClick={() => fetchLogs('inventory', true)} 
+                    disabled={loading || loadingMore}
+                    variant="outline" 
+                    size="sm" 
+                    className="rounded-xl font-black text-[10px] uppercase tracking-widest px-6"
+                  >
+                    {loadingMore ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : null}
+                    Muat Lebih Banyak
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </CardContent>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { collection, onSnapshot, query, where, QueryConstraint, addDoc, serverTimestamp, doc } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, QueryConstraint, addDoc, serverTimestamp, doc, getDocs, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { useAuth } from '@/hooks/use-auth';
 import { type HelpdeskTicket, type TicketStatus, type TicketPriority, type TicketCategory } from '@/lib/types';
@@ -233,42 +233,42 @@ export default function HelpdeskTable() {
     if (authLoading || !user) return;
     setLoading(true);
 
-    const qMaint = query(collection(db, 'maintenance_schedules'));
-    const unsubMaint = onSnapshot(qMaint, (snapshot) => {
-        const mapping: Record<string, string> = {};
-        snapshot.forEach(doc => {
+    const fetchHelpdeskData = async () => {
+      try {
+        const qMaint = query(collection(db, 'maintenance_schedules'));
+        const snapMaint = await getDocs(qMaint);
+        const mappingMaint: Record<string, string> = {};
+        snapMaint.forEach(doc => {
             const data = doc.data();
-            if (data.ticketId) mapping[data.ticketId] = data.type;
+            if (data.ticketId) mappingMaint[data.ticketId] = data.type;
         });
-        setMaintenanceMap(mapping);
-    });
+        setMaintenanceMap(mappingMaint);
 
-    const qReports = query(collection(db, 'it_problem_reports'));
-    const unsubReports = onSnapshot(qReports, (snapshot) => {
-        const mapping: Record<string, string> = {};
-        snapshot.forEach(doc => {
+        const qReports = query(collection(db, 'it_problem_reports'));
+        const snapReports = await getDocs(qReports);
+        const mappingReports: Record<string, string> = {};
+        snapReports.forEach(doc => {
             const data = doc.data();
-            if (data.ticketId) mapping[data.ticketId] = doc.id;
+            if (data.ticketId) mappingReports[data.ticketId] = doc.id;
         });
-        setReportMap(mapping);
-    });
+        setReportMap(mappingReports);
 
-    let q: QueryConstraint[] = [];
-    if (user.role !== 'Admin') {
-      q.push(where('reportedBy', '==', user.uid));
-    }
-    const finalQuery = query(collection(db, 'helpdesk_tickets'), ...q);
-    const unsubscribe = onSnapshot(finalQuery, (snapshot) => {
-      const ticketsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as HelpdeskTicket));
-      setTickets(ticketsData.sort((a, b) => (b.reportedAt?.toMillis() || 0) - (a.reportedAt?.toMillis() || 0)));
-      setLoading(false);
-    });
-
-    return () => {
-        unsubscribe();
-        unsubMaint();
-        unsubReports();
+        let q: QueryConstraint[] = [];
+        if (user.role !== 'Admin') {
+          q.push(where('reportedBy', '==', user.uid));
+        }
+        const finalQuery = query(collection(db, 'helpdesk_tickets'), ...q, limit(100));
+        const snapTickets = await getDocs(finalQuery);
+        const ticketsData = snapTickets.docs.map(doc => ({ id: doc.id, ...doc.data() } as HelpdeskTicket));
+        setTickets(ticketsData.sort((a, b) => (b.reportedAt?.toMillis() || 0) - (a.reportedAt?.toMillis() || 0)));
+      } catch (error) {
+        console.error("Error loading helpdesk data:", error);
+      } finally {
+        setLoading(false);
+      }
     };
+
+    fetchHelpdeskData();
   }, [user, authLoading]);
 
   const uniqueDepts = useMemo(() => {

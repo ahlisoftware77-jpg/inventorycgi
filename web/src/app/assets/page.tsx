@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { onSnapshot, collection, query, where, orderBy, QueryConstraint } from 'firebase/firestore';
+import { getDocs, collection, query, where, orderBy, QueryConstraint } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { type Asset } from '@/lib/types';
 import DashboardLayout from '@/components/dashboard/layout';
@@ -75,9 +75,8 @@ function AssetsPageContent() {
     // Urutan default
     const finalQuery = query(assetsCollection, ...constraints, orderBy('code', 'asc'));
     
-    const unsubscribe = onSnapshot(
-      finalQuery,
-      (querySnapshot) => {
+    getDocs(finalQuery)
+      .then((querySnapshot) => {
         const assetsData: Asset[] = [];
         querySnapshot.forEach((doc) => {
           assetsData.push({ id: doc.id, ...doc.data() } as Asset);
@@ -89,15 +88,12 @@ function AssetsPageContent() {
 
         setAllAssets(filteredAssets);
         setLoading(false);
-      },
-      (err) => {
+      })
+      .catch((err) => {
         console.error('Error fetching assets:', err);
         setError('Gagal memuat data aset. Pastikan indeks Firestore sudah dibuat jika diperlukan.');
         setLoading(false);
-      }
-    );
-
-    return () => unsubscribe();
+      });
   }, [user, authLoading]);
 
   if (authLoading || loading) {
