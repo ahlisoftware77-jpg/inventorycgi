@@ -348,6 +348,8 @@ export default function PublicReportViewer({ reportId }: PublicReportViewerProps
                                                         <p className="text-[11px] font-black text-slate-700 uppercase">
                                                             {item.status?.toLowerCase().includes('creation') ? (
                                                                 <>Penambahan di Lokasi: <span className="text-emerald-600 font-bold">{item.prevLocation}</span></>
+                                                            ) : item.status?.toLowerCase().includes('disposal') ? (
+                                                                <>Disposal di Lokasi: <span className="text-rose-600 font-bold">{item.prevLocation}</span></>
                                                             ) : (
                                                                 <>Mutasi Lokasi: <span className="text-rose-600 font-bold">{item.prevLocation}</span> → <span className="text-emerald-600 font-bold">{item.newLocation}</span></>
                                                             )}
