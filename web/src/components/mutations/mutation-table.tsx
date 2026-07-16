@@ -1643,9 +1643,11 @@ Alasan: ${cancellationReason}`;
     const printWindow = window.open('', '', 'width=1200,height=800');
     if (!printWindow) return;
 
+    const isCreation = activeTab === 'creation';
+
     const tableRows = assetsForReport.map(asset => {
         const relevantDate = asset.approvedAt || asset.requestedAt;
-        const prevLocation = getPreviousLocation(asset.notes) || (asset.status === 'approved_mutasi' ? asset.location_from : asset.location);
+        const prevLocation = isCreation ? asset.location : (getPreviousLocation(asset.notes) || (asset.status === 'approved_mutasi' ? asset.location_from : asset.location));
         const newLocation = asset.status === 'approved_mutasi' ? asset.location : '-';
         return `
             <tr>
@@ -1655,7 +1657,7 @@ Alasan: ${cancellationReason}`;
                 <td>${relevantDate ? format(relevantDate.toDate(), 'd MMM yyyy') : '-'}</td>
                 <td>${asset.requesterName || '-'}</td>
                 <td>${prevLocation}</td>
-                <td>${newLocation}</td>
+                ${isCreation ? '' : `<td>${newLocation}</td>`}
             </tr>
         `;
     }).join('');
@@ -1676,7 +1678,17 @@ Alasan: ${cancellationReason}`;
             <body>
                 <h1>Laporan ${activeTab.toUpperCase()} - Tahun ${selectedYear}</h1>
                 <table>
-                    <thead><tr><th>Kode Aset</th><th>Nama Aset</th><th>Status</th><th>Tanggal</th><th>Pemohon</th><th>Awal</th><th>Baru</th></tr></thead>
+                    <thead>
+                        <tr>
+                            <th>Kode Aset</th>
+                            <th>Nama Aset</th>
+                            <th>Status</th>
+                            <th>Tanggal</th>
+                            <th>Pemohon</th>
+                            <th>${isCreation ? 'Lokasi' : 'Awal'}</th>
+                            ${isCreation ? '' : '<th>Baru</th>'}
+                        </tr>
+                    </thead>
                     <tbody>${tableRows}</tbody>
                 </table>
             </body>
@@ -1703,8 +1715,8 @@ Alasan: ${cancellationReason}`;
           status: a.status.replace(/_/g, ' '),
           date: a.approvedAt?.toMillis() || a.requestedAt?.toMillis() || null,
           requester: a.requesterName || '-',
-          prevLocation: getPreviousLocation(a.notes) || (a.status === 'approved_mutasi' ? a.location_from : a.location),
-          newLocation: a.status === 'approved_mutasi' ? a.location : '-'
+          prevLocation: activeTab === 'creation' ? a.location : (getPreviousLocation(a.notes) || (a.status === 'approved_mutasi' ? a.location_from : a.location)),
+          newLocation: activeTab === 'creation' ? '-' : (a.status === 'approved_mutasi' ? a.location : '-')
         })),
         createdAt: serverTimestamp(),
       };

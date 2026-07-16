@@ -346,7 +346,11 @@ export default function PublicReportViewer({ reportId }: PublicReportViewerProps
                                                 {report.assets ? (
                                                     <>
                                                         <p className="text-[11px] font-black text-slate-700 uppercase">
-                                                            Mutasi Lokasi: <span className="text-rose-600 font-bold">{item.prevLocation}</span> → <span className="text-emerald-600 font-bold">{item.newLocation}</span>
+                                                            {item.status?.toLowerCase().includes('creation') ? (
+                                                                <>Penambahan di Lokasi: <span className="text-emerald-600 font-bold">{item.prevLocation}</span></>
+                                                            ) : (
+                                                                <>Mutasi Lokasi: <span className="text-rose-600 font-bold">{item.prevLocation}</span> → <span className="text-emerald-600 font-bold">{item.newLocation}</span></>
+                                                            )}
                                                         </p>
                                                         <span className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1">
                                                             <User className="h-2.5 w-2.5" /> Diajukan Oleh: {item.requester}
