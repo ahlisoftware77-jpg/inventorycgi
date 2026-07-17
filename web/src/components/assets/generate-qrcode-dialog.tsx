@@ -213,22 +213,53 @@ export default function GenerateQrCodeDialog({ selectedAssets, children }: Gener
     }
     setIsConnecting(true);
     try {
-      const SPP_SERVICE_UUID = '00001101-0000-1000-8000-00805f9b34fb';
+      const targetServices = [
+        '00001101-0000-1000-8000-00805f9b34fb', // SPP
+        '000018f0-0000-1000-8000-00805f9b34fb', // Generic Printer
+        '0000ffe0-0000-1000-8000-00805f9b34fb', // FFE0
+        '0000ffe1-0000-1000-8000-00805f9b34fb', // FFE1
+        '0000ae30-0000-1000-8000-00805f9b34fb', // AE30
+        '0000af30-0000-1000-8000-00805f9b34fb', // AF30
+        'e7e10001-ac28-433e-87ec-a4df2c5d4886', // Rongta BLE
+        '49535343-fe7d-4ae5-8fa9-9fafd205e455'  // ISSC
+      ];
       
       const btDevice = await navigator.bluetooth.requestDevice({
-        filters: [{ services: [SPP_SERVICE_UUID] }],
-        optionalServices: [SPP_SERVICE_UUID]
+        acceptAllDevices: true,
+        optionalServices: targetServices
       });
       const server = await btDevice.gatt?.connect();
-      const service = await server?.getPrimaryService(SPP_SERVICE_UUID);
-      const char = await service?.getCharacteristic('00001101-0000-1000-8000-00805f9b34fb');
+      if (!server) throw new Error('Gagal menghubungkan ke GATT server.');
+
+      let service: BluetoothRemoteGATTService | null = null;
+      let char: BluetoothRemoteGATTCharacteristic | null = null;
+
+      for (const serviceUuid of targetServices) {
+        try {
+          service = await server.getPrimaryService(serviceUuid);
+          if (service) {
+            const characteristics = await service.getCharacteristics();
+            for (const c of characteristics) {
+              if (c.properties.write || c.properties.writeWithoutResponse) {
+                char = c;
+                break;
+              }
+            }
+            if (char) break;
+          }
+        } catch (e) {
+          // Skip unsupported services silently
+        }
+      }
+      
+      if (!char) {
+        throw new Error('No Services matching UUID found in Device.');
+      }
       
       setDevice(btDevice);
-      if (char) {
-        setCharacteristic(char);
-      }
+      setCharacteristic(char);
 
-      toast({ title: 'Berhasil Terhubung', description: `Terhubung dengan printer ${btDevice.name}.` });
+      toast({ title: 'Berhasil Terhubung', description: `Terhubung dengan printer ${btDevice.name || 'Thermal'}.` });
       
       btDevice.addEventListener('gattserverdisconnected', () => {
         setDevice(null);

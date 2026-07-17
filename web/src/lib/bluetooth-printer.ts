@@ -66,31 +66,54 @@ export const printCanvasBluetooth = async (
     return false;
   }
 
-  const SPP_SERVICE_UUID = '00001101-0000-1000-8000-00805f9b34fb';
+  const targetServices = [
+    '00001101-0000-1000-8000-00805f9b34fb', // SPP
+    '000018f0-0000-1000-8000-00805f9b34fb', // Generic Printer
+    '0000ffe0-0000-1000-8000-00805f9b34fb', // FFE0
+    '0000ffe1-0000-1000-8000-00805f9b34fb', // FFE1
+    '0000ae30-0000-1000-8000-00805f9b34fb', // AE30
+    '0000af30-0000-1000-8000-00805f9b34fb', // AF30
+    'e7e10001-ac28-433e-87ec-a4df2c5d4886', // Rongta BLE
+    '49535343-fe7d-4ae5-8fa9-9fafd205e455'  // ISSC
+  ];
   
   try {
     toast({ title: 'Mencari Printer...', description: 'Silakan pilih printer Bluetooth Anda dari popup.' });
     
     const btDevice = await navigator.bluetooth.requestDevice({
-      filters: [
-        { services: [SPP_SERVICE_UUID] },
-        { namePrefix: 'Printer' },
-        { namePrefix: 'PT-' },
-        { namePrefix: 'MTP-' },
-        { namePrefix: 'Rongta' },
-        { namePrefix: 'ZJiang' }
-      ],
-      optionalServices: [SPP_SERVICE_UUID]
+      acceptAllDevices: true,
+      optionalServices: targetServices
     });
 
     toast({ title: 'Menghubungkan...', description: `Menghubungkan ke ${btDevice.name || 'Printer Bluetooth'}...` });
     
     const server = await btDevice.gatt?.connect();
-    const service = await server?.getPrimaryService(SPP_SERVICE_UUID);
-    const characteristic = await service?.getCharacteristic(SPP_SERVICE_UUID);
-    
+    if (!server) throw new Error('Gagal menghubungkan ke GATT server.');
+
+    let service: BluetoothRemoteGATTService | null = null;
+    let characteristic: BluetoothRemoteGATTCharacteristic | null = null;
+
+    // Loop through each service to find one that is supported and has a write characteristic
+    for (const serviceUuid of targetServices) {
+      try {
+        service = await server.getPrimaryService(serviceUuid);
+        if (service) {
+          const characteristics = await service.getCharacteristics();
+          for (const char of characteristics) {
+            if (char.properties.write || char.properties.writeWithoutResponse) {
+              characteristic = char;
+              break;
+            }
+          }
+          if (characteristic) break;
+        }
+      } catch (e) {
+        // Skip unsupported services silently
+      }
+    }
+
     if (!characteristic) {
-      throw new Error('Gagal mengakses karakteristik printer.');
+      throw new Error('No Services matching UUID found in Device. Pastikan printer menyalakan Bluetooth BLE dan mendukung protokol ESC/POS.');
     }
 
     toast({ title: 'Mencetak...', description: 'Mengirim data biner stiker ke printer...' });
