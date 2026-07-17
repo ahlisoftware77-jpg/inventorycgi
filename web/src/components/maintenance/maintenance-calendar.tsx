@@ -210,20 +210,42 @@ export default function MaintenanceCalendar() {
     const printWindow = window.open('', '', 'width=1200,height=800');
     if (!printWindow) return;
 
-    const tableRows = schedulesToPrint.map(schedule => {
+    const tableRows = schedulesToPrint.map((schedule, idx) => {
         const ticketLink = schedule.ticketNumber && schedule.ticketId 
             ? `<a href="${window.location.origin}/public/helpdesk?id=${schedule.ticketId}" target="_blank" style="color: #2563eb; text-decoration: underline; font-weight: bold;">${schedule.ticketNumber}</a>`
             : '-';
             
+        const statusClass = {
+            'Selesai': 'badge-selesai',
+            'Diproses': 'badge-proses',
+            'Dijadwalkan': 'badge-jadwal',
+            'Ditunda': 'badge-tunda'
+        }[schedule.status] || '';
+
+        const progressPhoto = schedule.progressPhotoURL 
+            ? `<img class="img-thumbnail" src="${schedule.progressPhotoURL}" />`
+            : '<span style="color: #94a3b8; font-style: italic;">-</span>';
+
+        const completionSig = schedule.completionPhotoURL 
+            ? `<img class="img-signature" src="${schedule.completionPhotoURL}" />`
+            : '<span style="color: #94a3b8; font-style: italic;">-</span>';
+
         return `
             <tr>
-                <td>${format(schedule.scheduledDate.toDate(), 'd MMM yyyy', { locale: id })}</td>
-                <td><b>${schedule.assetName}</b><br><small>${schedule.assetCode}</small></td>
+                <td style="text-align: center;">${idx + 1}</td>
+                <td>${format(schedule.scheduledDate.toDate(), 'dd MMM yyyy', { locale: id })}</td>
+                <td>
+                    <div style="font-weight: bold; color: #0f172a;">${schedule.assetName}</div>
+                    <div style="font-size: 8pt; font-family: monospace; color: #64748b; margin-top: 2px;">${schedule.assetCode}</div>
+                    <div style="font-size: 7.5pt; color: #475569; margin-top: 1px;">Dept: ${schedule.department}</div>
+                </td>
                 <td style="text-align: center;">${ticketLink}</td>
                 <td>${schedule.type}</td>
                 <td>${schedule.technician || '-'}</td>
-                <td>${schedule.status}</td>
-                <td>${schedule.notes || ''}</td>
+                <td style="text-align: center;">${progressPhoto}</td>
+                <td style="text-align: center;">${completionSig}</td>
+                <td style="text-align: center;"><span class="badge-status ${statusClass}">${schedule.status}</span></td>
+                <td style="font-size: 8pt; color: #475569;">${schedule.notes || ''}</td>
             </tr>
         `;
     }).join('');
@@ -231,37 +253,99 @@ export default function MaintenanceCalendar() {
     const printContent = `
       <html>
         <head>
-          <title>Laporan Maintenance PT. CGI</title>
+          <title>Laporan Maintenance - PT. CGI</title>
           <style>
-            body { font-family: 'Inter', sans-serif; padding: 40px; color: #333; }
-            h1 { text-align: center; color: #1e40af; text-transform: uppercase; border-bottom: 2px solid #333; padding-bottom: 10px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 10pt; }
-            th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
-            th { background-color: #f8fafc; font-weight: bold; }
-            a { color: #2563eb; text-decoration: none; }
+            body { font-family: Arial, sans-serif; padding: 25px; color: #1e293b; font-size: 9pt; }
+            .header-container { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px double #334155; padding-bottom: 12px; margin-bottom: 20px; }
+            .company-info { text-align: left; }
+            .company-name { font-size: 14pt; font-weight: 900; color: #0f172a; text-transform: uppercase; letter-spacing: 1px; }
+            .company-sub { font-size: 8pt; color: #64748b; font-weight: bold; margin-top: 2px; }
+            .report-title { text-align: right; }
+            .title-main { font-size: 13pt; font-weight: 900; color: #1e3a8a; text-transform: uppercase; }
+            .title-sub { font-size: 8pt; color: #475569; font-weight: bold; margin-top: 2px; }
+            
+            table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+            th, td { border: 1px solid #94a3b8; padding: 8px 6px; text-align: left; vertical-align: middle; }
+            th { background-color: #f8fafc; font-weight: bold; font-size: 8pt; color: #1e293b; text-align: center; text-transform: uppercase; }
+            .th-sub { display: block; font-weight: normal; font-size: 7.5pt; color: #475569; text-transform: capitalize; margin-top: 2px; }
+            
+            .text-center { text-align: center; }
+            .badge-status { display: inline-block; padding: 3px 6px; border-radius: 4px; font-size: 7.5pt; font-weight: bold; text-transform: uppercase; }
+            .badge-selesai { background-color: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+            .badge-proses { background-color: #fef9c3; color: #854d0e; border: 1px solid #fef08a; }
+            .badge-jadwal { background-color: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+            .badge-tunda { background-color: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+            
+            .img-thumbnail { max-height: 45px; max-width: 70px; border-radius: 4px; border: 1px solid #cbd5e1; object-fit: contain; }
+            .img-signature { max-height: 35px; max-width: 80px; object-fit: contain; }
+            
+            .signature-section { margin-top: 45px; page-break-inside: avoid; }
+            .signature-table { width: 100%; border: none; }
+            .signature-table td { border: none; text-align: center; width: 33.3%; padding-top: 10px; font-size: 9pt; }
+            .signature-space { height: 65px; vertical-align: middle; text-align: center; }
+            .underline { text-decoration: underline; font-weight: bold; }
+            
             @media print { 
               @page { size: A4 landscape; margin: 1cm; } 
-              a { color: #2563eb !important; text-decoration: underline !important; }
+              body { padding: 0; }
             }
           </style>
         </head>
         <body>
-          <h1>Log Pemeliharaan Aset Terpadu</h1>
-          <p>Dicetak pada: ${format(new Date(), 'PPPP', { locale: id })}</p>
+          <div class="header-container">
+            <div class="company-info">
+              <div class="company-name">PT. China Glaze Indonesia</div>
+              <div class="company-sub">Asset Management & Corporate Maintenance Service</div>
+            </div>
+            <div class="report-title">
+              <div class="title-main">Log Pemeliharaan Aset Terpadu</div>
+              <div class="title-sub">Dicetak pada: ${format(new Date(), 'PPPP', { locale: id })}</div>
+            </div>
+          </div>
+
           <table>
             <thead>
-                <tr>
-                    <th>Tgl Jadwal</th>
-                    <th>Aset</th>
-                    <th style="text-align: center;">No. Tiket</th>
-                    <th>Jenis Pekerjaan</th>
-                    <th>Teknisi</th>
-                    <th>Status</th>
-                    <th>Keterangan</th>
-                </tr>
+              <tr>
+                <th style="width: 4%;">No</th>
+                <th style="width: 10%;">Tgl Jadwal<br><span class="th-sub">Scheduled Date</span></th>
+                <th style="width: 20%;">Informasi Aset<br><span class="th-sub">Asset Details</span></th>
+                <th style="width: 10%;">No. Tiket<br><span class="th-sub">Ticket No.</span></th>
+                <th style="width: 12%;">Jenis Pekerjaan<br><span class="th-sub">Work Type</span></th>
+                <th style="width: 10%;">Teknisi<br><span class="th-sub">Technician</span></th>
+                <th style="width: 8%;">Bukti Foto<br><span class="th-sub">Evidence</span></th>
+                <th style="width: 10%;">Tanda Tangan<br><span class="th-sub">Signature</span></th>
+                <th style="width: 8%;">Status<br><span class="th-sub">Status</span></th>
+                <th style="width: 8%;">Keterangan<br><span class="th-sub">Notes</span></th>
+              </tr>
             </thead>
-            <tbody>${tableRows}</tbody>
+            <tbody>
+              ${tableRows}
+            </tbody>
           </table>
+
+          <div class="signature-section">
+            <table class="signature-table">
+              <tr>
+                <td>Dibuat Oleh,<br><i>(Prepared By)</i></td>
+                <td>Diperiksa Oleh,<br><i>(Checked By)</i></td>
+                <td>Disetujui Oleh,<br><i>(Approved By)</i></td>
+              </tr>
+              <tr>
+                <td class="signature-space">
+                  ${schedulesToPrint.length === 1 && schedulesToPrint[0].completionPhotoURL 
+                      ? `<img class="img-signature" src="${schedulesToPrint[0].completionPhotoURL}" style="max-height: 60px;" />` 
+                      : ''}
+                </td>
+                <td class="signature-space"></td>
+                <td class="signature-space"></td>
+              </tr>
+              <tr>
+                <td class="underline">${schedulesToPrint.length === 1 ? (schedulesToPrint[0].technician || 'Teknisi') : 'Teknisi / Pelaksana'}</td>
+                <td class="underline">Supervisor / Head of Dept.</td>
+                <td class="underline">General Affairs Manager</td>
+              </tr>
+            </table>
+          </div>
         </body>
       </html>
     `;
