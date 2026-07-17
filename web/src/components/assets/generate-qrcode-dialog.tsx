@@ -388,11 +388,20 @@ export default function GenerateQrCodeDialog({ selectedAssets, children }: Gener
       for (const [index, asset] of selectedAssets.entries()) {
         const qrElement = qrRefs.current[index];
         if (qrElement) {
-            const canvas = await html2canvas(qrElement, { backgroundColor: '#ffffff', scale: 2 });
+            const rawCanvas = await html2canvas(qrElement, { backgroundColor: '#ffffff', scale: 2 });
+            
+            const targetWidth = 384;
+            const targetHeight = Math.round((rawCanvas.height * targetWidth) / rawCanvas.width);
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
             const context = canvas.getContext('2d');
             if (!context) continue;
+            
+            context.drawImage(rawCanvas, 0, 0, targetWidth, targetHeight);
 
-            const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+            const imageData = context.getImageData(0, 0, targetWidth, targetHeight);
             const escPosChunks = imageToEscPos(imageData);
             
             for (const chunk of escPosChunks) {

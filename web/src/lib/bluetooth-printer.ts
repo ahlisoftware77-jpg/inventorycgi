@@ -6,49 +6,57 @@ import html2canvas from 'html2canvas';
 export const imageToEscPos = (imageData: ImageData): Uint8Array[] => {
     const { width, height, data } = imageData;
     const threshold = 128;
+    
+    // Calculate width in bytes (each byte represents 8 pixels/bits)
+    const widthBytes = Math.ceil(width / 8);
+    
+    // GS v 0 m xL xH yL yH d1...dk
+    // xL, xH: number of data bytes in horizontal direction
+    const xL = widthBytes & 0xFF;
+    const xH = (widthBytes >> 8) & 0xFF;
+    
+    // yL, yH: number of dots in vertical direction
+    const yL = height & 0xFF;
+    const yH = (height >> 8) & 0xFF;
+    
+    // Header for GS v 0 command
+    const header = new Uint8Array([0x1D, 0x76, 0x30, 0, xL, xH, yL, yH]);
+    
+    // Body for monochrome pixel bits
+    const body = new Uint8Array(widthBytes * height);
+    
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const pixelIndex = (y * width + x) * 4;
+            const r = data[pixelIndex];
+            const g = data[pixelIndex + 1];
+            const b = data[pixelIndex + 2];
+            const a = data[pixelIndex + 3];
+            
+            // Treat transparent pixels as white
+            if (a < 10) continue;
+            
+            const grayscale = 0.299 * r + 0.587 * g + 0.114 * b;
+            
+            if (grayscale < threshold) {
+                const byteIndex = y * widthBytes + Math.floor(x / 8);
+                const bitIndex = x % 8;
+                body[byteIndex] |= (0x80 >> bitIndex);
+            }
+        }
+    }
+    
     const chunks: Uint8Array[] = [];
-
     // Initialize printer command (ESC @)
     chunks.push(new Uint8Array([0x1B, 0x40]));
     
-    // Set line spacing to 24 dots (ESC 3 24)
-    chunks.push(new Uint8Array([0x1B, 0x33, 24]));
-
-    for (let y = 0; y < height; y += 24) {
-        // ESC * m n1 n2 d1...dk
-        // m = 33 (24-dot double density)
-        // n1, n2 = width of the image (low byte, high byte)
-        const command = new Uint8Array([0x1B, 0x2A, 33, width & 0xFF, (width >> 8) & 0xFF]);
-        const slice = new Uint8Array(width * 3);
-
-        for (let x = 0; x < width; x++) {
-            for (let bit = 0; bit < 24; bit++) {
-                const y_offset = y + bit;
-                if (y_offset >= height) {
-                    continue;
-                }
-
-                const pixel_index = (y_offset * width + x) * 4;
-                const r = data[pixel_index];
-                const g = data[pixel_index + 1];
-                const b = data[pixel_index + 2];
-                const grayscale = 0.299 * r + 0.587 * g + 0.114 * b;
-                
-                if (grayscale < threshold) {
-                    slice[x * 3 + Math.floor(bit / 8)] |= (0x80 >> (bit % 8));
-                }
-            }
-        }
-        
-        const combined = new Uint8Array(command.length + slice.length);
-        combined.set(command, 0);
-        combined.set(slice, command.length);
-        chunks.push(combined);
-        // Line feed (LF)
-        chunks.push(new Uint8Array([0x0A]));
-    }
+    // Combine header and body
+    const combined = new Uint8Array(header.length + body.length);
+    combined.set(header, 0);
+    combined.set(body, header.length);
+    chunks.push(combined);
     
-    // Feed lines to clear the print head
+    // Feed lines to clear the print head (ESC d 4)
     chunks.push(new Uint8Array([0x1B, 0x64, 4]));
     return chunks;
 };
@@ -118,10 +126,20 @@ export const printCanvasBluetooth = async (
 
     toast({ title: 'Mencetak...', description: 'Mengirim data biner stiker ke printer...' });
 
-    const context = canvas.getContext('2d');
-    if (!context) throw new Error('Gagal membaca gambar.');
+    // Normalize width to exactly 384px (58mm physical standard width) to prevent wrapping
+    const targetWidth = 384;
+    const targetHeight = Math.round((canvas.height * targetWidth) / canvas.width);
+    
+    const normalizedCanvas = document.createElement('canvas');
+    normalizedCanvas.width = targetWidth;
+    normalizedCanvas.height = targetHeight;
+    const context = normalizedCanvas.getContext('2d');
+    if (!context) throw new Error('Gagal memproses gambar untuk printer.');
+    
+    // Scale image
+    context.drawImage(canvas, 0, 0, targetWidth, targetHeight);
 
-    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    const imageData = context.getImageData(0, 0, targetWidth, targetHeight);
     const escPosChunks = imageToEscPos(imageData);
 
     // Send data to printer in chunks
@@ -145,7 +163,7 @@ export const printCanvasBluetooth = async (
     let errorMsg = error.message || 'Koneksi Bluetooth dibatalkan atau terputus.';
     const lowerMsg = errorMsg.toLowerCase();
     
-    if (lowerMsg.includes('gatt') || lowerMsg.includes('connection attempt') || lowerMsg.includes('failed to connect') || lowerMsg.includes('networkError')) {
+    if (lowerMsg.includes('gatt') || lowerMsg.includes('connection attempt') || lowerMsg.includes('failed to connect') || lowerMsg.includes('networkerror')) {
       errorMsg = 'Koneksi GATT Gagal. 1) Pastikan printer Bluetooth tidak sedang terhubung ke HP/perangkat lain (putuskan dahulu). 2) Jika printer Anda menggunakan Bluetooth Classic (memerlukan PIN/pairing), silakan gunakan tombol "Cetak Browser (58mm)" setelah printer ditambahkan di sistem.';
     }
     
