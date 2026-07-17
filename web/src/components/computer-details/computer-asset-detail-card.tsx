@@ -21,8 +21,10 @@ import {
   User as UserIcon,
   Wrench,
   ExternalLink,
-  Package as PackageIcon
+  Package as PackageIcon,
+  Printer
 } from 'lucide-react';
+import QRCode from 'qrcode';
 import { Timestamp, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import ComputerAssetForm from './computer-asset-form';
@@ -106,6 +108,83 @@ export default function ComputerAssetDetailCard({ asset }: ComputerAssetDetailCa
     fetchMainAsset();
   }, [asset.assetCode]);
 
+  const handlePrintLabel = async () => {
+    try {
+      const qrData = `${window.location.origin}/public/asset?assetId=${mainAsset?.id || asset.id}`;
+      const qrUrl = await QRCode.toDataURL(qrData, { margin: 1, width: 120 });
+      
+      const printWindow = window.open('', '', 'width=400,height=600');
+      if (!printWindow) return;
+
+      const html = `
+        <html>
+          <head>
+            <title>Label Workstation ${asset.computerName}</title>
+            <style>
+              @page { size: 58mm auto; margin: 2mm; }
+              body { font-family: monospace; font-size: 8pt; margin: 0; padding: 0; color: black; background: white; text-align: center; }
+              .container { width: 48mm; margin: 0 auto; box-sizing: border-box; padding: 2px; }
+              .header { font-weight: bold; border-bottom: 1px dashed black; padding-bottom: 4px; margin-bottom: 6px; font-size: 7.5pt; text-transform: uppercase; }
+              .title { font-weight: bold; font-size: 10pt; text-transform: uppercase; margin: 2px 0; letter-spacing: 0.5px; }
+              .code { font-weight: bold; font-size: 11pt; border: 1px solid black; display: inline-block; padding: 2px 6px; margin: 4px 0; }
+              
+              .specs-table { width: 100%; border-collapse: collapse; margin: 6px 0; font-size: 7.5pt; text-align: left; }
+              .specs-table td { padding: 1.5px 0; vertical-align: top; }
+              .label { font-weight: bold; width: 32%; }
+              .colon { width: 5%; text-align: center; }
+              .val { width: 63%; word-break: break-all; }
+              
+              .qr-container { margin: 8px 0; display: flex; justify-content: center; align-items: center; flex-direction: column; }
+              .qr-img { width: 35mm; height: 35mm; }
+              .footer { border-top: 1px dashed black; padding-top: 4px; margin-top: 6px; font-size: 7pt; color: #555; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                PT. China Glaze Indonesia<br>IT DEPARTMENT
+              </div>
+              <div class="title">${asset.computerName}</div>
+              <div class="code">${asset.assetCode}</div>
+              
+              <table class="specs-table">
+                <tr><td class="label">User</td><td class="colon">:</td><td class="val">${asset.currentUser || '-'}</td></tr>
+                <tr><td class="label">Dept</td><td class="colon">:</td><td class="val">${asset.department}</td></tr>
+                <tr><td class="label">CPU</td><td class="colon">:</td><td class="val">${asset.cpu}</td></tr>
+                <tr><td class="label">RAM</td><td class="colon">:</td><td class="val">${asset.ram}</td></tr>
+                <tr><td class="label">Disk</td><td class="colon">:</td><td class="val">${asset.storage}${asset.storage2 ? ` + ${asset.storage2}` : ''}</td></tr>
+                <tr><td class="label">OS</td><td class="colon">:</td><td class="val">${asset.os || '-'}</td></tr>
+                <tr><td class="label">IP</td><td class="colon">:</td><td class="val">${asset.ipAddress || '-'}</td></tr>
+              </table>
+              
+              <div class="qr-container">
+                <img class="qr-img" src="${qrUrl}" />
+                <div style="font-size: 6pt; margin-top: 2px;">SCAN UNTUK VERIFIKASI</div>
+              </div>
+              
+              <div class="footer">
+                ASSET LABELLING SYSTEM
+              </div>
+            </div>
+            <script>
+              window.onload = function() {
+                window.focus();
+                window.print();
+                setTimeout(function() { window.close(); }, 500);
+              };
+            </script>
+          </body>
+        </html>
+      `;
+
+      printWindow.document.write(html);
+      printWindow.document.close();
+
+    } catch (error) {
+      console.error("Error generating QR Code label:", error);
+    }
+  };
+
   return (
     <motion.div
       initial={{ height: 0, opacity: 0 }}
@@ -160,6 +239,13 @@ export default function ComputerAssetDetailCard({ asset }: ComputerAssetDetailCa
             </div>
 
             <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                <button 
+                    onClick={handlePrintLabel} 
+                    className="rounded-lg h-8 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] uppercase tracking-wider px-3.5 border-b-[3px] border-b-emerald-800 active:translate-y-[1px] active:border-b-[1px] transition-all flex items-center justify-center gap-1.5"
+                >
+                    <Printer className="h-3.5 w-3.5" /> Cetak Label Casing (58mm)
+                </button>
+
                 <Link href={`/computer-details/asset?computerId=${asset.id}`} className="rounded-lg h-8 bg-sky-600 hover:bg-sky-700 text-white font-bold text-[10px] uppercase tracking-wider px-3.5 border-b-[3px] border-b-sky-800 active:translate-y-[1px] active:border-b-[1px] transition-all flex items-center justify-center gap-1.5">
                     <ExternalLink className="h-3.5 w-3.5" /> IT Detail
                 </Link>
