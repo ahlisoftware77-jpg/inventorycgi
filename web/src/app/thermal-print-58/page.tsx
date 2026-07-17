@@ -21,6 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import DashboardLayout from '@/components/dashboard/layout';
+import { printCanvasBluetooth } from '@/lib/bluetooth-printer';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
@@ -455,6 +456,15 @@ function ThermalPrintPageContent() {
       }
     } catch (error) { toast({ variant: 'destructive', title: 'Gagal Mencetak' }); }
   };
+  const handleBluetoothPrintDirect = async () => {
+    if (!printAreaRef.current) return;
+    try {
+      const canvas = await html2canvas(printAreaRef.current, { backgroundColor: '#ffffff', scale: 1.5 });
+      await printCanvasBluetooth(canvas, toast);
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Gagal Menyiapkan Cetakan Bluetooth', description: error.message });
+    }
+  };
 
   const handleShare = async () => {
     if (!printAreaRef.current || !navigator.share) return;
@@ -682,7 +692,8 @@ function ThermalPrintPageContent() {
            </Card>
            <Card>
             <CardContent className="p-6 flex flex-wrap gap-3">
-                <Button onClick={handlePrint} className="bg-primary hover:bg-primary/90 shadow-lg font-black h-12 px-8 rounded-xl"><Printer className="w-4 h-4 mr-2"/> CETAK SEKARANG</Button>
+                 <Button onClick={handleBluetoothPrintDirect} className="bg-indigo-600 hover:bg-indigo-700 shadow-lg font-black h-12 px-8 rounded-xl"><Printer className="w-4 h-4 mr-2"/> CETAK BLUETOOTH</Button>
+                 <Button onClick={handlePrint} className="bg-emerald-600 hover:bg-emerald-700 shadow-lg font-black h-12 px-8 rounded-xl"><Printer className="w-4 h-4 mr-2"/> CETAK BROWSER</Button>
                 {canShare && <Button onClick={handleShare} variant="outline" className="border-purple-500 text-purple-600 hover:bg-purple-50 h-12 px-8 rounded-xl"><Share2 className="w-4 h-4 mr-2"/> BAGIKAN</Button>}
                 <Button onClick={handleDownloadPdf} variant="secondary" className="font-bold h-12 px-8 rounded-xl"><Download className="w-4 h-4 mr-2"/> PDF</Button>
             </CardContent>

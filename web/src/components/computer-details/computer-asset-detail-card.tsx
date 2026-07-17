@@ -32,6 +32,9 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
+import { printCanvasBluetooth } from '@/lib/bluetooth-printer';
+import html2canvas from 'html2canvas';
 
 interface ComputerAssetDetailCardProps {
   asset: ComputerAsset;
@@ -90,6 +93,7 @@ const formatDate = (timestamp: Timestamp | undefined | null) => {
 
 export default function ComputerAssetDetailCard({ asset }: ComputerAssetDetailCardProps) {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [mainAsset, setMainAsset] = useState<Asset | null>(null);
   const canEdit = user?.role === 'Admin' || user?.role === 'Manager' || user?.role === 'Section Head';
 
@@ -185,6 +189,64 @@ export default function ComputerAssetDetailCard({ asset }: ComputerAssetDetailCa
     }
   };
 
+  const handlePrintLabelBluetooth = async () => {
+    try {
+      const qrData = `${window.location.origin}/public/asset?assetId=${mainAsset?.id || asset.id}`;
+      const qrUrl = await QRCode.toDataURL(qrData, { margin: 1, width: 120 });
+
+      const tempDiv = document.createElement('div');
+      tempDiv.style.cssText = `
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+        width: 384px;
+        background: white;
+        color: black;
+        font-family: monospace;
+        text-align: center;
+        padding: 12px;
+        box-sizing: border-box;
+      `;
+
+      tempDiv.innerHTML = `
+        <div style="border-bottom: 2px dashed black; padding-bottom: 6px; margin-bottom: 10px; font-size: 15px; font-weight: bold; text-transform: uppercase;">
+          PT. China Glaze Indonesia<br>IT DEPARTMENT
+        </div>
+        <div style="font-weight: bold; font-size: 22px; text-transform: uppercase; margin: 4px 0;">${asset.computerName}</div>
+        <div style="font-weight: bold; font-size: 24px; border: 2px solid black; display: inline-block; padding: 4px 12px; margin: 8px 0;">${asset.assetCode}</div>
+        
+        <table style="width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; text-align: left;">
+          <tr><td style="font-weight: bold; width: 30%; padding: 4px 0;">User</td><td style="width: 5%;">:</td><td>${asset.currentUser || '-'}</td></tr>
+          <tr><td style="font-weight: bold; padding: 4px 0;">Dept</td><td>:</td><td>${asset.department}</td></tr>
+          <tr><td style="font-weight: bold; padding: 4px 0;">CPU</td><td>:</td><td>${asset.cpu}</td></tr>
+          <tr><td style="font-weight: bold; padding: 4px 0;">RAM</td><td>:</td><td>${asset.ram}</td></tr>
+          <tr><td style="font-weight: bold; padding: 4px 0;">Disk</td><td>:</td><td>${asset.storage}${asset.storage2 ? ` + ${asset.storage2}` : ''}</td></tr>
+          <tr><td style="font-weight: bold; padding: 4px 0;">OS</td><td>:</td><td>${asset.os || '-'}</td></tr>
+          <tr><td style="font-weight: bold; padding: 4px 0;">IP</td><td>:</td><td>${asset.ipAddress || '-'}</td></tr>
+        </table>
+        
+        <div style="margin: 15px 0; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+          <img src="${qrUrl}" style="width: 180px; height: 180px;" />
+          <div style="font-size: 11px; margin-top: 4px; font-weight: bold;">SCAN UNTUK VERIFIKASI</div>
+        </div>
+        
+        <div style="border-top: 2px dashed black; padding-top: 6px; margin-top: 10px; font-size: 12px; font-weight: bold; color: #555;">
+          ASSET LABELLING SYSTEM
+        </div>
+      `;
+
+      document.body.appendChild(tempDiv);
+      const canvas = await html2canvas(tempDiv, { backgroundColor: '#ffffff', scale: 1 });
+      document.body.removeChild(tempDiv);
+
+      await printCanvasBluetooth(canvas, toast);
+
+    } catch (error: any) {
+      console.error("Error generating label for bluetooth:", error);
+      toast({ variant: 'destructive', title: 'Gagal Menyiapkan Label', description: error.message });
+    }
+  };
+
   return (
     <motion.div
       initial={{ height: 0, opacity: 0 }}
@@ -240,10 +302,17 @@ export default function ComputerAssetDetailCard({ asset }: ComputerAssetDetailCa
 
             <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
                 <button 
+                    onClick={handlePrintLabelBluetooth} 
+                    className="rounded-lg h-8 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] uppercase tracking-wider px-3.5 border-b-[3px] border-b-indigo-800 active:translate-y-[1px] active:border-b-[1px] transition-all flex items-center justify-center gap-1.5"
+                >
+                    <Printer className="h-3.5 w-3.5" /> Cetak Bluetooth (58mm)
+                </button>
+
+                <button 
                     onClick={handlePrintLabel} 
                     className="rounded-lg h-8 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] uppercase tracking-wider px-3.5 border-b-[3px] border-b-emerald-800 active:translate-y-[1px] active:border-b-[1px] transition-all flex items-center justify-center gap-1.5"
                 >
-                    <Printer className="h-3.5 w-3.5" /> Cetak Label Casing (58mm)
+                    <Printer className="h-3.5 w-3.5" /> Cetak Browser (58mm)
                 </button>
 
                 <Link href={`/computer-details/asset?computerId=${asset.id}`} className="rounded-lg h-8 bg-sky-600 hover:bg-sky-700 text-white font-bold text-[10px] uppercase tracking-wider px-3.5 border-b-[3px] border-b-sky-800 active:translate-y-[1px] active:border-b-[1px] transition-all flex items-center justify-center gap-1.5">
