@@ -21,6 +21,7 @@ import { Switch } from '../ui/switch';
 import { Label } from '../ui/label';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import html2canvas from 'html2canvas';
+import { compileAssetEscPos } from '@/lib/bluetooth-printer';
 
 interface GenerateQrCodeDialogProps {
   selectedAssets: Asset[];
@@ -378,43 +379,23 @@ export default function GenerateQrCodeDialog({ selectedAssets, children }: Gener
 
   const handleBluetoothPrint = async () => {
     if (!characteristic) {
-      toast({ variant: 'destructive', title: 'Tidak ada printer terhubung' });
+      toast({ variant: 'destructive', title: 'Tidak ada printer terhubung', description: 'Harap hubungkan ke printer Bluetooth terlebih dahulu.' });
       return;
     }
     setIsPrinting(true);
     try {
-      await characteristic.writeValueWithoutResponse(new Uint8Array([0x1B, 0x40]));
-
-      for (const [index, asset] of selectedAssets.entries()) {
-        const qrElement = qrRefs.current[index];
-        if (qrElement) {
-            const rawCanvas = await html2canvas(qrElement, { backgroundColor: '#ffffff', scale: 2 });
-            
-            const targetWidth = 384;
-            const targetHeight = Math.round((rawCanvas.height * targetWidth) / rawCanvas.width);
-            
-            const canvas = document.createElement('canvas');
-            canvas.width = targetWidth;
-            canvas.height = targetHeight;
-            const context = canvas.getContext('2d');
-            if (!context) continue;
-            
-            context.drawImage(rawCanvas, 0, 0, targetWidth, targetHeight);
-
-            const imageData = context.getImageData(0, 0, targetWidth, targetHeight);
-            const escPosChunks = imageToEscPos(imageData);
-            
-            for (const chunk of escPosChunks) {
-               const MAX_CHUNK_SIZE = 512;
-               for (let i = 0; i < chunk.length; i += MAX_CHUNK_SIZE) {
-                   const subChunk = chunk.slice(i, i + MAX_CHUNK_SIZE);
-                   await characteristic.writeValueWithoutResponse(subChunk);
-               }
-            }
+      for (const asset of selectedAssets) {
+        const bytes = compileAssetEscPos(asset);
+        
+        // Send bytes in chunks
+        const MAX_CHUNK_SIZE = 512;
+        for (let i = 0; i < bytes.length; i += MAX_CHUNK_SIZE) {
+            const chunk = bytes.slice(i, i + MAX_CHUNK_SIZE);
+            await characteristic.writeValueWithoutResponse(chunk);
         }
       }
 
-      toast({ title: 'Berhasil Mencetak', description: 'Data QR code telah dikirim ke printer.' });
+      toast({ title: 'Berhasil Mencetak', description: 'Data label telah dikirim ke printer.' });
     } catch (error: any) {
       console.error('Gagal mencetak via Bluetooth:', error);
       toast({ variant: 'destructive', title: 'Gagal Mencetak', description: error.message });
