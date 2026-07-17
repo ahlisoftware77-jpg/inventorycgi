@@ -315,6 +315,15 @@ export default function ComputerAssetDetailCard({ asset }: ComputerAssetDetailCa
                     <Printer className="h-3.5 w-3.5" /> Cetak Browser (58mm)
                 </button>
 
+                <a 
+                    href={`/public/print-thermal-58?id=${asset.id}&type=computer`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="rounded-lg h-8 bg-teal-600 hover:bg-teal-700 text-white font-bold text-[10px] uppercase tracking-wider px-3.5 border-b-[3px] border-b-teal-800 active:translate-y-[1px] active:border-b-[1px] transition-all flex items-center justify-center gap-1.5"
+                >
+                    <ExternalLink className="h-3.5 w-3.5" /> Buka Link Cetak (HTML)
+                </a>
+
                 <Link href={`/computer-details/asset?computerId=${asset.id}`} className="rounded-lg h-8 bg-sky-600 hover:bg-sky-700 text-white font-bold text-[10px] uppercase tracking-wider px-3.5 border-b-[3px] border-b-sky-800 active:translate-y-[1px] active:border-b-[1px] transition-all flex items-center justify-center gap-1.5">
                     <ExternalLink className="h-3.5 w-3.5" /> IT Detail
                 </Link>

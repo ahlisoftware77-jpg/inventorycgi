@@ -277,6 +277,11 @@ export default function ComputerDetail({ assetId }: ComputerDetailProps) {
           <Button onClick={handlePrintLabel} className="rounded-xl h-9 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider px-4 border-b-[3px] border-b-emerald-800 active:translate-y-[1px] active:border-b-[1px] border-none transition-all flex items-center justify-center gap-1.5 shadow-sm">
             <PrinterIcon className="h-3.5 w-3.5" /> Cetak Browser (58mm)
           </Button>
+          <Button asChild className="rounded-xl h-9 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs uppercase tracking-wider px-4 border-b-[3px] border-b-teal-800 active:translate-y-[1px] active:border-b-[1px] border-none transition-all flex items-center justify-center gap-1.5 shadow-sm">
+            <a href={`/public/print-thermal-58?id=${asset.id}&type=computer`} target="_blank" rel="noopener noreferrer">
+              <PrinterIcon className="h-3.5 w-3.5 text-white" /> Buka Link Cetak (HTML)
+            </a>
+          </Button>
           {isAdminOrManager && (
             <ComputerAssetForm asset={asset}>
                 <Button onClick={() => setIsFormOpen(true)} className="rounded-xl h-9 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs uppercase tracking-wider px-4 border-b-[3px] border-b-amber-700 active:translate-y-[1px] active:border-b-[1px] border-none transition-all flex items-center justify-center">
