@@ -150,6 +150,12 @@ export default function MaintenanceItem({ schedule, isExpanded, onToggle, isSele
                                 <span>PIC: {schedule.technician}</span>
                             </div>
                         )}
+                        {schedule.assetUser && (
+                            <div className="flex items-center gap-1.5">
+                                <User className="h-3.5 w-3.5" />
+                                <span>User: {schedule.assetUser}</span>
+                            </div>
+                        )}
                         <div className="flex items-center gap-1.5">
                             <Tag className="h-3.5 w-3.5" />
                             <span>{schedule.type}</span>
