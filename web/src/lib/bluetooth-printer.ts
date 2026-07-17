@@ -142,10 +142,17 @@ export const printCanvasBluetooth = async (
 
   } catch (error: any) {
     console.error('Bluetooth Print Error:', error);
+    let errorMsg = error.message || 'Koneksi Bluetooth dibatalkan atau terputus.';
+    const lowerMsg = errorMsg.toLowerCase();
+    
+    if (lowerMsg.includes('gatt') || lowerMsg.includes('connection attempt') || lowerMsg.includes('failed to connect') || lowerMsg.includes('networkError')) {
+      errorMsg = 'Koneksi GATT Gagal. 1) Pastikan printer Bluetooth tidak sedang terhubung ke HP/perangkat lain (putuskan dahulu). 2) Jika printer Anda menggunakan Bluetooth Classic (memerlukan PIN/pairing), silakan gunakan tombol "Cetak Browser (58mm)" setelah printer ditambahkan di sistem.';
+    }
+    
     toast({ 
       variant: 'destructive', 
       title: 'Gagal Mencetak', 
-      description: error.message || 'Koneksi Bluetooth dibatalkan atau terputus.' 
+      description: errorMsg 
     });
     return false;
   }

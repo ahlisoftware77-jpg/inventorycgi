@@ -267,9 +267,14 @@ export default function GenerateQrCodeDialog({ selectedAssets, children }: Gener
         toast({ variant: 'destructive', title: 'Koneksi Terputus', description: `Koneksi dengan printer ${btDevice.name} terputus.` });
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Gagal terhubung ke printer:', error);
-      toast({ variant: 'destructive', title: 'Gagal Terhubung', description: 'Gagal menghubungkan ke printer.' });
+      let errorMsg = error.message || 'Gagal menghubungkan ke printer.';
+      const lowerMsg = errorMsg.toLowerCase();
+      if (lowerMsg.includes('gatt') || lowerMsg.includes('connection attempt') || lowerMsg.includes('failed to connect') || lowerMsg.includes('networkerror')) {
+        errorMsg = 'Koneksi GATT Gagal. 1) Pastikan printer Bluetooth tidak terhubung ke HP/perangkat lain. 2) Jika printer Anda menggunakan Bluetooth Classic (memerlukan PIN), harap gunakan tombol "Cetak Browser (58mm)" setelah printer ditambahkan di sistem.';
+      }
+      toast({ variant: 'destructive', title: 'Gagal Terhubung', description: errorMsg });
     } finally {
       setIsConnecting(false);
     }
