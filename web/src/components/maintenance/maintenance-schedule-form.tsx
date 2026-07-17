@@ -24,7 +24,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { maintenanceScheduleSchema } from '@/lib/schemas';
 import { type MaintenanceSchedule, type Asset, type HelpdeskTicket } from '@/lib/types';
-import { collection, doc, serverTimestamp, Timestamp, getDocs, query, where, QueryConstraint, writeBatch, arrayUnion, addDoc, onSnapshot } from 'firebase/firestore';
+import { collection, doc, serverTimestamp, Timestamp, getDocs, query, where, QueryConstraint, writeBatch, arrayUnion, addDoc, onSnapshot, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { 
   Loader2, 
@@ -103,6 +103,8 @@ export default function MaintenanceScheduleForm({ schedule, prefilledTicketId, p
   const [searchTerm, setSearchTerm] = useState('');
   const [suggestions, setSuggestions] = useState<Asset[]>([]);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [isAddingNewType, setIsAddingNewType] = useState(false);
+  const [newTypeName, setNewTypeName] = useState('');
   
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
@@ -155,6 +157,8 @@ export default function MaintenanceScheduleForm({ schedule, prefilledTicketId, p
 
   useEffect(() => {
     if (isOpen) {
+      setIsAddingNewType(false);
+      setNewTypeName('');
       form.reset({
         assetId: schedule?.assetId || '',
         assetName: schedule?.assetName || '',
@@ -517,16 +521,90 @@ export default function MaintenanceScheduleForm({ schedule, prefilledTicketId, p
                     <FormField control={form.control} name="type" render={({ field }) => (
                         <FormItem className="text-left">
                             <FormLabel className="font-bold text-xs uppercase tracking-widest text-muted-foreground ml-1 text-left">Kategori Pekerjaan</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
-                                <FormControl>
-                                    <SelectTrigger className={cn(inputClass, "text-black dark:text-white")}>
-                                        <SelectValue placeholder="Pilih jenis pekerjaan" />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent className="rounded-xl">
-                                    {maintenanceTypes.map(t => <SelectItem key={t} value={t} className="font-bold text-xs">{t}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
+                            {!isAddingNewType ? (
+                                <div className="space-y-2">
+                                    <Select 
+                                        onValueChange={(val) => {
+                                            if (val === 'ADD_NEW') {
+                                                setIsAddingNewType(true);
+                                                setNewTypeName('');
+                                            } else {
+                                                field.onChange(val);
+                                            }
+                                        }} 
+                                        defaultValue={field.value}
+                                        value={field.value}
+                                    >
+                                        <FormControl>
+                                            <SelectTrigger className={cn(inputClass, "text-black dark:text-white")}>
+                                                <SelectValue placeholder="Pilih jenis pekerjaan" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent className="rounded-xl max-h-[250px] overflow-y-auto">
+                                            <SelectItem value="ADD_NEW" className="font-black text-xs text-primary uppercase tracking-wider py-2.5 cursor-pointer">
+                                                <div className="flex items-center gap-2">
+                                                    <PlusCircle className="h-3.5 w-3.5 text-primary" /> + Tambah Kategori Baru
+                                                </div>
+                                            </SelectItem>
+                                            {maintenanceTypes.map(t => <SelectItem key={t} value={t} className="font-bold text-xs">{t}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-2 animate-in fade-in zoom-in-95 duration-200">
+                                    <Input 
+                                        placeholder="Ketik kategori pekerjaan baru..." 
+                                        value={newTypeName}
+                                        onChange={(e) => setNewTypeName(e.target.value)}
+                                        className={cn(inputClass, "flex-1 font-bold text-black dark:text-white")}
+                                        autoFocus
+                                    />
+                                    <Button 
+                                        type="button" 
+                                        onClick={async () => {
+                                            const trimmed = newTypeName.trim();
+                                            if (!trimmed) {
+                                                setIsAddingNewType(false);
+                                                return;
+                                            }
+                                            if (maintenanceTypes.includes(trimmed)) {
+                                                toast({ variant: 'destructive', title: 'Kategori Sudah Ada' });
+                                                field.onChange(trimmed);
+                                                setIsAddingNewType(false);
+                                                return;
+                                            }
+                                            setIsLoading(true);
+                                            try {
+                                                const updatedTypes = [...maintenanceTypes, trimmed];
+                                                await setDoc(doc(db, 'settings', 'general'), {
+                                                    maintenanceTypes: updatedTypes
+                                                }, { merge: true });
+                                                setMaintenanceTypes(updatedTypes);
+                                                field.onChange(trimmed);
+                                                toast({ title: 'Kategori Berhasil Ditambahkan' });
+                                            } catch (err) {
+                                                console.error("Error saving maintenance type:", err);
+                                                toast({ variant: 'destructive', title: 'Gagal Menyimpan Kategori' });
+                                            } finally {
+                                                setIsLoading(false);
+                                                setIsAddingNewType(false);
+                                            }
+                                        }}
+                                        className="h-11 rounded-xl px-4 bg-primary hover:bg-primary/95 text-white font-bold"
+                                        disabled={isLoading}
+                                    >
+                                        Simpan
+                                    </Button>
+                                    <Button 
+                                        type="button" 
+                                        variant="outline" 
+                                        onClick={() => setIsAddingNewType(false)}
+                                        className="h-11 rounded-xl px-4"
+                                    >
+                                        Batal
+                                    </Button>
+                                </div>
+                            )}
                             <FormMessage />
                         </FormItem>
                     )} />
