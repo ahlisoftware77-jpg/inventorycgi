@@ -145,7 +145,10 @@ export default function WaitingListTable() {
    const getDisposalQuantity = (notes: string | undefined): number | null => {
     if (!notes) return null;
     const match = notes.match(/Diajukan untuk disposal sebanyak (\d+) unit/);
-    return match ? parseInt(match[1], 10) : null;
+    if (match) return parseInt(match[1], 10);
+    const match2 = notes.match(/Qty:\s*(\d+)/i);
+    if (match2) return parseInt(match2[1], 10);
+    return null;
   };
   
   const handleAction = async (asset: Asset, action: 'approve' | 'reject') => {
@@ -176,23 +179,37 @@ export default function WaitingListTable() {
                 // Partial disposal logic: split asset
                 const batch = writeBatch(db);
 
-                // 1. Update original asset: reduce quantity and reset status
+                // 1. Update original asset: reduce quantity and reset status/disposal fields
                 const originalAssetRef = doc(db, 'assets', asset.id);
                 batch.update(originalAssetRef, {
                     qty: asset.qty - disposalQty!,
-                    notes: (asset.notes || '').replace(`\nDiajukan untuk disposal sebanyak ${disposalQty} unit.`, '').trim(),
+                    notes: (asset.notes || '')
+                      .replace(`\nDiajukan untuk disposal sebanyak ${disposalQty} unit.`, '')
+                      .replace(`Qty: ${disposalQty}`, '')
+                      .trim(),
                     status: 'Aktif', // Return to active
                     requestedBy: null,
                     requestedAt: null,
+                    disposalType: null,
+                    disposalPrice: null,
+                    disposalBuyer: null,
+                    disposalCost: null,
+                    disposalAccumulatedDepreciation: null,
+                    disposalBookValue: null,
+                    disposalPhotoURL1: null,
+                    disposalPhotoURL2: null,
+                    disposalPhotoURL3: null,
+                    disposalPhotoURL4: null,
                 });
 
-                // 2. Create new asset for the disposed part
+                // 2. Create new asset for the disposed part inheriting all disposal metrics
                 const newAssetData: Omit<Asset, 'id'> = {
                     ...asset,
                     qty: disposalQty!,
                     status: asset.status === 'waiting_mutasi' ? 'approved_mutasi' : 'approved_disposal',
                     code: `${asset.code}-DISPOSED-${Date.now()}`,
                     notes: `Aset ini merupakan hasil pemisahan dari ${asset.code} untuk disposal/mutasi sebanyak ${disposalQty} unit.`,
+                    disposalDate: serverTimestamp(),
                     approvedBy: user.uid,
                     approvedAt: serverTimestamp(),
                     updatedAt: serverTimestamp(),
@@ -211,6 +228,7 @@ export default function WaitingListTable() {
                 const assetRef = doc(db, 'assets', asset.id);
                 await updateDoc(assetRef, {
                     status: newStatus,
+                    disposalDate: serverTimestamp(),
                     approvedBy: user.uid,
                     approvedAt: serverTimestamp(),
                 });

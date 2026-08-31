@@ -205,7 +205,7 @@ export default function ISO14064Content() {
         let visible = [...allowed];
         if (baseDept && !visible.includes(baseDept)) visible.push(baseDept);
 
-        const isPrivileged = ['MANAGEMENT', 'ACCOUNTING', 'IT', 'HR & GA'].includes(baseDept || '');
+        const isPrivileged = ['MANAGEMENT', 'ACCOUNTING', 'IT', 'HR & GA', 'GA'].includes(baseDept || '');
         
         if (!isPrivileged && visible.length > 0) {
             constraints.push(where('location', 'in', visible.slice(0, 30)));

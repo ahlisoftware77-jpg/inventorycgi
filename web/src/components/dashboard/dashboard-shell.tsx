@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, ReactNode } from 'react';
+import { useEffect, useState, useRef, ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar';
@@ -19,6 +19,7 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const pathname = usePathname();
   const [isVisible, setIsVisible] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Daftar halaman publik
   const isPublicPage = pathname.startsWith('/public/') || pathname === '/login' || pathname === '/register';
@@ -26,16 +27,16 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
   // Sidebar ditampilan jika bukan halaman publik (dan user login ATAU masih loading di halaman privat)
   const showSidebar = !isPublicPage && (user !== null || loading);
 
-  useEffect(() => {
-    const toggleVisibility = () => {
-      if (window.pageYOffset > 300) setIsVisible(true);
-      else setIsVisible(false);
-    };
-    window.addEventListener('scroll', toggleVisibility);
-    return () => window.removeEventListener('scroll', toggleVisibility);
-  }, []);
+  const handleScroll = () => {
+    if (scrollContainerRef.current) {
+      setIsVisible(scrollContainerRef.current.scrollTop > 200);
+    }
+  };
 
   const scrollToTop = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -63,10 +64,14 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
             "flex-1 flex flex-col overflow-hidden bg-slate-50 dark:bg-slate-900 transition-colors duration-300 relative",
             !isPublicPage && "bg-teal-700 dark:bg-teal-900"
           )}>
-            <div className={cn(
-              "flex-1 overflow-y-auto relative custom-scrollbar",
-              !isPublicPage && "m-3 mt-0 ml-0 bg-slate-50 dark:bg-slate-900 rounded-br-[24px] rounded-l-none rounded-tr-none border-b border-r border-slate-200/20 shadow-[0_10px_40px_rgba(0,0,0,0.06)]"
-            )}>
+            <div 
+              ref={scrollContainerRef}
+              onScroll={handleScroll}
+              className={cn(
+                "flex-1 overflow-y-auto relative custom-scrollbar",
+                !isPublicPage && "m-3 mt-0 ml-0 bg-slate-50 dark:bg-slate-900 rounded-br-[24px] rounded-l-none rounded-tr-none border-b border-r border-slate-200/20 shadow-[0_10px_40px_rgba(0,0,0,0.06)]"
+              )}
+            >
               {/* Loader diletakkan di dalam area konten utama agar tidak menutup menu/header */}
               {loading ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/50 backdrop-blur-sm z-50 gap-4">
@@ -95,12 +100,13 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
                   variant="default"
                   size="icon"
                   onClick={scrollToTop}
+                  title="Kembali ke Atas Halaman"
                   className={cn(
-                    'fixed bottom-28 right-9 z-50 rounded-full shadow-2xl transition-all duration-500 bg-primary hover:bg-primary/90 text-white hover:scale-110 active:scale-95 border-4 border-white dark:border-slate-800',
-                    isVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-10 scale-50 pointer-events-none'
+                    'fixed bottom-24 right-7 z-50 rounded-full shadow-2xl transition-all duration-300 bg-slate-900 hover:bg-black text-white hover:scale-110 active:scale-95 border-2 border-white/20 dark:border-slate-800 h-11 w-11 flex items-center justify-center',
+                    isVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-6 scale-75 pointer-events-none'
                   )}
                 >
-                  <ArrowUp className="h-6 w-6" />
+                  <ArrowUp className="h-5 w-5" />
                 </Button>
               </>
             )}

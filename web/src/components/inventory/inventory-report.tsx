@@ -7,8 +7,8 @@
  * Verifikasi sistem, Ekspor Excel, dan Cetak PDF.
  */
 
-import { useState, useMemo } from 'react';
-import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
+import { useState, useMemo, useEffect } from 'react';
+import { collection, query, where, getDocs, Timestamp, doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { type InventoryItem, type InventoryTransaction, type InventoryType } from '@/lib/types';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
@@ -84,13 +84,25 @@ export default function InventoryReport() {
   const [loading, setLoading] = useState(false);
   const [startDate, setStartDate] = useState<Date>(startOfMonth(new Date()));
   const [endDate, setEndDate] = useState<Date>(endOfMonth(new Date()));
-  const [itemType, setItemType] = useState<InventoryType>('ATK');
+  const [itemType, setItemType] = useState<string>('ATK');
+  const [inventoryTypes, setInventoryTypes] = useState<string[]>(['ATK', 'Sparepart', 'Alat Kebersihan', 'Obat-obatan']);
   const [activityFilter, setActivityFilter] = useState<'all' | 'incoming' | 'active'>('all');
   const [summary, setSummary] = useState({ awal: 0, masuk: 0, keluar: 0, akhir: 0 });
   const [sortField, setSortField] = useState<keyof MonthlyReportData | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
+
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'settings', 'general'), (snap) => {
+      if (snap.exists() && snap.data().inventoryTypes) {
+        const types = snap.data().inventoryTypes as string[];
+        setInventoryTypes(types);
+        setItemType(prev => types.includes(prev) ? prev : (types[0] || 'ATK'));
+      }
+    });
+    return () => unsub();
+  }, []);
 
   const handleSort = (field: keyof MonthlyReportData) => {
     if (sortField === field) {
@@ -382,47 +394,110 @@ export default function InventoryReport() {
             <div className="flex flex-wrap items-end gap-4 p-4 bg-white/5 rounded-[2rem] border border-white/10 backdrop-blur-sm">
                 <div className="flex flex-col sm:flex-row gap-4">
                     <div className="grid gap-1.5 text-left">
-                        <Label className="text-[9px] font-black uppercase text-white/40 ml-1 text-left">Dari Bulan</Label>
-                        <Input 
-                            type="date"
-                            value={format(startDate, 'yyyy-MM-dd')}
-                            onChange={(e) => {
-                                const val = e.target.value;
-                                if (val) {
-                                    const parsed = parse(val, "yyyy-MM-dd", new Date());
-                                    if (isValid(parsed)) setStartDate(startOfMonth(parsed));
-                                }
-                            }}
-                            className="h-11 bg-white/10 border-none rounded-xl w-[170px] text-white font-bold"
-                        />
+                        <Label className="text-[9px] font-black uppercase text-white/40 ml-1 text-left">Dari Periode</Label>
+                        <div className="flex gap-2">
+                            <Select 
+                                value={startDate.getMonth().toString()} 
+                                onValueChange={(m) => setStartDate(startOfMonth(new Date(startDate.getFullYear(), parseInt(m), 1)))}
+                            >
+                                <SelectTrigger className="h-11 bg-white/10 border-none rounded-xl font-bold text-white w-[125px]">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl bg-slate-900 text-white border-slate-800">
+                                    {[
+                                      { value: 0, label: 'Januari' },
+                                      { value: 1, label: 'Februari' },
+                                      { value: 2, label: 'Maret' },
+                                      { value: 3, label: 'April' },
+                                      { value: 4, label: 'Mei' },
+                                      { value: 5, label: 'Juni' },
+                                      { value: 6, label: 'Juli' },
+                                      { value: 7, label: 'Agustus' },
+                                      { value: 8, label: 'September' },
+                                      { value: 9, label: 'Oktober' },
+                                      { value: 10, label: 'November' },
+                                      { value: 11, label: 'Desember' },
+                                    ].map(m => (
+                                        <SelectItem key={m.value} value={m.value.toString()}>{m.label}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            <Select 
+                                value={startDate.getFullYear().toString()} 
+                                onValueChange={(y) => setStartDate(startOfMonth(new Date(parseInt(y), startDate.getMonth(), 1)))}
+                            >
+                                <SelectTrigger className="h-11 bg-white/10 border-none rounded-xl font-bold text-white w-[90px]">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl bg-slate-900 text-white border-slate-800">
+                                    {Array.from({ length: 8 }, (_, i) => new Date().getFullYear() - 5 + i).map(y => (
+                                        <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
+
                     <div className="flex items-center pt-5"><ArrowRight className="h-4 w-4 text-white/20" /></div>
+
                     <div className="grid gap-1.5 text-left">
-                        <Label className="text-[9px] font-black uppercase text-white/40 ml-1 text-left">Sampai Bulan</Label>
-                        <Input 
-                            type="date"
-                            value={format(endDate, 'yyyy-MM-dd')}
-                            onChange={(e) => {
-                                const val = e.target.value;
-                                if (val) {
-                                    const parsed = parse(val, "yyyy-MM-dd", new Date());
-                                    if (isValid(parsed)) setEndDate(endOfMonth(parsed));
-                                }
-                            }}
-                            className="h-11 bg-white/10 border-none rounded-xl w-[170px] text-white font-bold"
-                        />
+                        <Label className="text-[9px] font-black uppercase text-white/40 ml-1 text-left">Sampai Periode</Label>
+                        <div className="flex gap-2">
+                            <Select 
+                                value={endDate.getMonth().toString()} 
+                                onValueChange={(m) => setEndDate(endOfMonth(new Date(endDate.getFullYear(), parseInt(m), 1)))}
+                            >
+                                <SelectTrigger className="h-11 bg-white/10 border-none rounded-xl font-bold text-white w-[125px]">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl bg-slate-900 text-white border-slate-800">
+                                    {[
+                                      { value: 0, label: 'Januari' },
+                                      { value: 1, label: 'Februari' },
+                                      { value: 2, label: 'Maret' },
+                                      { value: 3, label: 'April' },
+                                      { value: 4, label: 'Mei' },
+                                      { value: 5, label: 'Juni' },
+                                      { value: 6, label: 'Juli' },
+                                      { value: 7, label: 'Agustus' },
+                                      { value: 8, label: 'September' },
+                                      { value: 9, label: 'Oktober' },
+                                      { value: 10, label: 'November' },
+                                      { value: 11, label: 'Desember' },
+                                    ].map(m => (
+                                        <SelectItem key={m.value} value={m.value.toString()}>{m.label}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            <Select 
+                                value={endDate.getFullYear().toString()} 
+                                onValueChange={(y) => setEndDate(endOfMonth(new Date(parseInt(y), endDate.getMonth(), 1)))}
+                            >
+                                <SelectTrigger className="h-11 bg-white/10 border-none rounded-xl font-bold text-white w-[90px]">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl bg-slate-900 text-white border-slate-800">
+                                    {Array.from({ length: 8 }, (_, i) => new Date().getFullYear() - 5 + i).map(y => (
+                                        <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
                 </div>
 
                 <div className="grid gap-1.5 text-left">
                     <Label className="text-[9px] font-black uppercase text-white/40 ml-1 text-left">Jenis Barang</Label>
-                    <Select value={itemType} onValueChange={(v) => setItemType(v as InventoryType)}>
+                    <Select value={itemType} onValueChange={setItemType}>
                         <SelectTrigger className="h-11 w-[140px] bg-white/10 border-none rounded-xl font-bold"><SelectValue /></SelectTrigger>
                         <SelectContent className="rounded-xl">
-                          <SelectItem value="ATK">Logistik ATK</SelectItem>
-                          <SelectItem value="Sparepart">Sparepart</SelectItem>
-                          <SelectItem value="Alat Kebersihan">Kebersihan</SelectItem>
-                          <SelectItem value="Obat-obatan">Obat-obatan</SelectItem>
+                          {inventoryTypes.map(type => (
+                            <SelectItem key={type} value={type}>
+                              {type === 'ATK' ? 'Logistik ATK' : (type === 'Alat Kebersihan' ? 'Kebersihan' : type)}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                     </Select>
                 </div>

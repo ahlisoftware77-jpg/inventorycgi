@@ -22,12 +22,14 @@ import {
   Wrench,
   ExternalLink,
   Package as PackageIcon,
-  Printer
+  Printer,
+  Share2
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { Timestamp, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import ComputerAssetForm from './computer-asset-form';
+import ShareComputerQrDialog from './share-computer-qr-dialog';
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
@@ -95,6 +97,7 @@ export default function ComputerAssetDetailCard({ asset }: ComputerAssetDetailCa
   const { user } = useAuth();
   const { toast } = useToast();
   const [mainAsset, setMainAsset] = useState<Asset | null>(null);
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const canEdit = user?.role === 'Admin' || user?.role === 'Manager' || user?.role === 'Section Head';
 
   const deptStyle = useMemo(() => getDeptColor(mainAsset?.location || 'IT'), [mainAsset?.location]);
@@ -191,12 +194,17 @@ export default function ComputerAssetDetailCard({ asset }: ComputerAssetDetailCa
 
   const handlePrintLabelBluetooth = async () => {
     try {
-      const bytes = compileComputerEscPos(asset, mainAsset?.id || null);
+      const bytes = await compileComputerEscPos(asset, mainAsset?.id || null);
       await sendRawBluetooth(bytes, toast);
     } catch (error: any) {
       console.error("Error generating label for bluetooth:", error);
       toast({ variant: 'destructive', title: 'Gagal Menyiapkan Label', description: error.message });
     }
+  };
+
+  const handleShare = () => {
+    if (!asset) return;
+    setIsShareDialogOpen(true);
   };
 
   return (
@@ -254,6 +262,13 @@ export default function ComputerAssetDetailCard({ asset }: ComputerAssetDetailCa
 
             <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
                 <button 
+                    onClick={handleShare} 
+                    className="rounded-lg h-8 bg-purple-600 hover:bg-purple-700 text-white font-bold text-[10px] uppercase tracking-wider px-3.5 border-b-[3px] border-b-purple-800 active:translate-y-[1px] active:border-b-[1px] transition-all flex items-center justify-center gap-1.5"
+                >
+                    <Share2 className="h-3.5 w-3.5" /> Bagikan
+                </button>
+
+                <button 
                     onClick={handlePrintLabelBluetooth} 
                     className="rounded-lg h-8 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] uppercase tracking-wider px-3.5 border-b-[3px] border-b-indigo-800 active:translate-y-[1px] active:border-b-[1px] transition-all flex items-center justify-center gap-1.5"
                 >
@@ -281,6 +296,13 @@ export default function ComputerAssetDetailCard({ asset }: ComputerAssetDetailCa
             </div>
         </div>
       </div>
+
+      <ShareComputerQrDialog 
+        asset={asset} 
+        mainAssetId={mainAsset?.id}
+        isOpen={isShareDialogOpen} 
+        onOpenChange={setIsShareDialogOpen} 
+      />
     </motion.div>
   );
 }

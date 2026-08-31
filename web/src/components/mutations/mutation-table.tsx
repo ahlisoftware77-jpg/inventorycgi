@@ -272,6 +272,25 @@ export default function MutationTable() {
   
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
+  // States for Editing Details & Placements
+  const [assetToEditDetails, setAssetToEditDetails] = useState<EnrichedAsset | null>(null);
+  const [isEditDetailsOpen, setIsEditDetailsOpen] = useState(false);
+  const [editedNotes, setEditedNotes] = useState('');
+  const [editedDisposalType, setEditedDisposalType] = useState<'Dibuang / Rusak' | 'Dijual' | 'Disumbangkan' | 'Lainnya'>('Dibuang / Rusak');
+  const [editedDisposalPrice, setEditedDisposalPrice] = useState(0);
+  const [editedDisposalBuyer, setEditedDisposalBuyer] = useState('');
+  const [editedTargetDepartment, setEditedTargetDepartment] = useState('');
+  const [placementInput, setPlacementInput] = useState('');
+  const [placementBeforeInput, setPlacementBeforeInput] = useState('');
+  const [editedPlacement, setEditedPlacement] = useState('');
+  const [editedPlacementBefore, setEditedPlacementBefore] = useState('');
+
+  // States for Print Warning Dialog
+  const [isConfirmPrintOpen, setIsConfirmPrintOpen] = useState(false);
+  const [confirmPrintTitle, setConfirmPrintTitle] = useState('');
+  const [confirmPrintMessage, setConfirmPrintMessage] = useState('');
+  const [pendingPrintAction, setPendingPrintAction] = useState<(() => void) | null>(null);
+
   const isAdmin = user?.role === 'Admin';
   const isAccounting = user?.department === 'ACCOUNTING';
   const isKaryawan = user?.role === 'Karyawan';
@@ -906,14 +925,58 @@ Alasan: ${cancellationReason}`;
     }
   };
 
+  const checkReprintAndExecute = (
+    asset: EnrichedAsset,
+    type: 'fix_asset' | 'mutation' | 'disposal',
+    action: () => void
+  ) => {
+    let isPrinted = false;
+    let printedAt: Timestamp | null | undefined = null;
+    let label = '';
+
+    if (type === 'fix_asset') {
+      isPrinted = !!asset.isPrintedFixAsset;
+      printedAt = asset.printedFixAssetAt;
+      label = 'Form Fix Asset';
+    } else if (type === 'mutation') {
+      isPrinted = !!asset.isPrintedMutation;
+      printedAt = asset.printedMutationAt;
+      label = 'Form Mutasi';
+    } else if (type === 'disposal') {
+      isPrinted = !!asset.isPrintedDisposal;
+      printedAt = asset.printedDisposalAt;
+      label = 'Form Disposal';
+    }
+
+    if (isPrinted && printedAt) {
+      const date = printedAt.toDate();
+      const formattedDate = format(date, "dd-MM-yyyy HH:mm:ss");
+      setConfirmPrintTitle("Peringatan Cetak Ulang");
+      setConfirmPrintMessage(`Anda sudah mencetak ${label} ini pada tanggal ${formattedDate}. Apakah Anda ingin mencetaknya kembali?`);
+      setPendingPrintAction(() => action);
+      setIsConfirmPrintOpen(true);
+    } else {
+      action();
+    }
+  };
+
   const openPrintDialog = (asset: EnrichedAsset) => {
     setSelectedAsset(asset);
+    
+    // Preset placement inputs
+    setPlacementInput(asset.placement || asset.location || '');
+    
+    const notes = asset.notes || '';
+    const approvalNoteMatch = notes.match(/Mutasi \d+ unit dari: (.*?) ke (.*?)\sdisetujui/);
+    const prevLoc = approvalNoteMatch ? approvalNoteMatch[1].trim() : (getPreviousLocation(notes) || asset.location_from || asset.location || '');
+    setPlacementBeforeInput(asset.placementBefore || prevLoc);
+
     setIsPrintDialogOpen(true);
   };
 
   const handlePrintRequest = (asset: EnrichedAsset) => {
     if (asset.status.includes('creation') || activeTab === 'creation') {
-        handlePrintFixAssetForm(asset);
+        checkReprintAndExecute(asset, 'fix_asset', () => executePrintFixAssetForm(asset));
     } else {
         openPrintDialog(asset);
     }
@@ -923,174 +986,24 @@ Alasan: ${cancellationReason}`;
     if (!selectedAsset) return;
     
     if (selectedAsset.status.includes('creation')) {
-        handlePrintFixAssetForm(selectedAsset);
+        checkReprintAndExecute(selectedAsset, 'fix_asset', () => executePrintFixAssetForm(selectedAsset));
     } else if(selectedAsset.status.includes('disposal')) {
-        handlePrintDisposal();
+        checkReprintAndExecute(selectedAsset, 'disposal', () => executePrintDisposal());
     } else {
-        handlePrintMutation();
+        checkReprintAndExecute(selectedAsset, 'mutation', () => executePrintMutation());
     }
     
     setIsPrintDialogOpen(false);
-    setSelectedAsset(null);
   };
 
-  const handlePrintDisposal = async () => {
-    if (!selectedAsset) return;
-
-    const asset = selectedAsset;
-    const fillData = printOption === 'fill';
-
-    const printDate = asset.requestedAt?.toDate() || new Date();
-    const day = printDate.getDate().toString();
-    const month = (printDate.getMonth() + 1).toString();
-    const year = printDate.getFullYear().toString();
-    
-    const purchasePriceDisplay = (printOption === 'empty') ? '' : new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(asset.price);
-    const purchaseDateDisplay = (printOption === 'empty' || !asset.purchaseDate) ? '' : format(asset.purchaseDate.toDate(), 'd MMM yyyy', {locale: id});
-    
-    const assetName = asset.name;
-    const assetCode = asset.code;
-    const assetLocation = asset.location;
-    const assetLifetime = asset.assetLifetime ? `${asset.assetLifetime} tahun` : '';
-
-    const notes = asset.notes || '';
-    const reasonMatch = notes.match(/Alasan: (.*)/s);
-    const reason = reasonMatch ? reasonMatch[1].trim().split('\n')[0] : (asset.condition || '');
-
-    let publicUrl = `${window.location.origin}/public/asset?assetId=${asset.id}`;
-    if (asset.status === 'Bukan_Asset_Perusahaan') {
-        publicUrl = `${window.location.origin}/public/personal?id=${asset.id}`;
-    } else if (['APAR', 'CCTV', 'Utilitas & Kelistrikan', 'Infrastruktur Gedung'].includes(asset.category)) {
-        publicUrl = `${window.location.origin}/public/utility?id=${asset.id}`;
-    }
-    const qrCodeUrl = await QRCode.toDataURL(publicUrl, { margin: 1, width: 250 });
-
-    const formHtml = `
-    <!DOCTYPE html>
-    <html lang="id">
-    <head>
-    <meta charset="UTF-8">
-    <title>FORM DISPOSAL ASET</title>
-    <style>
-    @media print {
-      @page { size: A4 landscape; margin: 10mm; }
-      body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; }
-      .page { border: none !important; }
-    }
-    body { font-family: 'BiauKai', Arial, sans-serif; font-size: 11pt; }
-    .page { width: 297mm; height: 210mm; margin: auto; padding: 10mm; box-sizing: border-box; border: 1px solid #000; }
-    table { width: 100%; border-collapse: collapse; }
-    td, th { border: 1px solid #000; padding: 4px; vertical-align: top; text-align: center; }
-    .header-main { font-size: 16pt; font-weight: bold; }
-    .header-sub { font-size: 14pt; font-weight: bold; }
-    .no-border, .no-border td, .no-border th { border: none; padding: 0; }
-    .text-right { text-align: right; }
-    .signature-box { height: 80px; }
-    .footer-notes { display: flex; justify-content: space-between; font-size: 9pt; margin-top: 5px; padding: 0 10px; }
-    .footer-notes span { text-align: center; flex: 1; }
-    .nested-table { width: 100%; height: 100%; }
-    .nested-table td { border: none; text-align: left; vertical-align: top; padding: 1px 4px; }
-    .nested-table td:first-child { width: auto; white-space: nowrap; }
-    </style>
-    </head>
-    <body>
-    <div class="page">
-      <table class="no-border" style="margin-bottom: 10px;">
-        <tr class="no-border"><td class="header-main" colspan="12">PT. CHINA GLAZE INDONESIA</td></tr>
-        <tr class="no-border"><td class="header-sub" colspan="12">不動產/廠房及設備處理申請單</td></tr>
-        <tr class="no-border"><td class="header-sub" colspan="12">FORM DISPOSAL ASET BANGUNAN, PABRIK, DAN MESIN</td></tr>
-        <tr class="no-border" style="font-size: 10pt;">
-            <td colspan="4" style="text-align: left; padding-left: 0;">單位Bagian: ${assetLocation || '____________________'}</td>
-            <td colspan="4" style="text-align: center;">${day} 日/DD &nbsp;&nbsp;${month} 月/MM &nbsp;&nbsp;${year} 年/YYYY</td>
-            <td colspan="4" style="text-align: right;">表號: 0-32-025</td>
-        </tr>
-      </table>
-      <table>
-        <thead>
-            <tr>
-                <th colspan="4">(保管單位填) <br> diisi Unit User</th>
-                <th colspan="2">(財務部填) <br> diisi Unit F&A</th>
-                <th colspan="4">(主管單位填) <br> diisi Unit Manager</th>
-                <th colspan="2">核 准 <br> Persetujuan</th>
-            </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td colspan="4" style="height: 30px; text-align: left; padding: 5px;">名稱 Nama: ${assetName}</td>
-            <td colspan="2" rowspan="2" style="padding: 0;">
-              <table class="nested-table"><tr style="border-bottom: 1px solid #000;"><td style="text-align: center;">購入金額 Harga beli</td></tr><tr><td style="text-align: center; font-weight: bold; padding-top: 4px;">${purchasePriceDisplay}</td></tr></table>
-            </td>
-            <td colspan="4" style="height: 30px; text-align: left; padding: 5px;">購入日期 Tgl pembelian: ${purchaseDateDisplay}</td>
-            <td colspan="2" rowspan="6"></td>
-          </tr>
-          <tr>
-            <td colspan="4" style="height: 30px; text-align: left; padding: 5px;">編號 Nomor: ${assetCode}</td>
-            <td colspan="4" rowspan="10" style="padding: 0;">
-                <table class="nested-table">
-                    <tr><td style="text-align: left; padding: 5px;">處理方式 Metode disposal: Disposal</td></tr>
-                    <tr>
-                        <td style="text-align: center; vertical-align: middle; height: 200px;">
-                            <img src="${qrCodeUrl}" style="width: 180px; height: 180px;" />
-                            <div style="font-size: 7pt; color: #666; margin-top: 2px;">Verification Link</div>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-          </tr>
-          <tr>
-            <td colspan="4" rowspan="8" style="text-align: left; padding: 5px; vertical-align: top;">原因 Alasan: ${reason}</td>
-            <td colspan="2" style="padding: 0;">
-              <table class="nested-table"><tr style="border-bottom: 1px solid #000;"><td style="text-align: center;">耐用年限 Masa guna</td></tr><tr><td style="text-align: center; font-weight: bold;">${assetLifetime}</td></tr></table>
-            </td>
-          </tr>
-          <tr><td colspan="2" style="height: 30px;"></td></tr>
-          <tr><td colspan="2" rowspan="2" style="padding: 0;"><table class="nested-table"><tr><td style="text-align: center;">已提列折舊金額<br>Nilai depresiasi</td></tr><tr><td></td></tr></table></td></tr>
-          <tr></tr>
-          <tr><td colspan="2" rowspan="2" style="height: 30px;"></td><td rowspan="2" colspan="2">備  註<br>Keterangan</td></tr>
-          <tr></tr>
-          <tr><td colspan="2" style="padding: 0;"><table class="nested-table"><tr><td style="text-align: center;">殘值 Sisa nilai aset</td></tr><tr><td></td></tr></table></td><td colspan="2" rowspan="4"></td></tr>
-          <tr><td colspan="2" style="height: 30px;"></td></tr>
-        </tbody>
-        <tfoot>
-            <tr>
-                <th>副 總 <br> Vice GM</th><th>經 理 <br> Manager</th><th>課 長 <br> Sec. Head</th><th>經 辦 <br> Pelaksana</th>
-                <th>經 理 <br> Manager</th><th>經 辦 <br> Pelaksana</th>
-                <th>副 總 <br> Vice GM</th><th>經 理 <br> Manager</th><th>課 長 <br> Sec. Head</th><th>經 辦 <br> Pelaksana</th>
-                <td class="signature-box" colspan="2" rowspan="2"></td>
-            </tr>
-            <tr>
-                <td class="signature-box"></td><td class="signature-box"></td><td class="signature-box"></td><td class="signature-box"></td>
-                <td class="signature-box"></td><td class="signature-box"></td>
-                <td class="signature-box"></td><td class="signature-box"></td><td class="signature-box"></td><td class="signature-box"></td>
-            </tr>
-        </tfoot>
-      </table>
-      <div style="display: flex; justify-content: space-between; font-size:10pt; margin-top:5px;">
-        <span>Kode Transaksi: ${asset.transactionCode || '____________________'}</span>
-      </div>
-      <div class="footer-notes">
-        <span>第一聯:主管單位存(白)<br>Lembar 1 disimpan unit Manager (putih),</span>
-        <span>第二聯:財務部存(紅)<br>lembar 2 disimpan unit F&A (merah),</span>
-        <span>第三聯:保管單位存(黃)<br>lembar 3 disimpan unit User (kuning)</span>
-      </div>
-    </div>
-    </body>
-    </html>`;
-    const printWindow = window.open('', '', 'width=1123,height=794');
-    if (printWindow) {
-        printWindow.document.write(formHtml);
-        printWindow.document.close();
-        printWindow.focus();
-        setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
-    }
-  };
-  
-    const handlePrintFixAssetForm = async (asset: EnrichedAsset) => {
-    if (!asset) return;
+  const executePrintFixAssetForm = async (asset: EnrichedAsset, isFromMutationTab = false) => {
     const purchaseDate = asset.purchaseDate ? format(asset.purchaseDate.toDate(), 'dd-MM-yyyy') : '';
     const projectDate = asset.projectInspectionDate ? asset.projectInspectionDate.toDate() : null;
     const inspProyekDate = projectDate ? format(projectDate, 'dd-MM-yyyy') : '';
-    const createdAtDate = asset.createdAt ? asset.createdAt.toDate() : new Date();
+    
+    // "buat pengkhususan pada tab mutasi, jika cetak fix aset pada tab mutasi dilakukan, maka tanggal input akan mengikuti tanggal ACC."
+    const useAccDate = isFromMutationTab && asset.approvedAt;
+    const createdAtDate = useAccDate ? asset.approvedAt.toDate() : (asset.createdAt ? asset.createdAt.toDate() : new Date());
 
     const tglInput = format(createdAtDate, 'dd');
     const bulanInput = format(createdAtDate, 'MM');
@@ -1120,8 +1033,6 @@ Alasan: ${cancellationReason}`;
   table { width: 100%; border-collapse: collapse; table-layout: fixed; }
   td { border: 1px solid #000; vertical-align: middle; font-size: 11px; padding: 2px 4px; text-align: center; height: 15px; }
   .title { text-align: center; font-weight: bold; font-size: 16px; }
-  .subtitle { text-align: center; font-size: 12px; }
-  .formtitle { text-align: center; font-weight: bold; font-size: 14px; }
   .input { text-align: center; font-size: 11px; vertical-align: middle; font-weight: bold; }
   .no-border td { border: none !important; }
   .label-cell { border: none; text-align: left; vertical-align: bottom; }
@@ -1227,7 +1138,7 @@ Alasan: ${cancellationReason}`;
 </div>
 </body>
 </html>
-          `;
+    `;
     
     const printWindow = window.open('', '', 'width=815,height=528'); 
     if (printWindow) {
@@ -1238,16 +1149,191 @@ Alasan: ${cancellationReason}`;
         printWindow.print();
         printWindow.close();
       }, 500);
-    } else {
-        toast({
-            variant: "destructive",
-            title: "Gagal Mencetak",
-            description: "Tidak dapat membuka jendela cetak. Pastikan pop-up diizinkan.",
+
+      try {
+        await updateDoc(doc(db, 'assets', asset.id), {
+          isPrintedFixAsset: true,
+          printedFixAssetAt: serverTimestamp()
         });
+      } catch (err) {
+        console.error("Failed to update fix asset print status:", err);
+      }
     }
   };
 
-  const handlePrintMutation = () => {
+  const handlePrintFixAssetForm = (asset: EnrichedAsset) => {
+    checkReprintAndExecute(asset, 'fix_asset', () => executePrintFixAssetForm(asset, true));
+  };
+
+  const executePrintDisposal = async () => {
+    if (!selectedAsset) return;
+
+    const asset = selectedAsset;
+    const fillData = printOption === 'fill';
+
+    const printDate = asset.requestedAt?.toDate() || new Date();
+    const day = printDate.getDate().toString();
+    const month = (printDate.getMonth() + 1).toString();
+    const year = printDate.getFullYear().toString();
+    
+    const purchasePriceDisplay = (printOption === 'empty') ? '' : new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(asset.price);
+    const purchaseDateDisplay = (printOption === 'empty' || !asset.purchaseDate) ? '' : format(asset.purchaseDate.toDate(), 'd MMM yyyy', {locale: id});
+    
+    const assetName = asset.name;
+    const assetCode = asset.code;
+    const assetLocation = asset.location;
+    const assetLifetime = asset.assetLifetime ? `${asset.assetLifetime} tahun` : '';
+
+    const notes = asset.notes || '';
+    const reasonMatch = notes.match(/Alasan: (.*)/s);
+    const reason = reasonMatch ? reasonMatch[1].trim().split('\n')[0] : (asset.condition || '');
+
+    let publicUrl = `${window.location.origin}/public/asset?assetId=${asset.id}`;
+    if (asset.status === 'Bukan_Asset_Perusahaan') {
+        publicUrl = `${window.location.origin}/public/personal?id=${asset.id}`;
+    } else if (['APAR', 'CCTV', 'Utilitas & Kelistrikan', 'Infrastruktur Gedung'].includes(asset.category)) {
+        publicUrl = `${window.location.origin}/public/utility?id=${asset.id}`;
+    }
+    const qrCodeUrl = await QRCode.toDataURL(publicUrl, { margin: 1, width: 250 });
+
+    const formHtml = `
+    <!DOCTYPE html>
+    <html lang="id">
+    <head>
+    <meta charset="UTF-8">
+    <title>FORM DISPOSAL ASET</title>
+    <style>
+    @media print {
+      @page { size: A4 landscape; margin: 10mm; }
+      body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; }
+      .page { border: none !important; }
+    }
+    body { font-family: 'BiauKai', Arial, sans-serif; font-size: 11pt; }
+    .page { width: 297mm; height: 210mm; margin: auto; padding: 10mm; box-sizing: border-box; border: 1px solid #000; }
+    table { width: 100%; border-collapse: collapse; }
+    td, th { border: 1px solid #000; padding: 4px; vertical-align: top; text-align: center; }
+    .header-main { font-size: 16pt; font-weight: bold; }
+    .header-sub { font-size: 14pt; font-weight: bold; }
+    .no-border, .no-border td, .no-border th { border: none; padding: 0; }
+    .text-right { text-align: right; }
+    .signature-box { height: 80px; }
+    .footer-notes { display: flex; justify-content: space-between; font-size: 9pt; margin-top: 5px; padding: 0 10px; }
+    .footer-notes span { text-align: center; flex: 1; }
+    .nested-table { width: 100%; height: 100%; }
+    .nested-table td { border: none; text-align: left; vertical-align: top; padding: 1px 4px; }
+    .nested-table td:first-child { width: auto; white-space: nowrap; }
+    </style>
+    </head>
+    <body>
+    <div class="page">
+      <table class="no-border" style="margin-bottom: 10px;">
+        <tr class="no-border"><td class="header-main" colspan="12">PT. CHINA GLAZE INDONESIA</td></tr>
+        <tr class="no-border"><td class="header-sub" colspan="12">不動產/廠房及設備處理申請單</td></tr>
+        <tr class="no-border"><td class="header-sub" colspan="12">FORM DISPOSAL ASET BANGUNAN, PABRIK, DAN MESIN</td></tr>
+        <tr class="no-border" style="font-size: 10pt;">
+            <td colspan="4" style="text-align: left; padding-left: 0;">單位Bagian: ${assetLocation || '____________________'}</td>
+            <td colspan="4" style="text-align: center;">${day} 日/DD &nbsp;&nbsp;${month} 月/MM &nbsp;&nbsp;${year} 年/YYYY</td>
+            <td colspan="4" style="text-align: right;">表號: 0-32-025</td>
+        </tr>
+      </table>
+      <table>
+        <thead>
+            <tr>
+                <th colspan="4">(保管單位填) <br> diisi Unit User</th>
+                <th colspan="2">(財務部填) <br> diisi Unit F&A</th>
+                <th colspan="4">(主管單位填) <br> diisi Unit Manager</th>
+                <th colspan="2">核 准 <br> Persetujuan</th>
+            </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td colspan="4" style="height: 30px; text-align: left; padding: 5px;">名稱 Nama: ${assetName}</td>
+            <td colspan="2" rowspan="2" style="padding: 0;">
+              <table class="nested-table"><tr style="border-bottom: 1px solid #000;"><td style="text-align: center;">購入金額 Harga beli</td></tr><tr><td style="text-align: center; font-weight: bold; padding-top: 4px;">${purchasePriceDisplay}</td></tr></table>
+            </td>
+            <td colspan="4" style="height: 30px; text-align: left; padding: 5px;">購入日期 Tgl pembelian: ${purchaseDateDisplay}</td>
+            <td colspan="2" rowspan="6"></td>
+          </tr>
+          <tr>
+            <td colspan="4" style="height: 30px; text-align: left; padding: 5px;">編號 Nomor: ${assetCode}</td>
+            <td colspan="4" rowspan="10" style="padding: 0;">
+                <table class="nested-table">
+                    <tr><td style="text-align: left; padding: 5px;">處理方式 Metode disposal: Disposal</td></tr>
+                    <tr>
+                        <td style="padding: 5px;">
+                            <div style="margin-bottom: 5px;">處理價格 Harga jual: ${asset.disposalPrice ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(asset.disposalPrice) : 'Rp. -'}</div>
+                            <div>買主 Nama pembeli: ${asset.disposalBuyer || '-'}</div>
+                        </td>
+                    </tr>
+                    <tr><td style="text-align: center; vertical-align: middle; height: 110px;"><img src="${qrCodeUrl}" style="height: 100px; width: 100px; display: block; margin: 0 auto;" /></td></tr>
+                </table>
+            </td>
+          </tr>
+          <tr>
+            <td colspan="4" rowspan="8" style="text-align: left; padding: 5px; vertical-align: top;">原因 Alasan: ${reason}</td>
+            <td colspan="2" style="padding: 0;">
+              <table class="nested-table"><tr style="border-bottom: 1px solid #000;"><td style="text-align: center;">耐用年限 Masa guna</td></tr><tr><td style="text-align: center; font-weight: bold;">${assetLifetime}</td></tr></table>
+            </td>
+          </tr>
+          <tr><td colspan="2" style="height: 30px;"></td></tr>
+          <tr><td colspan="2" rowspan="2" style="padding: 0;"><table class="nested-table"><tr><td style="text-align: center;">已提列折舊金額<br>Nilai depresiasi</td></tr><tr><td></td></tr></table></td></tr>
+          <tr></tr>
+          <tr><td colspan="2" rowspan="2" style="height: 30px;"></td><td rowspan="2" colspan="2">備  註<br>Keterangan</td></tr>
+          <tr></tr>
+          <tr><td colspan="2" style="padding: 0;"><table class="nested-table"><tr><td style="text-align: center;">殘值 Sisa nilai aset</td></tr><tr><td></td></tr></table></td><td colspan="2" rowspan="4"></td></tr>
+          <tr><td colspan="2" style="height: 30px;"></td></tr>
+        </tbody>
+        <tfoot>
+            <tr>
+                <th>副 總 <br> Vice GM</th><th>經 理 <br> Manager</th><th>課 長 <br> Sec. Head</th><th>經 辦 <br> Pelaksana</th>
+                <th>經 理 <br> Manager</th><th>經 辦 <br> Pelaksana</th>
+                <th>副 總 <br> Vice GM</th><th>經 理 <br> Manager</th><th>課 長 <br> Sec. Head</th><th>經 辦 <br> Pelaksana</th>
+                <td class="signature-box" colspan="2" rowspan="2"></td>
+            </tr>
+            <tr>
+                <td class="signature-box"></td><td class="signature-box"></td><td class="signature-box"></td><td class="signature-box"></td>
+                <td class="signature-box"></td><td class="signature-box"></td>
+                <td class="signature-box"></td><td class="signature-box"></td><td class="signature-box"></td><td class="signature-box"></td>
+            </tr>
+        </tfoot>
+      </table>
+      <div class="footer-notes">
+        <span>保管單位 User Unit</span>
+        <span>財務部 Finance Dept</span>
+        <span>總經理室 GM Office</span>
+      </div>
+      <div style="text-align: left; font-size:10pt; margin-top:5px; padding-left:10px;">
+        Kode Transaksi: ${asset.transactionCode || '____________________'}
+      </div>
+    </div>
+    </body>
+    </html>
+    `;
+    const printWindow = window.open('', '', 'width=1123,height=794');
+    if (printWindow) {
+        printWindow.document.write(formHtml);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
+
+        if (fillData) {
+          try {
+            await updateDoc(doc(db, 'assets', asset.id), {
+              isPrintedDisposal: true,
+              printedDisposalAt: serverTimestamp()
+            });
+          } catch (err) {
+            console.error("Failed to update disposal print status:", err);
+          }
+        }
+    }
+  };
+
+  const handlePrintDisposal = () => {
+    checkReprintAndExecute(selectedAsset!, 'disposal', () => executePrintDisposal());
+  };
+
+  const executePrintMutation = async () => {
     if (!selectedAsset) return;
     const asset = selectedAsset;
     const fillData = printOption === 'fill';
@@ -1265,7 +1351,7 @@ Alasan: ${cancellationReason}`;
     const approvalNoteMatch = notes.match(/Mutasi \d+ unit dari: (.*?) ke (.*?)\sdisetujui/);
     const requestNoteMatch = notes.match(/Lokasi Baru: (.*?)\n.*Alasan: (.*)/s);
     
-    const previousLocation = approvalNoteMatch ? approvalNoteMatch[1].trim() : (getPreviousLocation(notes) || asset.location);
+    const previousLocation = approvalNoteMatch ? approvalNoteMatch[1].trim() : (getPreviousLocation(notes) || asset.location_from || asset.location);
     const newLocation = approvalNoteMatch ? approvalNoteMatch[2].trim() : (requestNoteMatch ? requestNoteMatch[1].trim() : (asset.mutationTargetDepartment || ''));
     
     let reason = '';
@@ -1276,7 +1362,11 @@ Alasan: ${cancellationReason}`;
         reason = requestNoteMatch ? requestNoteMatch[2].trim() : (notes.split('---').pop() || '').trim();
     }
     
-    const assetQty = fillData && asset.qty ? `${getMutationQuantityDisplay(asset)} Unit` : '';
+    const beforeUnit = fillData ? previousLocation : '';
+    const afterUnit = fillData ? newLocation : '';
+
+    const beforePlacement = fillData ? (placementBeforeInput || asset.placementBefore || '') : '';
+    const afterPlacement = fillData ? (placementInput || asset.placement || '') : '';
 
     const formHtml = `
     <!DOCTYPE html>
@@ -1289,7 +1379,6 @@ Alasan: ${cancellationReason}`;
         @page { size: A4 landscape; margin: 10mm; }
         body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; }
         .page { border: none !important; }
-        
       }
       body { font-family: 'BiauKai', Arial, sans-serif; font-size: 11pt; }
       .page { width: 297mm; height: 210mm; margin: auto; padding: 15mm; box-sizing: border-box; border: 1px solid #000; }
@@ -1337,8 +1426,8 @@ Alasan: ${cancellationReason}`;
             <tbody>
                 <tr><td style="text-align: center;">財產名稱 Nama Barang</td><td colspan="2">${assetName}</td><td colspan="2">${assetName}</td></tr>
                 <tr><td style="text-align: center;">財產編號 No.Fix Asset</td><td colspan="2">${assetCode}</td><td colspan="2">${assetCode}</td></tr>
-                <tr><td style="text-align: center;">保管單位 Satuan</td><td colspan="2">${assetQty}</td><td colspan="2">${assetQty}</td></tr>
-                <tr><td style="text-align: center;">存放地點 Ditempatkan</td><td colspan="2">${fillData ? previousLocation : ''}</td><td colspan="2">${fillData ? newLocation : ''}</td></tr>
+                <tr><td style="text-align: center;">保管單位 Satuan</td><td colspan="2">${beforeUnit}</td><td colspan="2">${afterUnit}</td></tr>
+                <tr><td style="text-align: center;">存放地點 Ditempatkan</td><td colspan="2">${beforePlacement}</td><td colspan="2">${afterPlacement}</td></tr>
                 <tr><td style="height: 80px; text-align: center; vertical-align: middle;">備註 Keterangan</td><td colspan="4">${fillData ? reason : ''}</td></tr>
                 <tr>
                     <td rowspan="2" class="th-center" style="vertical-align: middle;">單位保管人<br>Kustodian Satuan</td>
@@ -1356,13 +1445,31 @@ Alasan: ${cancellationReason}`;
     </div>
     </body>
     </html>`;
+
     const printWindow = window.open('', '', 'width=1123,height=794');
     if (printWindow) {
         printWindow.document.write(formHtml);
         printWindow.document.close();
         printWindow.focus();
         setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
+
+        if (fillData) {
+          try {
+            await updateDoc(doc(db, 'assets', asset.id), {
+              isPrintedMutation: true,
+              printedMutationAt: serverTimestamp(),
+              placement: afterPlacement,
+              placementBefore: beforePlacement
+            });
+          } catch (err) {
+            console.error("Failed to update mutation print status:", err);
+          }
+        }
     }
+  };
+
+  const handlePrintMutation = () => {
+    checkReprintAndExecute(selectedAsset!, 'mutation', () => executePrintMutation());
   };
 
   const handlePrintBeritaAcara = (assetsToPrint: Asset[]) => {
@@ -1619,6 +1726,62 @@ Alasan: ${cancellationReason}`;
     setNewApprovalDate(asset.approvedAt?.toDate() || new Date());
     setTimeout(() => setIsEditDateDialogOpen(true), 100);
   };
+
+  const openEditDetailsDialog = (asset: EnrichedAsset) => {
+    setAssetToEditDetails(asset);
+    
+    // Parse existing notes
+    const notes = asset.notes || '';
+    if (asset.status.includes('disposal')) {
+        const typeMatch = notes.match(/Tipe Disposal: (.*?)\n/);
+        const priceMatch = notes.match(/Harga Jual: Rp (.*?)\n/);
+        const buyerMatch = notes.match(/Pembeli: (.*?)\n/);
+        const reasonMatch = notes.match(/Alasan: (.*)/s);
+        
+        setEditedDisposalType(asset.disposalType || (typeMatch ? typeMatch[1].trim() as any : 'Dibuang / Rusak'));
+        setEditedDisposalPrice(asset.disposalPrice || (priceMatch ? Number(priceMatch[1].trim().replace(/\./g, '')) : 0));
+        setEditedDisposalBuyer(asset.disposalBuyer || (buyerMatch ? buyerMatch[1].trim() : ''));
+        setEditedNotes(reasonMatch ? reasonMatch[1].trim() : notes);
+    } else {
+        const requestNoteMatch = notes.match(/Lokasi Baru: (.*?)\n.*Alasan: (.*)/s);
+        setEditedTargetDepartment(asset.mutationTargetDepartment || (requestNoteMatch ? requestNoteMatch[1].trim() : ''));
+        setEditedNotes(requestNoteMatch ? requestNoteMatch[2].trim() : notes);
+        setEditedPlacement(asset.placement || '');
+        setEditedPlacementBefore(asset.placementBefore || '');
+    }
+    
+    setIsEditDetailsOpen(true);
+  };
+
+  const handleEditDetails = async () => {
+    if (!assetToEditDetails) return;
+    setIsUpdating(assetToEditDetails.id);
+    try {
+        const updateData: any = {};
+        
+        if (assetToEditDetails.status.includes('disposal')) {
+            updateData.notes = `Tipe Disposal: ${editedDisposalType}\nBook Value: Rp 0\nAkumulasi Depresiasi: Rp 0\nHarga Jual: Rp ${editedDisposalPrice}\nPembeli: ${editedDisposalBuyer}\nAlasan: ${editedNotes}`;
+            updateData.disposalType = editedDisposalType;
+            updateData.disposalPrice = editedDisposalPrice;
+            updateData.disposalBuyer = editedDisposalBuyer;
+        } else {
+            updateData.notes = `Lokasi Baru: ${editedTargetDepartment}\nAlasan: ${editedNotes}`;
+            updateData.mutationTargetDepartment = editedTargetDepartment;
+            updateData.placement = editedPlacement;
+            updateData.placementBefore = editedPlacementBefore;
+        }
+
+        await updateDoc(doc(db, 'assets', assetToEditDetails.id), updateData);
+        toast({ title: 'Berhasil', description: 'Rincian pengajuan telah diperbarui.' });
+        setIsEditDetailsOpen(false);
+        setAssetToEditDetails(null);
+    } catch (error) {
+        console.error("Error updating details:", error);
+        toast({ variant: 'destructive', title: 'Gagal', description: 'Gagal memperbarui rincian.' });
+    } finally {
+        setIsUpdating(null);
+    }
+  };
   
   const requestSort = (key: SortConfig['key']) => {
     let direction: SortDirection = 'ascending';
@@ -1792,6 +1955,8 @@ Alasan: ${cancellationReason}`;
                     onCancelClick={() => { setAssetToCancel(asset); setTimeout(() => setIsCancelDialogOpen(true), 100); }}
                     onEditDateClick={() => openEditDateDialog(asset)}
                     onUpdateAccountingClick={() => { setAssetToUpdateAccounting(asset); setTimeout(() => setIsAccountingUpdateDialogOpen(true), 100); }}
+                    onEditDetailsClick={() => openEditDetailsDialog(asset)}
+                    onPrintFixAssetClick={() => handlePrintFixAssetForm(asset)}
                 />
               )}
             </AnimatePresence>
@@ -1937,9 +2102,59 @@ Alasan: ${cancellationReason}`;
                     <Label htmlFor="r-empty" className="font-bold text-sm text-black">Cetak Formulir Kosong</Label>
                 </div>
             </RadioGroup>
+            {printOption === 'fill' && selectedAsset && (selectedAsset.status.includes('mutasi') || selectedAsset.status.includes('edit')) && (
+              <div className="space-y-4 py-2 text-left mb-4">
+                <div className="space-y-2">
+                  <Label htmlFor="placement-before" className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Ditempatkan Sebelum</Label>
+                  <Input 
+                    id="placement-before"
+                    placeholder="Contoh: Kantor HRD Lt. 1" 
+                    value={placementBeforeInput}
+                    onChange={(e) => setPlacementBeforeInput(e.target.value)}
+                    className="h-10 bg-slate-50 border-slate-200 rounded-xl font-bold px-4 text-black w-full"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="placement-after" className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Ditempatkan Sekarang (Baru)</Label>
+                  <Input 
+                    id="placement-after"
+                    placeholder="Contoh: Ruang Meeting Lt. 2" 
+                    value={placementInput}
+                    onChange={(e) => setPlacementInput(e.target.value)}
+                    className="h-10 bg-slate-50 border-slate-200 rounded-xl font-bold px-4 text-black w-full"
+                  />
+                </div>
+              </div>
+            )}
             <AlertDialogFooter className="gap-2">
                 <AlertDialogCancel className="rounded-xl font-bold h-11 text-black">Batal</AlertDialogCancel>
                 <AlertDialogAction onClick={handlePrintForm} className="rounded-xl h-11 bg-primary hover:bg-primary/90 font-black uppercase tracking-widest text-white"><Printer className="mr-2 h-4 w-4" /> Cetak Sekarang</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isConfirmPrintOpen} onOpenChange={setIsConfirmPrintOpen}>
+        <AlertDialogContent className="rounded-[2rem] border-none shadow-2xl p-8">
+            <AlertDialogHeader>
+                <AlertDialogTitle className="text-xl font-black uppercase tracking-tight text-left text-rose-600">⚠️ {confirmPrintTitle}</AlertDialogTitle>
+                <AlertDialogDescription className="text-sm font-medium text-left text-slate-700 mt-2">
+                    {confirmPrintMessage}
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="gap-2 mt-4">
+                <AlertDialogCancel onClick={() => setPendingPrintAction(null)} className="rounded-xl font-bold h-11 text-black">Batal</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={() => {
+                    if (pendingPrintAction) {
+                      pendingPrintAction();
+                      setPendingPrintAction(null);
+                    }
+                    setIsConfirmPrintOpen(false);
+                  }} 
+                  className="rounded-xl h-11 bg-rose-600 hover:bg-rose-700 font-black uppercase tracking-widest text-white"
+                >
+                    Lanjutkan Cetak
+                </AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -1949,32 +2164,27 @@ Alasan: ${cancellationReason}`;
             <AlertDialogHeader>
                 <AlertDialogTitle className="text-xl font-black uppercase tracking-tight text-left">Konfirmasi Persetujuan</AlertDialogTitle>
                 <AlertDialogDescription className="text-sm font-medium text-left">
-                  {(assetToApprove?.status === 'waiting_disposal')
-                    ? "Apakah proses pusat sudah selesai? Jika sudah, tekan lanjutkan untuk menyetujui penghapusan aset secara permanen."
-                    : "Pilih tanggal efektif persetujuan. Tanggal hari ini akan digunakan secara default jika tidak diubah."
-                  }
+                  Pilih tanggal efektif persetujuan. Tanggal hari ini akan digunakan secara default jika tidak diubah.
                 </AlertDialogDescription>
             </AlertDialogHeader>
-            {assetToApprove?.status !== 'waiting_disposal' && (
-              <div className="py-6 flex justify-center text-left">
-                  <div className="relative flex items-center w-full max-w-[300px]">
-                      <Input 
-                          type="date"
-                          value={approvalDate ? format(approvalDate, "yyyy-MM-dd") : ""}
-                          onChange={(e) => {
-                              const val = e.target.value;
-                              if (!val) setApprovalDate(undefined);
-                              else {
-                                  const parsed = parse(val, "yyyy-MM-dd", new Date());
-                                  setApprovalDate(isValid(parsed) ? parsed : undefined);
-                              }
-                          }}
-                          className="h-12 bg-slate-50 border-slate-200 rounded-xl font-bold px-4 pr-10 focus:ring-primary/20 text-black"
-                      />
-                      <CalendarIcon className="absolute right-3 h-5 w-5 text-primary pointer-events-none" />
-                  </div>
-              </div>
-            )}
+            <div className="py-6 flex justify-center text-left">
+                <div className="relative flex items-center w-full max-w-[300px]">
+                    <Input 
+                        type="date"
+                        value={approvalDate ? format(approvalDate, "yyyy-MM-dd") : ""}
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            if (!val) setApprovalDate(undefined);
+                            else {
+                                const parsed = parse(val, "yyyy-MM-dd", new Date());
+                                setApprovalDate(isValid(parsed) ? parsed : undefined);
+                            }
+                        }}
+                        className="h-12 bg-slate-50 border-slate-200 rounded-xl font-bold px-4 pr-10 focus:ring-primary/20 text-black"
+                    />
+                    <CalendarIcon className="absolute right-3 h-5 w-5 text-primary pointer-events-none" />
+                </div>
+            </div>
             <AlertDialogFooter className="gap-2">
                 <AlertDialogCancel onClick={() => setAssetToApprove(null)} className="rounded-xl h-11 font-bold text-black">Batal</AlertDialogCancel>
                 <AlertDialogAction onClick={confirmApproval} className="rounded-xl h-11 bg-green-600 hover:bg-green-700 font-black uppercase tracking-widest text-white">
@@ -2080,6 +2290,105 @@ Alasan: ${cancellationReason}`;
                 <AlertDialogAction onClick={handleEditDate} className="rounded-xl h-11 bg-primary hover:bg-primary/90 font-black uppercase tracking-widest text-white">
                      {isUpdating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Pencil className="mr-2 h-4 w-4"/>}
                     Simpan Tanggal
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isEditDetailsOpen} onOpenChange={setIsEditDetailsOpen}>
+        <AlertDialogContent className="rounded-[2rem] border-none shadow-2xl p-8 max-w-lg">
+            <AlertDialogHeader>
+                <AlertDialogTitle className="text-xl font-black uppercase tracking-tight text-left text-black">Edit Rincian Pengajuan</AlertDialogTitle>
+                <AlertDialogDescription className="text-sm font-medium text-left text-slate-500">
+                    Perbarui informasi catatan, lokasi baru, atau rincian disposal untuk aset <span className="font-bold text-primary">{assetToEditDetails?.name}</span>.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="py-4 space-y-4 text-left overflow-y-auto max-h-[60vh] px-1">
+                {assetToEditDetails?.status.includes('disposal') ? (
+                    <>
+                        <div className="space-y-2">
+                            <Label className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Tipe Disposal</Label>
+                            <Select value={editedDisposalType} onValueChange={(v: any) => setEditedDisposalType(v)}>
+                                <SelectTrigger className="w-full h-10 rounded-xl border-slate-200 font-bold bg-background text-black">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl">
+                                    <SelectItem value="Dibuang / Rusak">Dibuang / Rusak</SelectItem>
+                                    <SelectItem value="Dijual">Dijual</SelectItem>
+                                    <SelectItem value="Disumbangkan">Disumbangkan</SelectItem>
+                                    <SelectItem value="Lainnya">Lainnya</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        {editedDisposalType === 'Dijual' && (
+                            <>
+                                <div className="space-y-2">
+                                    <Label className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Harga Jual (Rp)</Label>
+                                    <Input 
+                                        type="number"
+                                        value={editedDisposalPrice}
+                                        onChange={(e) => setEditedDisposalPrice(Number(e.target.value))}
+                                        className="h-10 bg-slate-50 border-slate-200 rounded-xl font-bold px-4 text-black w-full"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Nama Pembeli</Label>
+                                    <Input 
+                                        placeholder="Contoh: CV. Scrapindo Jaya"
+                                        value={editedDisposalBuyer}
+                                        onChange={(e) => setEditedDisposalBuyer(e.target.value)}
+                                        className="h-10 bg-slate-50 border-slate-200 rounded-xl font-bold px-4 text-black w-full"
+                                    />
+                                </div>
+                            </>
+                        )}
+                    </>
+                ) : (
+                    <>
+                        <div className="space-y-2">
+                            <Label className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Unit Pemeliharaan (Lokasi Baru)</Label>
+                            <Input 
+                                placeholder="Contoh: HRGA, IT, PRODUKSI"
+                                value={editedTargetDepartment}
+                                onChange={(e) => setEditedTargetDepartment(e.target.value)}
+                                className="h-10 bg-slate-50 border-slate-200 rounded-xl font-bold px-4 text-black w-full"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Ditempatkan Sebelum</Label>
+                            <Input 
+                                placeholder="Contoh: Kantor HRD Lt. 1" 
+                                value={editedPlacementBefore}
+                                onChange={(e) => setEditedPlacementBefore(e.target.value)}
+                                className="h-10 bg-slate-50 border-slate-200 rounded-xl font-bold px-4 text-black w-full"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Ditempatkan Sekarang (Baru)</Label>
+                            <Input 
+                                placeholder="Contoh: Ruang Meeting Lt. 2" 
+                                value={editedPlacement}
+                                onChange={(e) => setEditedPlacement(e.target.value)}
+                                className="h-10 bg-slate-50 border-slate-200 rounded-xl font-bold px-4 text-black w-full"
+                            />
+                        </div>
+                    </>
+                )}
+                <div className="space-y-2">
+                    <Label className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Alasan / Keterangan</Label>
+                    <Textarea 
+                        placeholder="Tulis alasan atau deskripsi detail pengajuan..."
+                        value={editedNotes}
+                        onChange={(e) => setEditedNotes(e.target.value)}
+                        className="bg-slate-50 border-slate-200 rounded-xl font-bold p-3 text-black min-h-[80px]"
+                    />
+                </div>
+            </div>
+            <AlertDialogFooter className="gap-2">
+                <AlertDialogCancel onClick={() => { setAssetToEditDetails(null); setIsEditDetailsOpen(false); }} className="rounded-xl h-11 font-bold text-black">Batal</AlertDialogCancel>
+                <AlertDialogAction onClick={handleEditDetails} className="rounded-xl h-11 bg-primary hover:bg-primary/90 font-black uppercase tracking-widest text-white">
+                     {isUpdating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Check className="mr-2 h-4 w-4"/>}
+                    Simpan Perubahan
                 </AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>

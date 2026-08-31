@@ -130,7 +130,11 @@ export default function InventoryForm({ item, itemType, children }: InventoryFor
             case 'Sparepart': prefix = 'SP-'; break;
             case 'Alat Kebersihan': prefix = 'AK-'; break;
             case 'Obat-obatan': prefix = 'OBT-'; break;
-            default: prefix = 'ITEM-';
+            default: {
+                const cleanType = itemType.replace(/[^a-zA-Z]/g, '').toUpperCase();
+                prefix = (cleanType.substring(0, 3) || 'ITEM') + '-';
+                break;
+            }
         }
         const itemsRef = collection(db, 'inventory');
         const q = query(itemsRef, where('code', '>=', prefix), where('code', '<', prefix + 'z'));
@@ -254,11 +258,9 @@ export default function InventoryForm({ item, itemType, children }: InventoryFor
       // SYNC TO LOG PERMINTAAN (Inventory Requests) AS "BARANG MASUK"
       if (logRestock) {
         const requestRef = doc(collection(db, 'inventory_requests'));
-        let finalCategory = 'Lainnya';
+        let finalCategory = itemType || 'Lainnya';
         if (itemType === 'ATK') finalCategory = 'Logistik ATK';
-        else if (itemType === 'Sparepart') finalCategory = 'Sparepart';
         else if (itemType === 'Alat Kebersihan') finalCategory = 'Kebersihan';
-        else if (itemType === 'Obat-obatan') finalCategory = 'Obat-obatan';
 
         batch.set(requestRef, {
             inventoryId: finalItemId,

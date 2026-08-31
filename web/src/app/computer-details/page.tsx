@@ -8,7 +8,7 @@ import DashboardLayout from '@/components/dashboard/layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, FileDown, Search, Laptop, Monitor, ShieldCheck, Activity, AlertCircle, Cpu, Layers, X } from 'lucide-react';
+import { PlusCircle, FileDown, Search, Laptop, Monitor, ShieldCheck, Activity, AlertCircle, Cpu, Layers, X, Share2 } from 'lucide-react';
 import ComputerAssetForm from '@/components/computer-details/computer-asset-form';
 import * as XLSX from 'xlsx';
 import { useToast } from '@/hooks/use-toast';
@@ -128,6 +128,30 @@ export default function ComputerAssetsPage() {
         );
     }
 
+    const handleSharePage = async () => {
+        const shareUrl = window.location.href;
+        const shareText = `💻 Database Inventaris Aset IT - PT. China Glaze Indonesia\nTotal Unit: ${stats.total} (Aktif: ${stats.active}, Service: ${stats.maintenance}, Rusak: ${stats.damaged})\n🔗 Tautan: ${shareUrl}`;
+
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: 'Database Inventaris Aset IT PT. CGI',
+                    text: shareText,
+                    url: shareUrl,
+                });
+                toast({ title: 'Berhasil Dibagikan' });
+            } catch (err: any) {
+                if (err.name !== 'AbortError') {
+                    await navigator.clipboard.writeText(shareUrl);
+                    toast({ title: 'Tautan Disalin', description: 'Tautan halaman inventaris IT telah disalin.' });
+                }
+            }
+        } else {
+            await navigator.clipboard.writeText(shareUrl);
+            toast({ title: 'Tautan Disalin', description: 'Tautan halaman inventaris IT telah disalin.' });
+        }
+    };
+
     return (
         <DashboardLayout>
             <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
@@ -149,6 +173,9 @@ export default function ComputerAssetsPage() {
                         </div>
                         
                         <div className="flex flex-wrap items-center gap-3">
+                            <Button onClick={handleSharePage} variant="outline" className="rounded-2xl h-14 bg-white/5 border-white/10 hover:bg-white/10 font-bold text-white px-6">
+                                <Share2 className="mr-2 h-5 w-5 text-purple-400" /> Bagikan
+                            </Button>
                             <Button onClick={handleExport} variant="outline" className="rounded-2xl h-14 bg-white/5 border-white/10 hover:bg-white/10 font-bold text-white px-8">
                                 <FileDown className="mr-2 h-5 w-5 text-primary" /> Export Excel
                             </Button>

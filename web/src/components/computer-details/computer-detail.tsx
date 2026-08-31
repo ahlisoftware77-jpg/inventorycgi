@@ -8,7 +8,7 @@ import { type ComputerAsset, type Software, type MaintenanceHistory } from '@/li
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '../ui/skeleton';
-import { ArrowLeft, Edit, HardDrive, Cpu, MemoryStick, Monitor, Server, Router, ShieldCheck, Key, Ticket, PlusCircle, Laptop, Printer as PrinterIcon, Users, User as UserIcon, Cog, Wrench } from 'lucide-react';
+import { ArrowLeft, Edit, HardDrive, Cpu, MemoryStick, Monitor, Server, Router, ShieldCheck, Key, Ticket, PlusCircle, Laptop, Printer as PrinterIcon, Users, User as UserIcon, Cog, Wrench, Share2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { useAuth } from '@/hooks/use-auth';
@@ -19,6 +19,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import ComputerAssetForm from './computer-asset-form';
 import SoftwareForm from './software-form';
 import MaintenanceForm from './maintenance-form';
+import ShareComputerQrDialog from './share-computer-qr-dialog';
 import { sendRawBluetooth, compileComputerEscPos } from '@/lib/bluetooth-printer';
 import html2canvas from 'html2canvas';
 
@@ -46,6 +47,7 @@ export default function ComputerDetail({ assetId }: ComputerDetailProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
 
   const { user } = useAuth();
   const { toast } = useToast();
@@ -188,7 +190,7 @@ export default function ComputerDetail({ assetId }: ComputerDetailProps) {
 
   const handlePrintLabelBluetooth = async () => {
     try {
-      const bytes = compileComputerEscPos(asset, mainAsset?.id || null);
+      const bytes = await compileComputerEscPos(asset, mainAsset?.id || null);
       await sendRawBluetooth(bytes, toast);
     } catch (error: any) {
       console.error("Error generating label for bluetooth:", error);
@@ -196,6 +198,11 @@ export default function ComputerDetail({ assetId }: ComputerDetailProps) {
     }
   };
   
+  const handleShare = () => {
+    if (!asset) return;
+    setIsShareDialogOpen(true);
+  };
+
   if (loading) {
     return (
       <div>
@@ -223,6 +230,9 @@ export default function ComputerDetail({ assetId }: ComputerDetailProps) {
           </Link>
         </Button>
         <div className="flex items-center gap-2">
+          <Button onClick={handleShare} className="rounded-xl h-9 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs uppercase tracking-wider px-4 border-b-[3px] border-b-purple-800 active:translate-y-[1px] active:border-b-[1px] border-none transition-all flex items-center justify-center gap-1.5 shadow-sm">
+            <Share2 className="h-3.5 w-3.5" /> Bagikan
+          </Button>
           <Button onClick={handlePrintLabelBluetooth} className="rounded-xl h-9 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs uppercase tracking-wider px-4 border-b-[3px] border-b-indigo-800 active:translate-y-[1px] active:border-b-[1px] border-none transition-all flex items-center justify-center gap-1.5 shadow-sm">
             <PrinterIcon className="h-3.5 w-3.5" /> Cetak Bluetooth (58mm)
           </Button>
@@ -359,6 +369,13 @@ export default function ComputerDetail({ assetId }: ComputerDetailProps) {
           </Tabs>
         </CardContent>
       </Card>
+
+      <ShareComputerQrDialog 
+        asset={asset} 
+        mainAssetId={mainAsset?.id}
+        isOpen={isShareDialogOpen} 
+        onOpenChange={setIsShareDialogOpen} 
+      />
     </div>
   );
 }

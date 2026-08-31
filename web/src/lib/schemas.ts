@@ -47,6 +47,12 @@ export const assetSchema = z.object({
   transactionCode: z.string().optional(),
   accountingUpdatedBy: z.string().optional(),
   accountingUpdatedAt: z.date().optional().nullable(),
+  disposalType: z.enum(['Dijual', 'Dibuang / Rusak', 'Disumbangkan', 'Lainnya']).optional().nullable(),
+  disposalPrice: z.coerce.number().min(0).optional().nullable(),
+  disposalBuyer: z.string().optional().nullable(),
+  disposalCost: z.coerce.number().min(0).optional().nullable(),
+  disposalAccumulatedDepreciation: z.coerce.number().min(0).optional().nullable(),
+  disposalBookValue: z.coerce.number().min(0).optional().nullable(),
 });
 
 export const maintenanceScheduleSchema = z.object({
@@ -61,7 +67,13 @@ export const maintenanceScheduleSchema = z.object({
   technician: z.string().optional(),
   notes: z.string().optional(),
   progressPhotoURL: z.string().url({ message: "URL foto tidak valid." }).optional().or(z.literal('')),
+  progressPhotoURLs: z.array(z.string()).optional(),
   completionPhotoURL: z.string().url({ message: "URL foto tidak valid." }).optional().or(z.literal('')),
+  repairCost: z.coerce.number().min(0).optional().nullable(),
+  vendorName: z.string().optional().nullable(),
+  repairInvoicePhotoURL: z.string().optional().nullable(),
+  spkPhotoURL: z.string().optional().nullable(),
+  bastPhotoURL: z.string().optional().nullable(),
 });
 
 export const computerAssetSchema = z.object({
@@ -116,11 +128,17 @@ export const ticketSchema = z.object({
   description: z.string().min(10, {
     message: "Deskripsi masalah harus memiliki setidaknya 10 karakter.",
   }),
+  assetId: z.string().min(1, {
+    message: "Aset wajib dipilih. Silakan cari dan pilih kode/nama/pengguna aset terlebih dahulu.",
+  }),
+  assetCode: z.string().optional(),
+  assetName: z.string().optional(),
+  assetUser: z.string().optional(),
 });
 
 
 export const inventoryItemSchema = z.object({
-  type: z.enum(['ATK', 'Sparepart', 'Alat Kebersihan', 'Obat-obatan']),
+  type: z.string().min(1, "Tipe inventaris harus diisi."),
   code: z.string().min(1, "Kode barang tidak boleh kosong."),
   name: z.string().min(2, "Nama barang harus diisi."),
   category: z.string().min(1, "Kategori harus diisi."),

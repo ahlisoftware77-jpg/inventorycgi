@@ -20,8 +20,7 @@ export default function TopLocations({ assets }: TopLocationsProps) {
 
     return Object.entries(counts)
       .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5);
+      .sort((a, b) => b.count - a.count);
   }, [assets]);
 
   const maxCount = topData[0]?.count || 1;
@@ -38,7 +37,7 @@ export default function TopLocations({ assets }: TopLocationsProps) {
         <CardDescription className="text-[10px] uppercase font-bold text-muted-foreground">Distribusi Beban Inventaris per Unit</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="space-y-5">
+        <div className="space-y-5 max-h-[320px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
           {topData.length > 0 ? topData.map((item, idx) => (
             <div key={item.name} className="space-y-1.5 group">
               <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-tight">

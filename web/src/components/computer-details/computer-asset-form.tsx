@@ -61,6 +61,7 @@ const SectionHeader = ({ icon: Icon, title }: { icon: any, title: string }) => (
 export default function ComputerAssetForm({ asset, children }: ComputerAssetFormProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [manualInput, setManualInput] = useState<Record<string, boolean>>({});
   const { user } = useAuth();
   const { toast } = useToast();
   const isEditMode = !!asset;
@@ -71,6 +72,16 @@ export default function ComputerAssetForm({ asset, children }: ComputerAssetForm
 
   useEffect(() => {
     if (isOpen) {
+      const initialManual: Record<string, boolean> = {};
+      if (asset) {
+        if (asset.cpu && !cpuOptions.includes(asset.cpu)) initialManual.cpu = true;
+        if (asset.ram && !ramOptions.includes(asset.ram)) initialManual.ram = true;
+        if (asset.storage && !storageOptions.includes(asset.storage)) initialManual.storage = true;
+        if (asset.storage2 && !storageOptions.includes(asset.storage2)) initialManual.storage2 = true;
+        if (asset.gpu && !gpuOptions.includes(asset.gpu)) initialManual.gpu = true;
+      }
+      setManualInput(initialManual);
+
       form.reset({
         computerName: asset?.computerName || '',
         assetCode: asset?.assetCode || '',
@@ -129,6 +140,58 @@ export default function ComputerAssetForm({ asset, children }: ComputerAssetForm
 
   const inputClass = "bg-background h-11 border-slate-200 focus:border-primary focus:ring-1 focus:ring-primary shadow-sm rounded-xl";
 
+  const renderSelectOrInput = (
+    field: any,
+    options: string[],
+    placeholder: string,
+    name: string
+  ) => {
+    const isManual = manualInput[name];
+
+    if (isManual) {
+      return (
+        <div className="relative">
+          <FormControl>
+            <Input placeholder={`Ketik ${placeholder}...`} {...field} className={cn(inputClass, "pr-10")} />
+          </FormControl>
+          <Button 
+            type="button" 
+            variant="ghost" 
+            size="sm" 
+            className="absolute right-1 top-1 h-9 w-9 p-0 text-muted-foreground hover:text-foreground"
+            onClick={() => {
+              setManualInput(prev => ({ ...prev, [name]: false }));
+              field.onChange('');
+            }}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      );
+    }
+
+    return (
+      <Select 
+        onValueChange={(val) => {
+          if (val === 'manual') {
+            setManualInput(prev => ({ ...prev, [name]: true }));
+            field.onChange('');
+          } else {
+            field.onChange(val === 'none' ? '' : val);
+          }
+        }} 
+        value={field.value || (name === 'storage2' ? 'none' : '')}
+      >
+        <FormControl><SelectTrigger className={inputClass}><SelectValue placeholder={placeholder} /></SelectTrigger></FormControl>
+        <SelectContent>
+          {name === 'storage2' && <SelectItem value="none">Tidak Ada</SelectItem>}
+          {options.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+          <SelectItem value="manual" className="font-bold text-primary">Lainnya (Ketik Manual)...</SelectItem>
+        </SelectContent>
+      </Select>
+    );
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
@@ -180,25 +243,31 @@ export default function ComputerAssetForm({ asset, children }: ComputerAssetForm
 
               <section>
                 <SectionHeader icon={Settings2} title="Spesifikasi Teknis (Hardware)" />
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+                  <FormField control={form.control} name="mainboard" render={({ field }) => (
+                    <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Motherboard</FormLabel><FormControl><Input placeholder="e.g., ASUS ROG" {...field} className={inputClass} /></FormControl><FormMessage /></FormItem>
+                  )} />
                   <FormField control={form.control} name="cpu" render={({ field }) => (
-                    <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Processor</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className={inputClass}><SelectValue /></SelectTrigger></FormControl><SelectContent>{cpuOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                    <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Processor</FormLabel>{renderSelectOrInput(field, cpuOptions, "Pilih Processor", "cpu")}<FormMessage /></FormItem>
                   )} />
                   <FormField control={form.control} name="ram" render={({ field }) => (
-                    <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">RAM Capacity</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className={inputClass}><SelectValue /></SelectTrigger></FormControl><SelectContent>{ramOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                    <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">RAM Capacity</FormLabel>{renderSelectOrInput(field, ramOptions, "Pilih RAM", "ram")}<FormMessage /></FormItem>
                   )} />
                   <FormField control={form.control} name="storage" render={({ field }) => (
-                    <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Primary Storage</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className={inputClass}><SelectValue /></SelectTrigger></FormControl><SelectContent>{storageOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                    <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Primary Storage</FormLabel>{renderSelectOrInput(field, storageOptions, "Pilih Storage 1", "storage")}<FormMessage /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="storage2" render={({ field }) => (
+                    <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Secondary Storage</FormLabel>{renderSelectOrInput(field, storageOptions, "Pilih (Opsional)", "storage2")}<FormMessage /></FormItem>
                   )} />
                   <FormField control={form.control} name="gpu" render={({ field }) => (
-                    <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Graphics (GPU)</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className={inputClass}><SelectValue /></SelectTrigger></FormControl><SelectContent>{gpuOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                    <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Graphics (GPU)</FormLabel>{renderSelectOrInput(field, gpuOptions, "Pilih GPU", "gpu")}<FormMessage /></FormItem>
                   )} />
                 </div>
               </section>
 
               <section>
                 <SectionHeader icon={ShieldCheck} title="Software & Lisensi" />
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                   <FormField control={form.control} name="os" render={({ field }) => (
                     <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Operating System</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className={inputClass}><SelectValue /></SelectTrigger></FormControl><SelectContent>{osOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
                   )} />
@@ -207,6 +276,9 @@ export default function ComputerAssetForm({ asset, children }: ComputerAssetForm
                   )} />
                   <FormField control={form.control} name="windowsLicense" render={({ field }) => (
                     <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Windows License Key</FormLabel><FormControl><Input placeholder="Key or Type" {...field} className={inputClass} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="officeLicense" render={({ field }) => (
+                    <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Office License</FormLabel><FormControl><Input placeholder="e.g., O365 / Key" {...field} className={inputClass} /></FormControl><FormMessage /></FormItem>
                   )} />
                 </div>
               </section>
@@ -224,8 +296,8 @@ export default function ComputerAssetForm({ asset, children }: ComputerAssetForm
               </section>
 
               <section>
-                <SectionHeader icon={ShoppingCart} title="Administrasi Pengadaan" />
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <SectionHeader icon={ShoppingCart} title="Administrasi Pengadaan & Status" />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-6">
                   <FormField control={form.control} name="serialNumber" render={({ field }) => (
                     <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Serial Number</FormLabel><FormControl><Input placeholder="S/N" {...field} className={inputClass} /></FormControl><FormMessage /></FormItem>
                   )} />
@@ -256,7 +328,16 @@ export default function ComputerAssetForm({ asset, children }: ComputerAssetForm
                   <FormField control={form.control} name="supplier" render={({ field }) => (
                     <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Vendor / Supplier</FormLabel><FormControl><Input placeholder="Nama Toko" {...field} className={inputClass} /></FormControl><FormMessage /></FormItem>
                   )} />
+                  <FormField control={form.control} name="condition" render={({ field }) => (
+                    <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Kondisi Fisik</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className={inputClass}><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="Aktif">Aktif (Baik)</SelectItem><SelectItem value="Perlu Perbaikan">Perlu Perbaikan</SelectItem><SelectItem value="Rusak">Rusak</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="status" render={({ field }) => (
+                    <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Status Aset</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className={inputClass}><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="Digunakan">Digunakan</SelectItem><SelectItem value="Dalam Service">Dalam Service</SelectItem><SelectItem value="Dihapus">Dihapus (Disposal)</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+                  )} />
                 </div>
+                <FormField control={form.control} name="notes" render={({ field }) => (
+                  <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Catatan Tambahan</FormLabel><FormControl><Textarea placeholder="Keterangan tambahan terkait aset, lisensi, atau perbaikan..." {...field} className="resize-none min-h-[80px] bg-background border-slate-200 focus:border-primary focus:ring-1 focus:ring-primary shadow-sm rounded-xl" /></FormControl><FormMessage /></FormItem>
+                )} />
               </section>
 
               <DialogFooter className="sticky bottom-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md p-6 border-t mt-10 -mx-8 z-50">

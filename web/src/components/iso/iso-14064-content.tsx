@@ -62,6 +62,7 @@ import {
 } from 'lucide-react';
 import AssetForm from '@/components/assets/asset-form';
 import AssetDetailDialog from '@/components/assets/asset-detail-dialog';
+import Iso14064Tip from './iso-14064-tip';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { format } from 'date-fns';
@@ -205,7 +206,7 @@ export default function ISO14064Content() {
         let visible = [...allowed];
         if (baseDept && !visible.includes(baseDept)) visible.push(baseDept);
 
-        const isPrivileged = ['MANAGEMENT', 'ACCOUNTING', 'IT', 'HR & GA'].includes(baseDept || '');
+        const isPrivileged = ['MANAGEMENT', 'ACCOUNTING', 'IT', 'HR & GA', 'GA'].includes(baseDept || '');
         
         if (!isPrivileged && visible.length > 0) {
             constraints.push(where('location', 'in', visible.slice(0, 30)));
@@ -621,6 +622,8 @@ export default function ISO14064Content() {
           </div>
         </div>
       </div>
+
+      <Iso14064Tip />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-left">
         <Card className="border border-blue-100 dark:border-blue-900/30 bg-blue-50/50 dark:bg-blue-950/10 text-blue-900 dark:text-blue-100 rounded-2xl border-b-4 border-b-blue-500/70 dark:border-b-blue-800/80 shadow-md"><CardHeader className="pb-1 p-4"><CardTitle className="text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 opacity-70 text-left"><Factory className="w-3.5 h-3.5" /> Scope 1</CardTitle></CardHeader><CardContent className="p-4 pt-0 text-left"><div className="text-2xl font-black text-left">{categorizedAssets.scope1.length} <span className="text-[10px] font-bold opacity-60 ml-1">ITEM</span></div></CardContent></Card>

@@ -120,11 +120,9 @@ export default function UpdateStockDialog({ item, children }: UpdateStockDialogP
 
       // SYNC TO INVENTORY REQUESTS LOG IF IT IS "IN" (BARANG MASUK)
       if (values.action === 'in' && requestRef) {
-          let finalCategory = 'Lainnya';
+          let finalCategory = item.type || 'Lainnya';
           if (item.type === 'ATK') finalCategory = 'Logistik ATK';
-          else if (item.type === 'Sparepart') finalCategory = 'Sparepart';
           else if (item.type === 'Alat Kebersihan') finalCategory = 'Kebersihan';
-          else if (item.type === 'Obat-obatan') finalCategory = 'Obat-obatan';
 
           batch.set(requestRef, {
               inventoryId: item.id,

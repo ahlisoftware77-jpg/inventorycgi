@@ -22,7 +22,7 @@
     "paths": {
       "@/*": ["./src/*"]
     },
-    "types": ["node", "@types/jsbarcode", "@types/wicg-web-bluetooth", "@types/jspdf", "@types/react-signature-canvas", "@types/lodash"]
+    "types": ["node", "@types/jsbarcode", "@types/react-signature-canvas", "@types/lodash"]
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   "exclude": ["node_modules"]

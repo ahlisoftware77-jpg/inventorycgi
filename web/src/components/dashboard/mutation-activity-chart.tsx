@@ -16,9 +16,15 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart';
-import { type Asset } from '@/lib/types';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface MutationActivityChartProps {
   assets: Asset[];
@@ -34,6 +40,19 @@ const chartConfig = {
 export default function MutationActivityChart({ assets }: MutationActivityChartProps) {
   const router = useRouter();
   
+  const currentYear = new Date().getFullYear();
+  const [selectedYear, setSelectedYear] = React.useState<number>(currentYear);
+
+  const availableYears = React.useMemo(() => {
+    const years = new Set<number>([currentYear]);
+    assets.forEach(asset => {
+      if (asset.status === 'approved_mutasi' && asset.approvedAt) {
+        years.add(asset.approvedAt.toDate().getFullYear());
+      }
+    });
+    return Array.from(years).sort((a, b) => b - a);
+  }, [assets, currentYear]);
+
   const chartData = React.useMemo(() => {
     const monthlyMutations = assets
       .filter(asset => asset.status === 'approved_mutasi' && asset.approvedAt)
@@ -44,17 +63,17 @@ export default function MutationActivityChart({ assets }: MutationActivityChartP
       }, {} as Record<string, number>);
 
     const data = [];
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date();
-      d.setMonth(d.getMonth() - i);
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(selectedYear, i, 1);
       const monthKey = format(d, 'MMM yyyy', { locale: id });
       data.push({
-        month: monthKey,
+        month: format(d, 'MMM', { locale: id }),
+        fullDate: monthKey,
         mutations: monthlyMutations[monthKey] || 0,
       });
     }
     return data;
-  }, [assets]);
+  }, [assets, selectedYear]);
   
   const handleBarClick = () => {
     router.push('/mutations?tab=mutation');
@@ -62,13 +81,25 @@ export default function MutationActivityChart({ assets }: MutationActivityChartP
 
   return (
     <Card className="border border-slate-100 dark:border-slate-800 flex flex-col h-full overflow-hidden bg-white/40 dark:bg-slate-900/40 backdrop-blur-md rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.01)] border-b-4 border-b-indigo-500/70 dark:border-b-indigo-800/80 hover:-translate-y-[4px] active:translate-y-0 transition-all duration-300">
-      <CardHeader className="text-left pb-2">
-        <CardTitle className="text-xs font-black uppercase tracking-[0.15em] text-slate-700 dark:text-slate-300">
-          Tren Mutasi Aset
-        </CardTitle>
-        <CardDescription className="text-[9px] uppercase font-bold text-muted-foreground">
-          Pergerakan perpindahan unit 6 bulan terakhir.
-        </CardDescription>
+      <CardHeader className="text-left pb-2 flex flex-row items-start justify-between">
+        <div>
+          <CardTitle className="text-xs font-black uppercase tracking-[0.15em] text-slate-700 dark:text-slate-300">
+            Tren Mutasi Aset
+          </CardTitle>
+          <CardDescription className="text-[9px] uppercase font-bold text-muted-foreground mt-1">
+            Pergerakan perpindahan unit tahun {selectedYear}.
+          </CardDescription>
+        </div>
+        <Select value={selectedYear.toString()} onValueChange={(val) => setSelectedYear(Number(val))}>
+          <SelectTrigger className="w-[85px] h-7 text-[10px] font-bold rounded-lg bg-slate-50 dark:bg-slate-800">
+            <SelectValue placeholder="Tahun" />
+          </SelectTrigger>
+          <SelectContent className="rounded-xl min-w-[85px]">
+            {availableYears.map(year => (
+              <SelectItem key={year} value={year.toString()} className="text-[10px] font-bold">{year}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </CardHeader>
       
       <CardContent className="pt-4">

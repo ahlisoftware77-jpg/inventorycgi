@@ -144,7 +144,7 @@ export default function AssetReport() {
     const locations = Array.from(new Set(allAssets.map(a => a.location))).sort();
     
     // Filter dropdown locations based on user permissions
-    const isPrivilegedDept = ['MANAGEMENT', 'HR & GA', 'ACCOUNTING', 'IT'].includes(user?.department || '');
+    const isPrivilegedDept = ['MANAGEMENT', 'HR & GA', 'GA', 'ACCOUNTING', 'IT'].includes(user?.department || '');
     
     if (!isAdmin && !isPrivilegedDept && user?.department) {
         let allowedDepts = user.allowedDepartments || [];
@@ -167,7 +167,7 @@ export default function AssetReport() {
   const filteredAssets = useMemo(() => {
     return allAssets.filter(asset => {
       // 1. Department Access Control Logic (Hormati Allowed Departments)
-      const isPrivilegedDept = ['MANAGEMENT', 'HR & GA', 'ACCOUNTING', 'IT'].includes(user?.department || '');
+      const isPrivilegedDept = ['MANAGEMENT', 'HR & GA', 'GA', 'ACCOUNTING', 'IT'].includes(user?.department || '');
       
       if (!isAdmin && !isPrivilegedDept && user?.department) {
           let allowedDepts = user.allowedDepartments || [];

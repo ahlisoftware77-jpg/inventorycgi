@@ -9,7 +9,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { doc, onSnapshot, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, serverTimestamp, arrayUnion, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { type MaintenanceSchedule } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -163,9 +163,27 @@ export default function PublicMaintenanceSignatureView({ scheduleId }: PublicMai
     };
 
     updateDoc(scheduleRef, updateData)
-      .then(() => {
+      .then(async () => {
           setIsLocked(true);
           toast({ title: 'Pengesahan Berhasil', description: 'Tanda tangan Anda telah disimpan secara permanen.' });
+
+          // Update linked Helpdesk Ticket status to 'Selesai'
+          if (schedule?.ticketId) {
+            try {
+              const ticketRef = doc(db, 'helpdesk_tickets', schedule.ticketId);
+              await updateDoc(ticketRef, {
+                status: 'Selesai',
+                updates: arrayUnion({
+                  note: `Tiket diselesaikan otomatis karena penjadwalan maintenance "${schedule.assetName}" telah selesai.`,
+                  updatedBy: 'system',
+                  updaterName: 'Sistem Maintenance',
+                  updatedAt: Timestamp.now(),
+                }),
+              });
+            } catch (e) {
+              console.warn('Gagal update tiket helpdesk terkait:', e);
+            }
+          }
       })
       .catch(async (serverError) => {
           console.error("Error saving signature:", serverError);

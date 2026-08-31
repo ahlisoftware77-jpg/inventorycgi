@@ -682,27 +682,58 @@ Sistem kami secara otomatis akan merubah format link khusus tersebut menjadi tom
 
   return (
     <>
-      {/* 1. Floating Action Button (FAB) */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <Button
-          onClick={() => setIsOpen(!isOpen)}
-          className={cn(
-            "h-14 w-14 rounded-full shadow-2xl transition-all duration-355 active:scale-95 flex items-center justify-center relative border border-white/20",
-            isOpen 
-              ? "bg-slate-900 text-white rotate-90 hover:bg-slate-800" 
-              : "bg-gradient-to-tr from-teal-500 via-emerald-600 to-indigo-600 hover:from-teal-650 hover:to-indigo-650 text-white animate-none hover:shadow-[0_0_20px_rgba(20,184,166,0.6)]"
+      {/* 1. Floating Action Button (FAB) & Pro AI Label */}
+      <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3">
+        {!isOpen && (
+          <div 
+            onClick={() => setIsOpen(true)}
+            className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-slate-950/90 backdrop-blur-xl border border-teal-500/40 shadow-[0_4px_25px_rgba(20,184,166,0.35)] text-white text-[10px] font-black uppercase tracking-wider cursor-pointer hover:scale-105 active:scale-95 transition-all animate-bounce select-none group"
+          >
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-80"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+            </span>
+            <span className="bg-gradient-to-r from-teal-300 via-emerald-300 to-indigo-300 bg-clip-text text-transparent drop-shadow-md group-hover:from-teal-200 group-hover:to-indigo-200">
+              Tanyakan AI Copilot ✨
+            </span>
+            <span className="text-[7.5px] font-black uppercase px-1.5 py-0.5 rounded-full bg-indigo-500/30 text-indigo-200 border border-indigo-400/30">PRO</span>
+          </div>
+        )}
+
+        <div className="relative group">
+          {/* Cosmic Aura Gradient Backdrop Glow */}
+          {!isOpen && (
+            <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-teal-400 via-emerald-500 to-indigo-600 blur-md opacity-70 group-hover:opacity-100 transition duration-500 group-hover:duration-200 animate-pulse" />
           )}
-        >
-          {isOpen ? (
-            <X className="h-6 w-6" />
-          ) : (
-            <>
-              {/* Outer pulsing ring */}
-              <span className="absolute inset-0 rounded-full border border-teal-400 animate-ping opacity-25" />
-              <Sparkles className="h-6 w-6 animate-pulse" />
-            </>
-          )}
-        </Button>
+
+          <Button
+            id="ai-copilot-fab"
+            onClick={() => setIsOpen(!isOpen)}
+            className={cn(
+              "h-14 w-14 rounded-full shadow-2xl transition-all duration-300 active:scale-95 flex items-center justify-center relative border border-white/30",
+              isOpen 
+                ? "bg-slate-900 text-white rotate-90 hover:bg-slate-800" 
+                : "bg-gradient-to-tr from-teal-600 via-emerald-600 to-indigo-600 hover:from-teal-500 hover:to-indigo-500 text-white hover:scale-110 hover:shadow-[0_0_30px_rgba(20,184,166,0.8)]"
+            )}
+            title="Buka AI Copilot"
+          >
+            {isOpen ? (
+              <X className="h-6 w-6" />
+            ) : (
+              <>
+                {/* Dual Pulsing Wave Rings */}
+                <span className="absolute inset-0 rounded-full border border-teal-300 animate-ping opacity-35" />
+                <span className="absolute inset-1 rounded-full border border-indigo-300 animate-pulse opacity-40" />
+                
+                {/* Main Shimmering AI Icon */}
+                <div className="relative flex items-center justify-center">
+                  <Sparkles className="h-6 w-6 text-white animate-pulse" />
+                  <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-amber-300 animate-ping" />
+                </div>
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
       {/* 2. Side Panel Backdrop Overlay */}

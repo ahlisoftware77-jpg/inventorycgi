@@ -49,7 +49,8 @@ import {
   User,
   Building,
   SmartphoneNfc,
-  RotateCcw
+  RotateCcw,
+  ShieldCheck
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { format, parse, isValid } from 'date-fns';
@@ -111,6 +112,7 @@ export default function InventoryRequestsTable() {
   const [endDate, setEndDate] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [isSharing, setIsSharing] = useState(false);
+  const [isSyncingMaintenance, setIsSyncingMaintenance] = useState(false);
 
   // Approval Signature States
   const [requestToApprove, setRequestToApprove] = useState<InventoryRequest | null>(null);
@@ -131,7 +133,7 @@ export default function InventoryRequestsTable() {
 
   const isAdmin = user?.role === 'Admin';
   const isHRGA = user?.department === 'HR & GA';
-  const isAuthorized = isAdmin || isHRGA;
+  const isAuthorized = isAdmin || isHRGA || !!user?.permissions?.canManageInventory;
 
   useEffect(() => {
     if (authLoading || !user) return;
@@ -289,7 +291,17 @@ export default function InventoryRequestsTable() {
         const requestRef = doc(db, 'inventory_requests', requestToDelete.id);
         const batch = writeBatch(db);
 
-        // 1. Delete Request
+        // 1. Move Request to Recycle Bin
+        const recycleRef = doc(collection(db, 'recycle_bin'));
+        batch.set(recycleRef, {
+            originalCollection: 'inventory_requests',
+            originalId: requestToDelete.id,
+            data: requestToDelete,
+            deletedAt: serverTimestamp(),
+            deletedBy: user.uid,
+            deletedByName: user.displayName || user.email || 'Admin',
+            label: `Permintaan Barang: ${requestToDelete.inventoryCode} (${requestToDelete.inventoryName})`
+        });
         batch.delete(requestRef);
 
         // 2. If already approved, restore stock and delete transaction
@@ -397,6 +409,77 @@ export default function InventoryRequestsTable() {
       });
   };
 
+  /**
+   * Manually syncs completionPhotoURL from maintenance_schedules to linked inventory_requests
+   * for requests that have a maintenanceId but missing approvalSignature or verifierDeptSignature.
+   */
+  const handleSyncFromMaintenance = async () => {
+    setIsSyncingMaintenance(true);
+    try {
+      // Find all requests from maintenance (have maintenanceId) that are missing signatures
+      const unsyncedRequests = requests.filter(
+        req => (req as any).maintenanceId && (!req.approvalSignature || !req.verifierDeptSignature)
+      );
+
+      if (unsyncedRequests.length === 0) {
+        toast({ title: 'Semua Sudah Sinkron', description: 'Tidak ada dokumen maintenance yang perlu disinkronkan.' });
+        return;
+      }
+
+      // Group by maintenanceId to minimize Firestore reads
+      const maintenanceIds = [...new Set(unsyncedRequests.map(r => (r as any).maintenanceId as string))];
+      
+      let syncCount = 0;
+      const batch = writeBatch(db);
+
+      for (const maintenanceId of maintenanceIds) {
+        // Fetch the maintenance schedule
+        const maintenanceSnap = await getDocs(
+          query(collection(db, 'maintenance_schedules'), where('__name__', '==', maintenanceId))
+        );
+        
+        if (maintenanceSnap.empty) continue;
+
+        const maintenanceData = maintenanceSnap.docs[0].data();
+        const completionSignature = maintenanceData.completionPhotoURL as string | undefined;
+        const signerName = maintenanceData.vendorName || maintenanceData.technician || 'Teknisi Maintenance';
+        
+        if (!completionSignature) continue; // Skip if maintenance not yet complete
+
+        // Apply to all unsynced requests linked to this maintenance
+        const linkedRequests = unsyncedRequests.filter(r => (r as any).maintenanceId === maintenanceId);
+        for (const req of linkedRequests) {
+          const reqRef = doc(db, 'inventory_requests', req.id);
+          const updateFields: Record<string, any> = {
+            verifierDeptSignature: completionSignature,
+            verifierDeptName: `${signerName} (via Maintenance)`,
+            verifierDeptSignedAt: Timestamp.now(),
+          };
+          // Also fill approvalSignature if missing
+          if (!req.approvalSignature) {
+            updateFields.approvalSignature = completionSignature;
+            updateFields.processedByUserName = updateFields.processedByUserName || 'SYSTEM (MAINTENANCE)';
+            updateFields.processedAt = updateFields.processedAt || Timestamp.now();
+            updateFields.status = 'Disetujui';
+          }
+          batch.update(reqRef, updateFields);
+          syncCount++;
+        }
+      }
+
+      await batch.commit();
+      toast({
+        title: 'Sinkronisasi Berhasil',
+        description: `${syncCount} dokumen permintaan berhasil disinkronkan dari data penyelesaian maintenance.`
+      });
+    } catch (error) {
+      console.error('Sync from maintenance error:', error);
+      toast({ variant: 'destructive', title: 'Sinkronisasi Gagal', description: 'Terjadi kesalahan saat mengambil data dari maintenance.' });
+    } finally {
+      setIsSyncingMaintenance(false);
+    }
+  };
+
   const handleShareLogReport = async () => {
     if (filteredRequests.length === 0) {
         toast({ variant: 'destructive', title: 'Data Kosong' });
@@ -411,18 +494,20 @@ export default function InventoryRequestsTable() {
             recipient: 'Sistem Laporan',
             department: 'Semua Unit',
             items: filteredRequests.map(r => ({
-                code: r.inventoryCode,
-                name: r.inventoryName,
-                quantity: r.quantity,
-                status: r.status,
-                requester: r.requestingUserName,
-                dept: r.requestingDept,
-                inventoryCategory: r.inventoryCategory,
+                code: r.inventoryCode || '',
+                name: r.inventoryName || '',
+                quantity: r.quantity || 0,
+                status: r.status || '',
+                requester: r.requestingUserName || '',
+                dept: r.requestingDept || '',
+                inventoryCategory: r.inventoryCategory || null,
                 signature: r.approvalSignature || null,
+                verifierDeptSignature: r.verifierDeptSignature || null,
+                verifierDeptName: r.verifierDeptName || null,
                 isIncoming: !!(r as any).isIncoming,
-                date: r.transactionDate?.toMillis() || r.requestedAt?.toMillis() || null
+                date: r.transactionDate?.toMillis?.() || r.requestedAt?.toMillis?.() || null
             })),
-            processedBy: user?.displayName || user?.email,
+            processedBy: user?.displayName || user?.email || 'User',
             createdAt: serverTimestamp(),
         };
 
@@ -451,6 +536,28 @@ export default function InventoryRequestsTable() {
         toast({ variant: 'destructive', title: 'Gagal Berbagi' });
     } finally {
         setIsSharing(false);
+    }
+  };
+  const handleShareRequestSignature = async (req: InventoryRequest) => {
+    const publicUrl = `${window.location.origin}/public/inventory/signature?id=${req.id}`;
+    
+    if (typeof navigator !== 'undefined' && navigator.share) {
+        try {
+            await navigator.share({
+                title: `Verifikasi Permintaan Inventaris - ${req.inventoryName}`,
+                text: `Mohon Otoritas Persetujuan / Verifikasi Departemen Peminta (${req.requestingDept}) menandatangani permintaan inventaris berikut:`,
+                url: publicUrl,
+            });
+            toast({ title: 'Berhasil Dibagikan' });
+        } catch (shareError: any) {
+            if (shareError.name !== 'AbortError') {
+                await navigator.clipboard.writeText(publicUrl);
+                toast({ title: 'Link Disalin', description: 'Tautan tanda tangan departemen telah disalin ke papan klip.' });
+            }
+        }
+    } else {
+        await navigator.clipboard.writeText(publicUrl);
+        toast({ title: 'Link Disalin', description: 'Tautan tanda tangan departemen telah disalin ke papan klip.' });
     }
   };
 
@@ -547,6 +654,18 @@ export default function InventoryRequestsTable() {
                             )}
                         </div>
 
+                        {isAuthorized && (
+                            <Button
+                                onClick={handleSyncFromMaintenance}
+                                variant="outline"
+                                disabled={isSyncingMaintenance}
+                                title="Sinkronkan tanda tangan penyelesaian dari maintenance ke dokumen permintaan terkait yang belum sinkron"
+                                className="rounded-2xl h-11 border-teal-200 text-teal-700 hover:bg-teal-50 font-bold"
+                            >
+                                {isSyncingMaintenance ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                                Sinkron Maintenance
+                            </Button>
+                        )}
                         <Button onClick={handleShareLogReport} variant="outline" disabled={isSharing} className="rounded-2xl h-11 border-purple-200 text-purple-700 hover:bg-purple-50 font-bold">
                             {isSharing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Share2 className="mr-2 h-4 w-4" />}
                             Bagikan Log
@@ -622,7 +741,14 @@ export default function InventoryRequestsTable() {
                                     <TableCell className="pl-6">
                                         <div className="flex flex-col text-left">
                                             <span className="font-bold text-sm text-slate-900 uppercase text-left">{req.inventoryName}</span>
-                                            <span className="text-[10px] font-mono text-primary font-bold">{req.inventoryCode}</span>
+                                            <div className="flex items-center gap-1.5 mt-0.5">
+                                                <span className="text-[10px] font-mono text-primary font-bold">{req.inventoryCode}</span>
+                                                {(req as any).maintenanceId && (
+                                                    <Badge className="bg-amber-100 text-amber-800 border border-amber-200 text-[8px] font-black uppercase px-1.5 py-0 rounded-md">
+                                                        Part Maintenance
+                                                    </Badge>
+                                                )}
+                                            </div>
                                         </div>
                                     </TableCell>
                                     <TableCell>
@@ -664,16 +790,25 @@ export default function InventoryRequestsTable() {
                                                     BARANG MASUK
                                                 </Badge>
                                             ) : (
-                                                <>
+                                                <div className="flex flex-col gap-1 items-start">
                                                     <Badge variant={getStatusVariant(req.status)} className="rounded-full px-3 py-0.5 font-black text-[9px] uppercase shadow-sm">
                                                         {req.status === 'Menunggu Persetujuan HRGA' ? 'Waiting' : req.status}
                                                     </Badge>
-                                                    {req.approvalSignature && (
-                                                        <button onClick={() => setViewSignatureUrl(req.approvalSignature || null)} className="h-6 w-6 flex items-center justify-center rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-100 transition-colors">
-                                                            <Pencil className="h-3 w-3" />
-                                                        </button>
-                                                    )}
-                                                </>
+                                                    <div className="flex items-center gap-1.5 mt-1">
+                                                        {req.approvalSignature && (
+                                                            <button onClick={() => setViewSignatureUrl(req.approvalSignature || null)} className="h-6 w-6 flex items-center justify-center rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-100 transition-colors" title="Tanda Tangan HRGA / PIC">
+                                                                <Pencil className="h-3 w-3" />
+                                                            </button>
+                                                        )}
+                                                        {req.verifierDeptSignature ? (
+                                                            <button onClick={() => setViewSignatureUrl(req.verifierDeptSignature || null)} className="h-6 w-6 flex items-center justify-center rounded-full bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100 transition-colors" title={`Diverifikasi Dept: ${req.verifierDeptName}`}>
+                                                                <ShieldCheck className="h-3.5 w-3.5" />
+                                                            </button>
+                                                        ) : (
+                                                            <span className="text-[8px] font-black text-amber-500 uppercase tracking-tighter" title="Menunggu verifikasi departemen peminta">Belum Verif Dept</span>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             )}
                                         </div>
                                     </TableCell>
@@ -708,6 +843,17 @@ export default function InventoryRequestsTable() {
                                                         </div>
                                                     )}
                                                 </>
+                                            )}
+                                            {!req.isIncoming && (
+                                                <Button 
+                                                    size="icon" 
+                                                    variant="ghost" 
+                                                    className="h-9 w-9 rounded-xl text-slate-400 hover:text-primary hover:bg-primary/5 transition-all"
+                                                    onClick={() => handleShareRequestSignature(req)}
+                                                    title="Bagikan Tautan Verifikasi Departemen"
+                                                >
+                                                    <Share2 className="h-4 w-4" />
+                                                </Button>
                                             )}
                                             {isAdmin && (
                                                 <Button 

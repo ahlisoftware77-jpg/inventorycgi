@@ -53,9 +53,10 @@ const departmentOptions = ['ACCOUNTING', 'APP', 'APP-R&D', 'FRIT', 'GA', 'HR & G
 
 export default function PublicInventoryContent() {
   const [items, setItems] = useState<InventoryItem[]>([]);
+  const [inventoryTypes, setInventoryTypes] = useState<string[]>(['ATK', 'Sparepart', 'Alat Kebersihan', 'Obat-obatan']);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState<InventoryType>('ATK');
+  const [activeTab, setActiveTab] = useState<string>('ATK');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutStep, setIsCheckoutStep] = useState(false);
@@ -66,6 +67,19 @@ export default function PublicInventoryContent() {
     resolver: zodResolver(checkoutSchema),
     defaultValues: { name: '', department: '' },
   });
+
+  useEffect(() => {
+    const unsubSettings = onSnapshot(doc(db, 'settings', 'general'), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.inventoryTypes && Array.isArray(data.inventoryTypes) && data.inventoryTypes.length > 0) {
+          setInventoryTypes(data.inventoryTypes);
+          setActiveTab(prev => data.inventoryTypes.includes(prev) ? prev : (data.inventoryTypes[0] || 'ATK'));
+        }
+      }
+    });
+    return () => unsubSettings();
+  }, []);
 
   useEffect(() => {
     const q = query(collection(db, 'inventory'));
@@ -230,9 +244,9 @@ export default function PublicInventoryContent() {
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as InventoryType)} className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="bg-slate-100 p-1.5 rounded-[2rem] h-auto mb-8 w-full sm:w-fit flex flex-wrap shadow-inner border border-slate-200">
-          {['ATK', 'Sparepart', 'Alat Kebersihan', 'Obat-obatan'].map((type) => (
+          {inventoryTypes.map((type) => (
             <TabsTrigger 
                 key={type} 
                 value={type} 

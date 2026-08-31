@@ -34,8 +34,10 @@ import {
   Trash2,
   Wrench,
   Clock,
-  Layers
+  Layers,
+  ExternalLink
 } from 'lucide-react';
+import MaintenanceDetailCard from '@/components/maintenance/maintenance-detail-card';
 import Image from 'next/image';
 import { format, formatDistanceToNow } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -88,14 +90,24 @@ interface TicketDetailProps {
     onBack?: () => void;
 }
 
-const DetailBlock = ({ label, value, icon: Icon }: { label: string, value: any, icon: any }) => (
-    <div className="p-3 rounded-2xl bg-white/50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-3 text-left">
-        <div className="p-2 bg-primary/5 rounded-xl shrink-0">
-            <Icon className="h-4 w-4 text-primary" />
+const DetailBlock = ({ label, value, icon: Icon, onClick, className }: { label: string, value: any, icon: any, onClick?: () => void, className?: string }) => (
+    <div 
+        onClick={onClick}
+        className={cn(
+            "p-3 rounded-2xl bg-white/50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-3 text-left transition-all",
+            onClick && "cursor-pointer hover:border-emerald-500/60 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20 group",
+            className
+        )}
+    >
+        <div className="p-2 bg-primary/5 rounded-xl shrink-0 group-hover:bg-emerald-500/10 transition-colors">
+            <Icon className="h-4 w-4 text-primary group-hover:text-emerald-600 transition-colors" />
         </div>
         <div className="min-w-0 flex-1 text-left">
             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1 text-left">{label}</p>
-            <p className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate text-left uppercase">{value || '-'}</p>
+            <p className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate text-left uppercase group-hover:text-emerald-600 transition-colors flex items-center gap-1.5">
+                {value || '-'}
+                {onClick && <ExternalLink className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 shrink-0" />}
+            </p>
         </div>
     </div>
 );
@@ -135,6 +147,7 @@ const OfficialFormStatus = ({ hasOfficialForm, linkedReportId, onGoToOfficialFor
 export default function TicketDetail({ ticketId, onBack }: TicketDetailProps) {
   const [ticket, setTicket] = useState<HelpdeskTicket | null>(null);
   const [maintenanceSchedule, setMaintenanceSchedule] = useState<MaintenanceSchedule | null>(null);
+  const [isMaintenanceDetailOpen, setIsMaintenanceDetailOpen] = useState(false);
   const [hasOfficialForm, setHasOfficialForm] = useState<boolean>(false);
   const [linkedReportId, setLinkedReportId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -434,15 +447,15 @@ ${adminName}`;
     if (!ticket || !isAdmin || !user) return;
     
     const ticketNum = ticket.ticketNumber;
-    
-    if (onBack) onBack(); 
 
     setIsUpdating(true);
     try {
       await recycleDocument(db, 'helpdesk_tickets', ticketId, user.uid, user.displayName || user.email || 'Admin', user.department || 'N/A');
       toast({ title: 'Tiket Dihapus', description: `Tiket ${ticketNum} telah dipindahkan ke Tempat Sampah.` });
+      if (onBack) onBack();
     } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Gagal Menghapus', description: error.message });
+      console.error("Error deleting ticket:", error);
+      toast({ variant: 'destructive', title: 'Gagal Menghapus', description: error.message || 'Terjadi kesalahan saat menghapus tiket.' });
     } finally {
       setIsUpdating(false);
       setIsConfirmingDelete(false);
@@ -621,6 +634,7 @@ ${adminName}`;
                   <>
                     <SectionLabel title="Integrasi Maintenance" />
                     <div className="space-y-3">
+                        <DetailBlock label="No. Maintenance" value={maintenanceSchedule.code || (`MNT-${maintenanceSchedule.id.slice(0, 6).toUpperCase()}`)} icon={Hash} onClick={() => setIsMaintenanceDetailOpen(true)} />
                         <DetailBlock label="Kategori Pekerjaan" value={maintenanceSchedule.type} icon={Wrench} />
                         <DetailBlock label="Teknisi PIC" value={maintenanceSchedule.technician} icon={User} />
                         <DetailBlock label="Status Jadwal" value={maintenanceSchedule.status} icon={Clock} />
@@ -704,6 +718,7 @@ ${adminName}`;
                               <div className="space-y-3">
                                 <SectionLabel title="Integrasi Maintenance" />
                                 <div className="space-y-3">
+                                  <DetailBlock label="No. Maintenance" value={maintenanceSchedule.code || (`MNT-${maintenanceSchedule.id.slice(0, 6).toUpperCase()}`)} icon={Hash} onClick={() => setIsMaintenanceDetailOpen(true)} />
                                   <DetailBlock label="Kategori Pekerjaan" value={maintenanceSchedule.type} icon={Wrench} />
                                   <DetailBlock label="Teknisi PIC" value={maintenanceSchedule.technician} icon={User} />
                                   <DetailBlock label="Status Jadwal" value={maintenanceSchedule.status} icon={Clock} />
@@ -988,6 +1003,33 @@ ${adminName}`;
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
+
+        {/* Modal Popup Detail Maintenance saat diklik */}
+        <Dialog open={isMaintenanceDetailOpen} onOpenChange={setIsMaintenanceDetailOpen}>
+          <DialogContent hideCloseButton className="sm:max-w-5xl max-h-[92vh] overflow-y-auto p-4 sm:p-6 rounded-[2.5rem] border-none shadow-2xl bg-slate-50 dark:bg-slate-950 text-black dark:text-white">
+            <DialogHeader className="flex flex-row items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+              <div className="text-left min-w-0">
+                <DialogTitle className="text-base font-black uppercase tracking-tight flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                  <Wrench className="w-5 h-5 shrink-0" />
+                  <span>Detail Pemeliharaan — {maintenanceSchedule?.code || (maintenanceSchedule?.id ? `MNT-${maintenanceSchedule.id.slice(0, 6).toUpperCase()}` : '')}</span>
+                </DialogTitle>
+                <DialogDescription className="text-xs font-medium text-slate-500">
+                  Rincian pengerjaan, bukti foto, tanda tangan & dokumen keabsahan
+                </DialogDescription>
+              </div>
+              <DialogClose asChild>
+                <Button variant="ghost" size="icon" className="rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 h-9 w-9">
+                  <X className="w-5 h-5" />
+                </Button>
+              </DialogClose>
+            </DialogHeader>
+            <div className="mt-2">
+              {maintenanceSchedule && (
+                <MaintenanceDetailCard schedule={maintenanceSchedule} />
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
     </div>
   );
 }

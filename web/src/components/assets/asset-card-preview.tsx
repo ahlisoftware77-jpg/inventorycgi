@@ -25,7 +25,9 @@ import {
   CheckCircle2,
   Wrench,
   Shield,
-  QrCode
+  QrCode,
+  FileCheck,
+  FileText
 } from 'lucide-react';
 import Image from 'next/image';
 import { format } from 'date-fns';
@@ -47,45 +49,75 @@ type LayoutType = '4x6' | 'A4';
 
 const DetailItem = ({ label, value, icon: Icon, size = 'sm' }: { label: string; value: string | number | undefined; icon: any, size?: 'sm' | 'lg' }) => (
   <div className={cn(
-    "flex flex-col border-b border-slate-100 dark:border-slate-800",
-    size === 'sm' ? "gap-0.5 pb-1" : "gap-1.5 pb-2"
+    "flex flex-col border-b border-slate-100 dark:border-slate-800/60 text-left",
+    size === 'sm' ? "gap-0.5 pb-1.5" : "gap-1.5 pb-2.5"
   )}>
-    <div className="flex items-center gap-1.5 opacity-60">
-      <Icon className={cn("text-primary", size === 'sm' ? "w-2.5 h-2.5" : "w-3.5 h-3.5")} />
+    <div className="flex items-center gap-1.5 opacity-70">
+      <Icon className={cn("text-primary shrink-0", size === 'sm' ? "w-3 h-3" : "w-4 h-4")} />
       <p className={cn(
         "font-black uppercase tracking-tighter text-slate-500",
-        size === 'sm' ? "text-[7px]" : "text-[9px]"
+        size === 'sm' ? "text-[7.5px]" : "text-[9.5px]"
       )}>{label}</p>
     </div>
     <p className={cn(
-      "font-bold text-slate-900 dark:text-slate-100 leading-tight truncate uppercase",
-      size === 'sm' ? "text-[10px]" : "text-sm"
+      "font-bold text-slate-900 leading-tight truncate uppercase text-left ml-4.5",
+      size === 'sm' ? "text-[10.5px]" : "text-sm"
     )}>{value || '-'}</p>
   </div>
 );
 
 const PhotoGrid = ({ title, urls, size = 'sm' }: { title: string; urls: string[]; size?: 'sm' | 'lg' }) => (
-  <div className="space-y-2 text-left">
+  <div className="space-y-1.5 text-left">
     <p className={cn(
       "font-black text-primary uppercase tracking-widest flex items-center gap-1.5",
-      size === 'sm' ? "text-[7px]" : "text-[10px]"
+      size === 'sm' ? "text-[7.5px]" : "text-[10px]"
     )}>
-      <ImageIcon className={cn(size === 'sm' ? "w-2.5 h-2.5" : "w-3.5 h-3.5")} /> {title}
+      <ImageIcon className={cn(size === 'sm' ? "w-3 h-3" : "w-3.5 h-3.5")} /> {title}
     </p>
     <div className={cn("grid gap-2", size === 'sm' ? "grid-cols-4" : "grid-cols-4")}>
-      {urls.length > 0 ? urls.map((url, i) => (
-        <div key={i} className={cn(
-          "relative aspect-square overflow-hidden border border-slate-200 bg-slate-50 shadow-sm",
-          size === 'sm' ? "rounded-lg" : "rounded-xl"
-        )}>
-          <Image src={url} alt={`${title}-${i}`} fill className="object-cover" />
-        </div>
-      )) : (
+      {urls.length > 0 ? urls.map((url, i) => {
+        const isPdf = url.toLowerCase().includes('.pdf') || url.toLowerCase().includes('/raw/') || url.toLowerCase().includes('/files/') || url.toLowerCase().includes('format=pdf');
+        
+        if (isPdf) {
+          return (
+            <a 
+              key={i} 
+              href={url} 
+              target="_blank" 
+              rel="noreferrer"
+              className={cn(
+                "relative aspect-square overflow-hidden border border-rose-300 dark:border-rose-800 bg-rose-50/90 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-all shadow-sm flex flex-col items-center justify-center p-1 text-center group text-rose-700 dark:text-rose-300",
+                size === 'sm' ? "rounded-lg" : "rounded-xl"
+              )}
+              title="Buka Dokumen PDF Arsip Serah Terima"
+            >
+              <FileText className={cn("text-rose-600 dark:text-rose-400 group-hover:scale-110 transition-transform", size === 'sm' ? "w-5 h-5 mb-0.5" : "w-8 h-8 mb-1")} />
+              <span className={cn("font-black uppercase text-rose-700 dark:text-rose-300 tracking-tighter leading-tight", size === 'sm' ? "text-[6px]" : "text-[8px]")}>
+                PDF Dokumen
+              </span>
+            </a>
+          );
+        }
+
+        return (
+          <div key={i} className={cn(
+            "relative aspect-square overflow-hidden border border-slate-200 bg-slate-50 shadow-sm",
+            size === 'sm' ? "rounded-lg" : "rounded-xl"
+          )}>
+            <Image 
+              src={url} 
+              alt={`${title}-${i}`} 
+              fill 
+              className="object-cover" 
+            />
+          </div>
+        );
+      }) : (
         <div className={cn(
-          "col-span-full rounded-xl bg-slate-50 border border-dashed border-slate-200 flex items-center justify-center",
-          size === 'sm' ? "h-12" : "h-16"
+          "col-span-full rounded-xl bg-slate-50/80 border border-dashed border-slate-200 flex items-center justify-center",
+          size === 'sm' ? "h-10" : "h-16"
         )}>
-          <p className={cn("font-bold text-slate-300 uppercase", size === 'sm' ? "text-[6px]" : "text-[9px]")}>Dokumentasi Tidak Tersedia</p>
+          <p className={cn("font-bold text-slate-300 uppercase tracking-wider", size === 'sm' ? "text-[6.5px]" : "text-[9px]")}>Dokumentasi Tidak Tersedia</p>
         </div>
       )}
     </div>
@@ -216,27 +248,81 @@ export default function AssetCardPreview({ assetId, isOpen, onOpenChange }: Asse
     if (!el) return;
     const win = window.open('', '', 'height=842,width=595');
     if (win) {
-      win.document.write('<html><head><title>Asset Identity Document</title>');
+      win.document.write('<!DOCTYPE html><html><head><title>Asset Identity Card - ' + (asset?.code || '') + '</title>');
       const styles = Array.from(document.styleSheets).map(s => s.href ? `<link rel="stylesheet" href="${s.href}">` : '').join('');
       win.document.head.innerHTML += styles;
       
-      const pageSize = layout === '4x6' ? '4in 6in' : 'A4 portrait';
-      const cardWidth = layout === '4x6' ? '4in' : '210mm';
+      const is4x6 = layout === '4x6';
+      const pageSize = is4x6 ? '4in 6in' : 'A4 portrait';
 
       win.document.write(`
         <style>
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+          * { box-sizing: border-box; }
+          html, body { 
+            width: 100% !important; 
+            height: 100% !important; 
+            margin: 0 !important; 
+            padding: 0 !important; 
+            background: #ffffff !important; 
+            color: #000000 !important;
+            font-family: 'Inter', sans-serif !important;
+            -webkit-print-color-adjust: exact !important; 
+            print-color-adjust: exact !important; 
+          }
+          .print-outer-container {
+            width: 100% !important;
+            min-height: 100vh !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            margin: 0 auto !important;
+            padding: 0 !important;
+          }
+          .card-area { 
+            margin: auto !important; 
+            border: none !important; 
+            border-radius: 0 !important; 
+            box-shadow: none !important; 
+            transform: none !important; 
+            page-break-inside: avoid !important;
+            page-break-after: avoid !important;
+          } 
           @media print { 
-            @page { size: ${pageSize}; margin: 0; } 
-            body { -webkit-print-color-adjust: exact !important; margin: 0; padding: 0; background: white; } 
-            .card-area { width: ${cardWidth} !important; min-height: 297mm !important; height: auto !important; margin: 0 !important; border: none !important; border-radius: 0 !important; box-shadow: none !important; transform: none !important; } 
+            @page { 
+              size: ${pageSize}; 
+              margin: 0; 
+            } 
+            html, body { 
+              width: 100% !important; 
+              height: 100% !important; 
+              margin: 0 !important; 
+              padding: 0 !important; 
+              display: flex !important; 
+              align-items: center !important; 
+              justify-content: center !important; 
+              background: #ffffff !important; 
+            } 
+            .print-outer-container {
+              width: 100% !important;
+              height: 100vh !important;
+              display: flex !important;
+              align-items: center !important;
+              justify-content: center !important;
+              margin: 0 auto !important;
+            }
+            .card-area { 
+              margin: auto !important; 
+              ${is4x6 ? 'width: 4in !important; height: 6in !important; max-width: 4in !important; max-height: 6in !important;' : 'width: 210mm !important; min-height: 297mm !important;'}
+            } 
           }
         </style>
       `);
-      win.document.write('</head><body class="bg-white text-black">');
+      win.document.write('</head><body><div class="print-outer-container">');
       win.document.write(el.outerHTML);
-      win.document.write('</body></html>');
+      win.document.write('</div></body></html>');
       win.document.close();
-      setTimeout(() => { win.focus(); win.print(); win.close(); }, 1000);
+      setTimeout(() => { win.focus(); win.print(); win.close(); }, 800);
     }
   };
 
@@ -272,56 +358,72 @@ export default function AssetCardPreview({ assetId, isOpen, onOpenChange }: Asse
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogPortal>
-        <DialogOverlay className="bg-slate-950/80 backdrop-blur-md" />
-        <DialogContent className="max-w-[98vw] sm:max-w-5xl p-0 border-none bg-slate-900 text-slate-50 overflow-hidden shadow-3xl rounded-[2rem] sm:rounded-[3rem]">
-          <div className="sticky top-0 z-40 px-8 py-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 bg-slate-900/90 backdrop-blur-2xl">
+        <DialogOverlay className="bg-slate-950/85 backdrop-blur-xl" />
+        <DialogContent hideCloseButton className="max-w-[98vw] sm:max-w-5xl p-0 border-none bg-slate-900 text-slate-50 overflow-hidden shadow-3xl rounded-[2rem] sm:rounded-[3rem]">
+          {/* Top Bar Header Controls */}
+          <div className="sticky top-0 z-40 px-6 sm:px-8 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 bg-slate-900/95 backdrop-blur-2xl">
             <div className="text-left">
-              <DialogTitle className="text-2xl font-black uppercase tracking-tight text-white text-left">Preview Identity Card</DialogTitle>
-              <DialogDescription className="text-slate-400 font-medium text-xs uppercase tracking-widest text-left">Digital Asset Certification System</DialogDescription>
+              <DialogTitle className="text-xl sm:text-2xl font-black uppercase tracking-tight text-white text-left flex items-center gap-2">
+                <FileCheck className="w-6 h-6 text-primary" /> Preview Identity Card
+              </DialogTitle>
+              <DialogDescription className="text-slate-400 font-medium text-xs uppercase tracking-widest text-left">
+                Digital Asset Certification & Printable Identity Label
+              </DialogDescription>
             </div>
             
-            <div className="flex items-center gap-3">
-                <div className="bg-white/5 p-1.5 rounded-2xl flex items-center gap-1.5 border border-white/10 shadow-inner">
+            <div className="flex items-center gap-3 self-end sm:self-auto">
+                <div className="bg-white/5 p-1 rounded-2xl flex items-center gap-1 border border-white/10 shadow-inner">
                     <Button 
                         size="sm" 
                         variant={layout === '4x6' ? 'default' : 'ghost'} 
-                        className={cn("h-10 rounded-xl text-[10px] font-black uppercase tracking-widest", layout === '4x6' && "bg-primary shadow-lg shadow-primary/20")}
+                        className={cn("h-9 rounded-xl text-[10px] font-black uppercase tracking-widest px-3", layout === '4x6' && "bg-primary text-white shadow-lg shadow-primary/30")}
                         onClick={() => setLayout('4x6')}
                     >
-                        <Minimize2 className="w-3.5 h-3.5 mr-2" /> 4x6 Card
+                        <Minimize2 className="w-3.5 h-3.5 mr-1.5" /> 4x6 Card
                     </Button>
                     <Button 
                         size="sm" 
                         variant={layout === 'A4' ? 'default' : 'ghost'} 
-                        className={cn("h-10 rounded-xl text-[10px] font-black uppercase tracking-widest", layout === 'A4' && "bg-primary shadow-lg shadow-primary/20")}
+                        className={cn("h-9 rounded-xl text-[10px] font-black uppercase tracking-widest px-3", layout === 'A4' && "bg-primary text-white shadow-lg shadow-primary/30")}
                         onClick={() => setLayout('A4')}
                     >
-                        <Maximize2 className="w-3.5 h-3.5 mr-2" /> A4 Paper
+                        <Maximize2 className="w-3.5 h-3.5 mr-1.5" /> A4 Paper
                     </Button>
                 </div>
-                <div className="h-10 w-px bg-white/10 mx-2 hidden sm:block" />
-                <Button size="lg" variant="outline" className="h-11 rounded-xl bg-white/10 border-white/20 text-white font-black uppercase text-[10px] tracking-widest px-6 shadow-[0_5px_0_0_rgba(255,255,255,0.1)] hover:translate-y-[1px] active:translate-y-[5px] active:shadow-none transition-all" onClick={handlePrint}><Printer className="mr-2 h-4 w-4"/> Print</Button>
-                <Button size="lg" className="h-11 rounded-xl bg-primary hover:bg-primary/90 text-white font-black uppercase text-[10px] tracking-widest px-8 shadow-[0_5px_0_0_rgba(0,0,0,0.2)] hover:translate-y-[1px] active:translate-y-[5px] active:shadow-none transition-all" onClick={handleSavePNG}><ImageIcon className="mr-2 h-4 w-4"/> PNG</Button>
-                <DialogClose asChild><Button variant="ghost" size="icon" className="rounded-full hover:bg-white/10 h-10 w-10 text-white"><XIcon className="w-6 h-6"/></Button></DialogClose>
+                <div className="h-8 w-px bg-white/10 mx-1 hidden sm:block" />
+                <Button size="sm" variant="outline" className="h-9 rounded-xl bg-white/10 border-white/20 text-white font-black uppercase text-[10px] tracking-widest px-4 hover:bg-white/20 transition-all" onClick={handlePrint}>
+                  <Printer className="mr-1.5 h-3.5 w-3.5"/> Cetak / Print
+                </Button>
+                <Button size="sm" className="h-9 rounded-xl bg-primary hover:bg-primary/90 text-white font-black uppercase text-[10px] tracking-widest px-5 shadow-lg shadow-primary/20 transition-all" onClick={handleSavePNG}>
+                  <ImageIcon className="mr-1.5 h-3.5 w-3.5"/> Unduh PNG
+                </Button>
+                <DialogClose asChild>
+                  <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/10 h-9 w-9 text-white">
+                    <XIcon className="w-5 h-5"/>
+                  </Button>
+                </DialogClose>
             </div>
           </div>
 
-          <ScrollArea className="max-h-[80vh] bg-slate-100 dark:bg-slate-950/50 p-6 md:p-12">
-            <div className="flex justify-center pb-20">
+          {/* Scroll Area Preview Container (Always Centered) */}
+          <ScrollArea className="max-h-[82vh] bg-slate-950 p-4 sm:p-8 md:p-10">
+            <div className="flex items-center justify-center min-h-[70vh] w-full py-4 pb-16">
               {loading ? (
-                <Skeleton className={cn("rounded-3xl bg-slate-200 animate-pulse", layout === '4x6' ? "w-[4in] h-[6in]" : "w-[210mm] min-h-[297mm]")} />
+                <Skeleton className={cn("rounded-3xl bg-slate-800 animate-pulse mx-auto", layout === '4x6' ? "w-[4in] h-[6in]" : "w-[210mm] min-h-[297mm]")} />
               ) : asset && (
                 <div 
                     ref={cardRef} 
                     className={cn(
-                        "card-area bg-white text-black shadow-3xl relative overflow-hidden transition-all duration-700 flex flex-col",
-                        layout === '4x6' ? "w-[4in] h-[6in] p-6 rounded-[2.5rem]" : "w-[210mm] min-h-[297mm] h-auto p-12 rounded-none"
+                        "card-area bg-white text-slate-950 shadow-2xl relative overflow-hidden transition-all duration-300 flex flex-col justify-between border border-slate-200/80 mx-auto",
+                        layout === '4x6' 
+                          ? "w-[4in] h-[6in] max-w-[4in] max-h-[6in] p-5 rounded-[2rem]" 
+                          : "w-[210mm] min-h-[297mm] h-auto p-10 rounded-none"
                     )}
                 >
-                    {/* Header: Company Identity Block */}
+                    {/* Top Company Brand Header */}
                     <div className={cn(
                         "relative z-10 flex flex-col items-center text-center",
-                        layout === '4x6' ? "gap-1.5 mb-3" : "gap-2 mb-5"
+                        layout === '4x6' ? "gap-1 mb-2.5" : "gap-2 mb-5"
                     )}>
                         <Image src="/cgi.png" alt="Logo" width={layout === '4x6' ? 32 : 48} height={layout === '4x6' ? 32 : 48} className="drop-shadow-sm" />
                         <div className="space-y-0.5">
@@ -334,45 +436,45 @@ export default function AssetCardPreview({ assetId, isOpen, onOpenChange }: Asse
                         </div>
                     </div>
 
-                    {/* Verification Ribbon */}
-                    <div className="absolute top-10 -right-12 bg-emerald-500 text-white py-1 px-16 rotate-45 shadow-lg z-20 flex items-center gap-2">
+                    {/* Verification Corner Ribbon */}
+                    <div className="absolute top-9 -right-12 bg-gradient-to-r from-emerald-600 to-teal-500 text-white py-1 px-14 rotate-45 shadow-md z-20 flex items-center gap-1">
                         <ShieldCheck className="w-2.5 h-2.5" />
-                        <span className="text-[7px] font-black uppercase tracking-widest">VERIFIED</span>
+                        <span className="text-[6.5px] font-black uppercase tracking-widest">VERIFIED</span>
                     </div>
 
-                    {/* Main Identity Banner */}
+                    {/* Main Identity Banner Block */}
                     <div className={cn(
-                        "relative z-10 flex justify-between items-end border-y-4 border-slate-900 bg-slate-50 mb-4 shadow-inner",
-                        layout === '4x6' ? "mx-[-24px] p-3 mb-4" : "mx-[-48px] px-12 py-6 mb-6"
+                        "relative z-10 flex justify-between items-end border-y-2 border-slate-900 bg-slate-50/90 shadow-sm rounded-xl",
+                        layout === '4x6' ? "mx-[-12px] px-4 py-2.5 mb-3" : "mx-[-24px] px-8 py-5 mb-5"
                     )}>
-                        <div className="space-y-1.5 text-left">
-                            <Badge className={cn("bg-primary text-white border-none font-black uppercase mb-1 shadow-md", layout === '4x6' ? "text-[6px] px-2 py-0.5" : "text-[8px] px-3 py-1")}>
+                        <div className="space-y-1 text-left">
+                            <Badge className={cn("bg-primary text-white border-none font-black uppercase shadow-sm", layout === '4x6' ? "text-[6px] px-2 py-0.5" : "text-[8px] px-3 py-1")}>
                                 {asset.category}
                             </Badge>
-                            <h2 className={cn("font-black text-slate-950 tracking-tighter leading-none uppercase italic text-left", layout === '4x6' ? "text-lg max-w-[180px]" : "text-3xl max-w-[450px]")}>
+                            <h2 className={cn("font-black text-slate-950 tracking-tighter leading-tight uppercase italic text-left", layout === '4x6' ? "text-base max-w-[190px]" : "text-3xl max-w-[450px]")}>
                                 {asset.name}
                             </h2>
-                            <p className={cn("font-black text-primary font-mono tracking-wider text-left", layout === '4x6' ? "text-sm mt-1" : "text-xl mt-2")}>
+                            <p className={cn("font-black text-primary font-mono tracking-wider text-left", layout === '4x6' ? "text-xs mt-0.5" : "text-xl mt-1.5")}>
                                 {asset.code}
                             </p>
                         </div>
-                        <div className="flex flex-col items-center gap-1.5">
+                        <div className="flex flex-col items-center gap-1 shrink-0">
                             <div className={cn(
-                                "p-2 bg-white rounded-2xl shadow-xl ring-4 ring-slate-100 border border-slate-200",
-                                layout === '4x6' ? "w-20 h-24" : "w-32 h-32 p-3"
+                                "p-1.5 bg-white rounded-xl shadow-md ring-2 ring-slate-200 border border-slate-300 flex items-center justify-center",
+                                layout === '4x6' ? "w-18 h-20" : "w-32 h-32 p-3"
                             )}>
-                                {qrCodeUrl && <Image src={qrCodeUrl} alt="QR" width={layout === '4x6' ? 70 : 120} height={layout === '4x6' ? 70 : 120} className="object-contain" />}
+                                {qrCodeUrl && <Image src={qrCodeUrl} alt="QR" width={layout === '4x6' ? 68 : 118} height={layout === '4x6' ? 68 : 118} className="object-contain" />}
                             </div>
-                            <span className={cn("font-black text-slate-400 uppercase", layout === '4x6' ? "text-[5px]" : "text-[7px]")}>
-                                <QrCode className="inline w-2 h-2 mr-1" /> Scan To Validate
+                            <span className={cn("font-black text-slate-400 uppercase tracking-widest", layout === '4x6' ? "text-[5px]" : "text-[7px]")}>
+                                <QrCode className="inline w-2 h-2 mr-0.5" /> Scan QR Code
                             </span>
                         </div>
                     </div>
 
-                    {/* Content Sections */}
-                    <div className={cn("relative z-10 flex-grow", layout === '4x6' ? "space-y-4" : "space-y-6")}>
-                        {/* Details Grid */}
-                        <div className={cn("grid gap-x-6 gap-y-3", layout === '4x6' ? "grid-cols-2" : "grid-cols-3")}>
+                    {/* Details & Specs Grid Container */}
+                    <div className={cn("relative z-10 flex-grow text-left", layout === '4x6' ? "space-y-2.5" : "space-y-5")}>
+                        {/* 6 Key Details Grid */}
+                        <div className={cn("grid gap-x-4 gap-y-2", layout === '4x6' ? "grid-cols-2" : "grid-cols-3")}>
                             <DetailItem label="Status Operasional" value={asset.status.replace(/_/g, ' ')} icon={Shield} size={layout === '4x6' ? 'sm' : 'lg'} />
                             <DetailItem label="Lokasi Penempatan" value={asset.location} icon={MapPin} size={layout === '4x6' ? 'sm' : 'lg'} />
                             <DetailItem label="Pusat Biaya (Cost Center)" value={asset.costCenter} icon={Hash} size={layout === '4x6' ? 'sm' : 'lg'} />
@@ -381,71 +483,67 @@ export default function AssetCardPreview({ assetId, isOpen, onOpenChange }: Asse
                             <DetailItem label="Tanggal Perolehan" value={asset.purchaseDate ? format(asset.purchaseDate.toDate(), 'dd MMMM yyyy', { locale: id }) : '-'} icon={Calendar} size={layout === '4x6' ? 'sm' : 'lg'} />
                         </div>
 
-                        {/* Photo Sections */}
-                        <div className={cn("space-y-4", layout === 'A4' && "space-y-6")}>
+                        {/* Photo Documentation Section */}
+                        <div className={cn("space-y-2", layout === 'A4' && "space-y-4")}>
                             <PhotoGrid title="Dokumentasi Fisik Aset" urls={assetPhotos} size={layout === '4x6' ? 'sm' : 'lg'} />
-                            <PhotoGrid title="Arsip Serah Terima / Disposal" urls={handoverPhotos} size={layout === '4x6' ? 'sm' : 'lg'} />
+                            {handoverPhotos.length > 0 && (
+                              <PhotoGrid title="Arsip Serah Terima / Disposal" urls={handoverPhotos} size={layout === '4x6' ? 'sm' : 'lg'} />
+                            )}
                         </div>
 
-                        {/* ISO Technical Section */}
+                        {/* ISO 14064 Technical Section */}
                         <div className={cn(
-                            "relative z-10 rounded-2xl overflow-hidden",
-                            layout === '4x6' ? "p-3 bg-slate-50 border border-slate-100 mt-auto" : "p-6 my-6 bg-slate-900 text-white shadow-2xl"
+                            "relative z-10 rounded-xl overflow-hidden text-left",
+                            layout === '4x6' ? "p-2.5 bg-slate-50 border border-slate-200 mt-auto" : "p-5 my-4 bg-slate-900 text-white shadow-xl"
                         )}>
-                            <div className="absolute top-0 right-0 p-6 opacity-[0.05] pointer-events-none text-black"><ShieldCheck className="w-32 h-32" /></div>
                             <p className={cn(
-                                "font-black uppercase tracking-widest flex items-center gap-1.5 mb-3 text-left",
+                                "font-black uppercase tracking-widest flex items-center gap-1 mb-1.5 text-left",
                                 layout === '4x6' ? "text-[7px] text-primary" : "text-[9px] text-primary"
                             )}>
-                                <Info className="w-3 h-3" /> Spesifikasi Teknis ISO 14064
+                                <Info className="w-2.5 h-2.5" /> Spesifikasi Teknis ISO 14064
                             </p>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-left">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-left">
                                 <div className="space-y-0.5 text-left">
-                                    <p className={cn("font-black uppercase opacity-40 text-left", layout === '4x6' ? "text-[5px]" : "text-[8px]")}>Model/S.N</p>
-                                    <p className={cn("font-bold truncate text-left", layout === '4x6' ? "text-[8px]" : "text-xs")}>{asset.accessory1 || '-'}</p>
+                                    <p className={cn("font-black uppercase opacity-50 text-left", layout === '4x6' ? "text-[5.5px]" : "text-[8px]")}>Model/S.N</p>
+                                    <p className={cn("font-bold truncate text-left", layout === '4x6' ? "text-[8.5px]" : "text-xs")}>{asset.accessory1 || '-'}</p>
                                 </div>
                                 <div className="space-y-0.5 text-left">
-                                    <p className={cn("font-black uppercase opacity-40 text-left", layout === '4x6' ? "text-[5px]" : "text-[8px]")}>Tipe/Jenis</p>
-                                    <p className={cn("font-bold truncate text-left", layout === '4x6' ? "text-[8px]" : "text-xs")}>{asset.accessory2 || '-'}</p>
+                                    <p className={cn("font-black uppercase opacity-50 text-left", layout === '4x6' ? "text-[5.5px]" : "text-[8px]")}>Tipe/Jenis</p>
+                                    <p className={cn("font-bold truncate text-left", layout === '4x6' ? "text-[8.5px]" : "text-xs")}>{asset.accessory2 || '-'}</p>
                                 </div>
                                 <div className="space-y-0.5 text-left">
-                                    <p className={cn("font-black uppercase opacity-40 text-left", layout === '4x6' ? "text-[5px]" : "text-[8px]")}>Fuel/Ref</p>
-                                    <p className={cn("font-bold truncate text-left", layout === '4x6' ? "text-[8px]" : "text-xs")}>{asset.accessory3 || '-'}</p>
+                                    <p className={cn("font-black uppercase opacity-50 text-left", layout === '4x6' ? "text-[5.5px]" : "text-[8px]")}>Fuel/Ref</p>
+                                    <p className={cn("font-bold truncate text-left", layout === '4x6' ? "text-[8.5px]" : "text-xs")}>{asset.accessory3 || '-'}</p>
                                 </div>
                                 <div className="space-y-0.5 text-left">
-                                    <p className={cn("font-black uppercase opacity-40 text-left", layout === '4x6' ? "text-[5px]" : "text-[8px]")}>Volume/Cap</p>
-                                    <p className={cn("font-bold truncate text-left", layout === '4x6' ? "text-[8px]" : "text-xs")}>{asset.accessory4 || '-'}</p>
+                                    <p className={cn("font-black uppercase opacity-50 text-left", layout === '4x6' ? "text-[5.5px]" : "text-[8px]")}>Volume/Cap</p>
+                                    <p className={cn("font-bold truncate text-left", layout === '4x6' ? "text-[8.5px]" : "text-xs")}>{asset.accessory4 || '-'}</p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Footer Otoritas */}
+                    {/* Footer Authority & Timestamp Block */}
                     <div className={cn(
-                        "relative z-10 pt-3 border-t border-slate-100 flex justify-between items-end",
-                        layout === '4x6' ? "mt-3" : "mt-8 pb-3"
+                        "relative z-10 pt-2 border-t border-slate-200 flex justify-between items-end",
+                        layout === '4x6' ? "mt-2" : "mt-6 pb-2"
                     )}>
-                        <div className="space-y-1.5 max-w-[280px] text-left">
-                            <p className={cn("font-black italic text-slate-400 uppercase text-left", layout === '4x6' ? "text-[5px]" : "text-[8px]")}>
-                                Dokumen ini dihasilkan secara otomatis oleh sistem manajemen aset terverifikasi.
+                        <div className="space-y-0.5 max-w-[260px] text-left">
+                            <p className={cn("font-bold text-slate-400 uppercase text-left leading-tight", layout === '4x6' ? "text-[5.5px]" : "text-[8px]")}>
+                                Dokumen ini secara otomatis disahihkan oleh sistem inventaris perusahaan.
                             </p>
-                            <p className={cn("font-bold text-slate-300 uppercase text-left", layout === '4x6' ? "text-[4px]" : "text-[7px]")}>
-                                Document ID: {asset.id.toUpperCase()}
+                            <p className={cn("font-mono font-bold text-slate-300 uppercase text-left", layout === '4x6' ? "text-[4.5px]" : "text-[7px]")}>
+                                DOC ID: {asset.id.toUpperCase()}
                             </p>
                         </div>
-                        <div className="text-right flex flex-col items-end gap-1">
-                             <div className={cn("font-black bg-slate-900 text-white rounded-md px-2 py-0.5", layout === '4x6' ? "text-[7px]" : "text-xs px-4 py-1.5")}>
-                                AUTHORIZED BY IT DEPT
+                        <div className="text-right flex flex-col items-end gap-0.5">
+                             <div className={cn("font-black bg-slate-900 text-white rounded-md px-2 py-0.5", layout === '4x6' ? "text-[6.5px]" : "text-[10px] px-3 py-1")}>
+                                AUTHORIZED IT DEPT
                              </div>
-                             <p className={cn("font-black text-slate-400 uppercase", layout === '4x6' ? "text-[6px]" : "text-[8px]")}>
-                                Printed: {format(new Date(), 'dd/MM/yyyy HH:mm')}
+                             <p className={cn("font-bold text-slate-400 uppercase", layout === '4x6' ? "text-[5.5px]" : "text-[8px]")}>
+                                Dicetak: {format(new Date(), 'dd/MM/yyyy HH:mm')}
                              </p>
                         </div>
-                    </div>
-                    
-                    {/* Watermark Logo Background */}
-                    <div className="absolute bottom-0 left-0 p-8 opacity-[0.02] pointer-events-none text-black">
-                        <Image src="/cgi.png" alt="watermark" width={layout === '4x6' ? 150 : 300} height={layout === '4x6' ? 150 : 300} />
                     </div>
                 </div>
               )}

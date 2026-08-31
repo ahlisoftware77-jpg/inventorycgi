@@ -14,8 +14,8 @@ export const metadata: Metadata = {
   description: 'Modern Asset Management for Your Company',
   manifest: '/manifest.json',
   icons: {
-    icon: '/icon.png',
-    apple: '/icon.png', // iOS home screen icon
+    icon: '/icon-192x192.png',
+    apple: '/icon-512x512.png', // iOS home screen icon
   },
 };
 

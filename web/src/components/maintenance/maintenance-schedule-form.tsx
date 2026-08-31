@@ -7,7 +7,7 @@
  * Dinamis: Mengambil daftar kategori pekerjaan dari pengaturan sistem.
  */
 
-import { useState, useEffect, type ReactNode } from 'react';
+import { useState, useEffect, useMemo, useCallback, type ReactNode } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -95,7 +95,9 @@ const DetailTileMini = ({ label, value, icon: Icon }: { label: string, value: st
 export default function MaintenanceScheduleForm({ schedule, prefilledTicketId, prefilledTicket, children }: MaintenanceScheduleFormProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [assets, setAssets] = useState<Asset[]>([]);
+  const [allAssets, setAllAssets] = useState<Asset[]>([]);
+  const [assetVisibility, setAssetVisibility] = useState<'my-dept' | 'custom' | 'all'>('my-dept');
+  const [selectedCustomDept, setSelectedCustomDept] = useState<string>('');
   const [waitingTickets, setWaitingTickets] = useState<HelpdeskTicket[]>([]);
   const [maintenanceTypes, setMaintenanceTypes] = useState<string[]>(defaultMaintTypes);
   const [selectedTicketId, setSelectedTicketId] = useState<string>('NEW');
@@ -110,9 +112,35 @@ export default function MaintenanceScheduleForm({ schedule, prefilledTicketId, p
   const { toast } = useToast();
   const isEditMode = !!schedule;
 
+  const isAdmin = user?.role === 'Admin';
+  const canAccessAll = isAdmin || !!user?.permissions?.canAccessAllAssetsInMaintenance;
+  const canAccessPartial = isAdmin || canAccessAll || !!user?.permissions?.canAccessPartialAssetsInMaintenance;
+
   const form = useForm<ScheduleFormValues>({
     resolver: zodResolver(maintenanceScheduleSchema),
   });
+
+  // Ambil semua departemen unik dari semua aset
+  const allUniqueDepts = useMemo(() => {
+    const list = Array.from(new Set(allAssets.map(a => a.location).filter(Boolean))).sort();
+    // Jika user bukan Admin dan memiliki allowedDepartments spesifik, batasi pilihannya
+    const allowed = user?.allowedDepartments || [];
+    if (!isAdmin && allowed.length > 0) {
+      return list.filter(dept => allowed.includes(dept));
+    }
+    return list;
+  }, [allAssets, user, isAdmin]);
+
+  // Filter aset secara dinamis berdasarkan visibilitas yang dipilih
+  const assets = useMemo(() => {
+    if (assetVisibility === 'my-dept' && user?.department) {
+      return allAssets.filter(a => a.location === user.department);
+    }
+    if (assetVisibility === 'custom' && selectedCustomDept) {
+      return allAssets.filter(a => a.location === selectedCustomDept);
+    }
+    return allAssets; // 'all'
+  }, [allAssets, assetVisibility, selectedCustomDept, user?.department]);
   
   // Listen for Maintenance Types from settings
   useEffect(() => {
@@ -131,15 +159,11 @@ export default function MaintenanceScheduleForm({ schedule, prefilledTicketId, p
     async function fetchData() {
         if (!user || authLoading || !isOpen) return;
         
-        // 1. Fetch Assets
-        const assetConstraints: QueryConstraint[] = [];
-        if (user.role !== 'Admin' && user.department) {
-            assetConstraints.push(where('location', '==', user.department));
-        }
-        const qAssets = query(collection(db, 'assets'), ...assetConstraints);
+        // 1. Ambil seluruh aset perusahaan agar bisa difilter secara fleksibel di sisi client
+        const qAssets = query(collection(db, 'assets'));
         const assetSnapshot = await getDocs(qAssets);
         const assetsData = assetSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Asset));
-        setAssets(assetsData.sort((a,b) => a.name.localeCompare(b.name)));
+        setAllAssets(assetsData.sort((a,b) => a.name.localeCompare(b.name)));
 
         // 2. Fetch Waiting Tickets (Status Menunggu atau Diproses)
         if (user.role === 'Admin' || user.permissions?.canApproveMutation) {
@@ -155,6 +179,39 @@ export default function MaintenanceScheduleForm({ schedule, prefilledTicketId, p
     fetchData();
   }, [user, authLoading, isOpen]);
 
+  // Bersihkan saran pencarian saat cakupan visibilitas diubah
+  useEffect(() => {
+    setSuggestions([]);
+  }, [assetVisibility, selectedCustomDept]);
+
+  const resolveAssetFromTicket = useCallback((t: HelpdeskTicket | undefined | null) => {
+    if (!t) return null;
+    if (t.assetId || t.assetCode) {
+      const matched = allAssets.find(a => 
+        (t.assetId && a.id === t.assetId) ||
+        (t.assetCode && a.code && a.code.toLowerCase() === t.assetCode.toLowerCase())
+      );
+      if (matched) return matched;
+      if (t.assetCode) {
+        return {
+          id: t.assetId || '',
+          code: t.assetCode,
+          name: t.assetName || '',
+          user: t.assetUser || '',
+          location: t.assetLocation || '',
+        } as Asset;
+      }
+    }
+
+    if (t.description && allAssets.length > 0) {
+      const descLower = t.description.toLowerCase();
+      const matched = allAssets.find(a => a.code && descLower.includes(a.code.toLowerCase()));
+      if (matched) return matched;
+    }
+
+    return null;
+  }, [allAssets]);
+
   useEffect(() => {
     if (isOpen) {
       setIsAddingNewType(false);
@@ -169,20 +226,79 @@ export default function MaintenanceScheduleForm({ schedule, prefilledTicketId, p
         type: schedule?.type || undefined,
         status: schedule?.status || 'Dijadwalkan',
         technician: schedule?.technician || '',
-        notes: schedule?.notes || '',
+        notes: schedule?.notes || prefilledTicket?.description || '',
       });
       if (schedule) {
-        setSearchTerm(schedule.assetCode || '');
-        const existingAsset = assets.find(a => a.id === schedule.assetId);
+        const existingAsset = allAssets.find(a => a.id === schedule.assetId);
         setSelectedAssetDetails(existingAsset || null);
+        setSearchTerm(schedule.assetCode ? `${schedule.assetCode}${schedule.assetName ? ` - ${schedule.assetName}` : ''}` : '');
         setSelectedTicketId(schedule.ticketId || 'NEW');
+
+        // Atur visibilitas default berdasarkan lokasi aset yang sedang diedit
+        if (existingAsset) {
+          if (existingAsset.location === user?.department) {
+            setAssetVisibility('my-dept');
+          } else {
+            setAssetVisibility('custom');
+            setSelectedCustomDept(existingAsset.location);
+          }
+        }
       } else {
-        setSearchTerm('');
-        setSelectedAssetDetails(null);
         setSelectedTicketId(prefilledTicketId || 'NEW');
+        const activeTicket = prefilledTicket || (prefilledTicketId ? waitingTickets.find(t => t.id === prefilledTicketId) : null);
+        const targetAsset = resolveAssetFromTicket(activeTicket);
+
+        if (targetAsset) {
+          form.setValue('assetId', targetAsset.id || '');
+          form.setValue('assetName', targetAsset.name || '');
+          form.setValue('assetCode', targetAsset.code || '');
+          form.setValue('assetUser', targetAsset.user || '');
+          if (targetAsset.location) form.setValue('department', targetAsset.location);
+          setSelectedAssetDetails(targetAsset);
+          setSearchTerm(`${targetAsset.code}${targetAsset.name ? ` - ${targetAsset.name}` : ''}${targetAsset.user ? ` (${targetAsset.user})` : ''}`);
+
+          if (targetAsset.location && targetAsset.location !== user?.department) {
+            setAssetVisibility('all');
+          } else {
+            setAssetVisibility('my-dept');
+          }
+        } else {
+          setSearchTerm('');
+          setSelectedAssetDetails(null);
+          setAssetVisibility('my-dept');
+          setSelectedCustomDept('');
+        }
       }
     }
-  }, [isOpen, schedule, form, assets, user, prefilledTicketId, prefilledTicket]);
+  }, [isOpen, schedule, form, allAssets, user, prefilledTicketId, prefilledTicket, waitingTickets, resolveAssetFromTicket]);
+
+  // Pre-fill notes & asset when selecting a ticket from dropdown
+  useEffect(() => {
+    if (selectedTicketId && selectedTicketId !== 'NEW' && !schedule) {
+      const selected = waitingTickets.find(t => t.id === selectedTicketId);
+      if (selected) {
+        if (selected.description) {
+          const currentNotes = form.getValues('notes');
+          if (!currentNotes || currentNotes === prefilledTicket?.description) {
+            form.setValue('notes', selected.description);
+          }
+        }
+        const targetAsset = resolveAssetFromTicket(selected);
+        if (targetAsset) {
+          form.setValue('assetId', targetAsset.id || '');
+          form.setValue('assetName', targetAsset.name || '');
+          form.setValue('assetCode', targetAsset.code || '');
+          form.setValue('assetUser', targetAsset.user || '');
+          if (targetAsset.location) form.setValue('department', targetAsset.location);
+          setSelectedAssetDetails(targetAsset);
+          setSearchTerm(`${targetAsset.code}${targetAsset.name ? ` - ${targetAsset.name}` : ''}${targetAsset.user ? ` (${targetAsset.user})` : ''}`);
+          if (targetAsset.location && targetAsset.location !== user?.department) {
+            setAssetVisibility('all');
+          }
+        }
+      }
+    }
+  }, [selectedTicketId, waitingTickets, form, prefilledTicket, schedule, resolveAssetFromTicket, user]);
 
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
@@ -310,6 +426,14 @@ export default function MaintenanceScheduleForm({ schedule, prefilledTicketId, p
         });
       } else {
         dataToSave.createdAt = serverTimestamp();
+        
+        // Auto-generate Kode Maintenance (MNT-YYYYMM-XXXX)
+        const now = new Date();
+        const yearMonth = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
+        const countSnap = await getDocs(collection(db, 'maintenance_schedules'));
+        const seq = countSnap.size + 1;
+        dataToSave.code = `MNT-${yearMonth}-${String(seq).padStart(4, '0')}`;
+
         const scheduleRef = doc(collection(db, 'maintenance_schedules'));
         batch.set(scheduleRef, dataToSave);
         
@@ -348,7 +472,7 @@ export default function MaintenanceScheduleForm({ schedule, prefilledTicketId, p
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto p-0 border border-slate-100 dark:border-slate-800 shadow-2xl bg-white dark:bg-slate-950 rounded-2xl" onPointerDownOutside={(e) => e.preventDefault()}>
+      <DialogContent hideCloseButton className="sm:max-w-4xl max-h-[90vh] overflow-y-auto p-0 border border-slate-100 dark:border-slate-800 shadow-2xl bg-white dark:bg-slate-950 rounded-2xl" onPointerDownOutside={(e) => e.preventDefault()}>
         <div className="sticky top-0 z-50 px-6 sm:px-8 pt-6 sm:pt-8 pb-4 flex items-start justify-between bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-100 dark:border-slate-800">
           <div className="space-y-1">
             <DialogTitle className="text-lg font-black tracking-wider uppercase text-slate-800 dark:text-slate-100 flex items-center gap-2 text-left">
@@ -374,9 +498,46 @@ export default function MaintenanceScheduleForm({ schedule, prefilledTicketId, p
                     <span className="text-sm select-none">🔍</span>
                     <h3 className="font-black text-[10px] uppercase tracking-wider text-foreground/70">Pemilihan Objek Aset</h3>
                 </div>
+
+                {/* Filter Cakupan Visibilitas Aset (Dikontrol Perizinan Admin) */}
+                {canAccessPartial && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-2 text-left animate-in fade-in duration-200">
+                    <div className="space-y-2">
+                      <Label className="font-bold text-xs uppercase tracking-widest text-muted-foreground ml-1">Cakupan Aset</Label>
+                      <Select value={assetVisibility} onValueChange={(val: any) => setAssetVisibility(val)}>
+                        <SelectTrigger className={inputClass}>
+                          <SelectValue placeholder="Pilih cakupan aset" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl">
+                          <SelectItem value="my-dept">Aset Departemen Saya ({user?.department || 'N/A'})</SelectItem>
+                          <SelectItem value="custom">Sebagian (Pilih Departemen Lain...)</SelectItem>
+                          {canAccessAll && (
+                            <SelectItem value="all">Semua Aset Perusahaan</SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {assetVisibility === 'custom' && (
+                      <div className="space-y-2 animate-in fade-in duration-200">
+                        <Label className="font-bold text-xs uppercase tracking-widest text-muted-foreground ml-1">Pilih Departemen</Label>
+                        <Select value={selectedCustomDept} onValueChange={setSelectedCustomDept}>
+                          <SelectTrigger className={inputClass}>
+                            <SelectValue placeholder="Pilih departemen" />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl">
+                            {allUniqueDepts.map(dept => (
+                              <SelectItem key={dept} value={dept}>{dept || 'N/A'}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </div>
+                )}
                 
                 <div className="space-y-3 relative group">
-                    <Label className="font-bold text-xs uppercase tracking-widest text-muted-foreground ml-1">Ketik Kode, Nama, atau Pengguna/Penanggung Jawab</Label>
+                    <Label className="font-bold text-xs uppercase tracking-widest text-muted-foreground ml-1">Cari Aset (Ketik Kode, Nama, atau Pengguna)</Label>
                     <div className="relative">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-primary transition-colors" />
                         <Input 
@@ -399,39 +560,40 @@ export default function MaintenanceScheduleForm({ schedule, prefilledTicketId, p
 
                     {isSearchFocused && suggestions.length > 0 && (
                         <Card className="absolute z-[60] w-full mt-1 shadow-2xl border-slate-100 dark:border-slate-800 overflow-hidden rounded-xl animate-in fade-in slide-in-from-top-2 duration-200">
-                            <ScrollArea className="h-80 bg-white dark:bg-slate-900">
-                                <div className="p-2 space-y-1">
-                                    {suggestions.map(a => (
-                                        <div 
-                                            key={a.id} 
-                                            className="p-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl border-b last:border-0 border-slate-100 dark:border-slate-800 transition-colors group"
-                                            onPointerDown={(e) => {
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                                handleAssetSelect(a);
-                                            }}
-                                        >
-                                            <div className="flex justify-between items-center mb-1">
-                                                <p className="font-black text-xs text-primary tracking-tighter group-hover:underline">{a.code}</p>
-                                                <Badge variant="outline" className="text-[9px] font-bold h-5 px-2 bg-slate-50 border-slate-200">{a.location}</Badge>
+                            <div 
+                                className="max-h-64 overflow-y-auto overscroll-contain bg-white dark:bg-slate-900 p-2 space-y-1"
+                                onWheel={(e) => e.stopPropagation()}
+                                onTouchMove={(e) => e.stopPropagation()}
+                            >
+                                {suggestions.map(a => (
+                                    <div 
+                                        key={a.id} 
+                                        className="p-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl border-b last:border-0 border-slate-100 dark:border-slate-800 transition-colors group"
+                                        onPointerDown={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            handleAssetSelect(a);
+                                        }}
+                                    >
+                                        <div className="flex justify-between items-center mb-1">
+                                            <p className="font-black text-xs text-primary tracking-tighter group-hover:underline">{a.code}</p>
+                                            <Badge variant="outline" className="text-[9px] font-bold h-5 px-2 bg-slate-50 border-slate-200">{a.location}</Badge>
+                                        </div>
+                                        <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight mb-1 uppercase text-left">{a.name}</p>
+                                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-medium">
+                                            <div className="flex items-center gap-1">
+                                                <User className="w-2.5 h-2.5 text-primary/40" />
+                                                <span className="truncate max-w-[120px]">{a.user || 'Tanpa User'}</span>
                                             </div>
-                                            <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight mb-1 uppercase text-left">{a.name}</p>
-                                            <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-medium">
-                                                <div className="flex items-center gap-1">
-                                                    <User className="w-2.5 h-2.5 text-primary/40" />
-                                                    <span className="truncate max-w-[120px]">{a.user || 'Tanpa User'}</span>
-                                                </div>
-                                                <span className="opacity-30">|</span>
-                                                <div className="flex items-center gap-1">
-                                                    <MapPin className="w-2.5 h-2.5 text-primary/40" />
-                                                    <span className="truncate">{a.location}</span>
-                                                </div>
+                                            <span className="opacity-30">|</span>
+                                            <div className="flex items-center gap-1">
+                                                <MapPin className="w-2.5 h-2.5 text-primary/40" />
+                                                <span className="truncate">{a.location}</span>
                                             </div>
                                         </div>
-                                    ))}
-                                </div>
-                                <ScrollBar orientation="vertical" className="z-[70]" />
-                            </ScrollArea>
+                                    </div>
+                                ))}
+                            </div>
                         </Card>
                     )}
                     <FormMessage />

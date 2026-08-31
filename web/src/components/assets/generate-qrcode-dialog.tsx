@@ -385,13 +385,14 @@ export default function GenerateQrCodeDialog({ selectedAssets, children }: Gener
     setIsPrinting(true);
     try {
       for (const asset of selectedAssets) {
-        const bytes = compileAssetEscPos(asset);
+        const bytes = await compileAssetEscPos(asset);
         
         // Send bytes in chunks
-        const MAX_CHUNK_SIZE = 512;
+        const MAX_CHUNK_SIZE = 100;
         for (let i = 0; i < bytes.length; i += MAX_CHUNK_SIZE) {
             const chunk = bytes.slice(i, i + MAX_CHUNK_SIZE);
             await characteristic.writeValueWithoutResponse(chunk);
+            await new Promise(resolve => setTimeout(resolve, 60)); // Delay to prevent printer buffer overflow
         }
       }
 

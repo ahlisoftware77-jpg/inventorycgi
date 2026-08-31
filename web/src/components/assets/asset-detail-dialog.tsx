@@ -65,6 +65,7 @@ import MutationForm from '../mutations/mutation-form';
 import AssetCardPreview from './asset-card-preview';
 import { calculateDepreciation } from '@/lib/calculations';
 import { Progress } from '../ui/progress';
+import MaintenanceDetailCard from '@/components/maintenance/maintenance-detail-card';
 import { ScrollArea } from '../ui/scroll-area';
 
 interface AssetDetailDialogProps {
@@ -137,6 +138,7 @@ export default function AssetDetailDialog({ assetId, isOpen, onOpenChange }: Ass
   const [isMutationFormOpen, setIsMutationFormOpen] = useState(false);
   const [isPreviewCardOpen, setIsPreviewCardOpen] = useState(false);
   const [mutationType, setMutationType] = useState<'mutasi' | 'disposal' | 'edit'>('mutasi');
+  const [selectedHistorySchedule, setSelectedHistorySchedule] = useState<MaintenanceSchedule | null>(null);
 
   const deptStyle = useMemo(() => asset ? getDeptColor(asset.location) : getDeptColor(''), [asset]);
 
@@ -144,6 +146,20 @@ export default function AssetDetailDialog({ assetId, isOpen, onOpenChange }: Ass
     if (!asset) return null;
     return calculateDepreciation(asset.price, asset.purchaseDate, asset.assetLifetime, asset.manualDepreciationPercent);
   }, [asset]);
+
+  const isPendingProcess = useMemo(() => {
+    if (!asset) return false;
+    const statusLower = asset.status.toLowerCase();
+    return statusLower.includes('waiting') || statusLower.includes('submitted') || statusLower.includes('proses') || statusLower.startsWith('karyawan_approved');
+  }, [asset]);
+
+  const isDisposedAsset = useMemo(() => {
+    if (!asset) return false;
+    const statusLower = asset.status.toLowerCase();
+    return statusLower.includes('approved_disposal') || statusLower === 'disposed';
+  }, [asset]);
+
+  const isActionDisabled = isPendingProcess || isDisposedAsset;
 
   useEffect(() => {
     const unsubLabels = onSnapshot(doc(db, 'settings', 'general'), (snap) => {
@@ -320,11 +336,12 @@ export default function AssetDetailDialog({ assetId, isOpen, onOpenChange }: Ass
         <DialogPortal>
           <DialogOverlay className="bg-slate-950/80 backdrop-blur-md" />
           <DialogContent 
-            className="sm:max-w-5xl max-h-[92vh] overflow-hidden p-0 border-none shadow-3xl text-black rounded-[2.5rem]"
+            hideCloseButton
+            className="sm:max-w-5xl h-[92vh] max-h-[92vh] overflow-hidden p-0 border-none shadow-3xl text-black rounded-[2.5rem] flex flex-col"
             onPointerDownOutside={(e) => e.preventDefault()}
           >
              <div className={cn(
-                 "sticky top-0 z-30 px-6 py-6 flex items-center justify-between border-b transition-all duration-700",
+                 "shrink-0 px-6 py-5 flex items-center justify-between border-b transition-all duration-700",
                  deptStyle.bg, deptStyle.text, deptStyle.shadow
              )}>
                 <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
@@ -357,7 +374,7 @@ export default function AssetDetailDialog({ assetId, isOpen, onOpenChange }: Ass
                 </DialogClose>
              </div>
 
-            <ScrollArea className="h-[calc(92vh-100px)] w-full">
+            <ScrollArea className="flex-1 min-h-0 w-full">
               <div className="p-4 sm:p-10 space-y-10 bg-slate-50 dark:bg-slate-950">
                 {loading ? (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4 text-left">
@@ -366,15 +383,58 @@ export default function AssetDetailDialog({ assetId, isOpen, onOpenChange }: Ass
                 ) : asset ? (
                     <>
                         <div className="flex flex-wrap items-center gap-4 p-4 bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-xl text-left">
-                          <Button size="sm" onClick={() => openMutationForm('mutasi')} className="rounded-xl h-10 px-8 bg-blue-600 hover:bg-blue-700 text-white font-black uppercase text-[10px] tracking-widest shadow-[0_5px_0_0_#1e3a8a] hover:translate-y-[1px] hover:shadow-[0_4px_0_0_#1e3a8a] active:translate-y-[5px] active:shadow-none transition-all">
+                          <Button 
+                            size="sm" 
+                            onClick={() => openMutationForm('mutasi')} 
+                            disabled={isActionDisabled}
+                            className={cn(
+                              "rounded-xl h-10 px-8 bg-blue-600 hover:bg-blue-700 text-white font-black uppercase text-[10px] tracking-widest transition-all flex-1 sm:flex-none",
+                              isActionDisabled 
+                                ? "opacity-50 pointer-events-none shadow-none translate-y-0" 
+                                : "shadow-[0_5px_0_0_#1e3a8a] hover:translate-y-[1px] hover:shadow-[0_4px_0_0_#1e3a8a] active:translate-y-[5px] active:shadow-none"
+                            )}
+                          >
                             <ArrowRightLeft className="mr-2 h-4 w-4" /> Mutasi
                           </Button>
-                          <Button size="sm" variant="destructive" onClick={() => openMutationForm('disposal')} className="rounded-xl h-10 px-8 bg-rose-600 hover:bg-rose-700 text-white font-black uppercase text-[10px] tracking-widest shadow-[0_5px_0_0_#9f1239] hover:translate-y-[1px] hover:shadow-[0_4px_0_0_#9f1239] active:translate-y-[5px] active:shadow-none transition-all">
+                          <Button 
+                            size="sm" 
+                            variant="destructive" 
+                            onClick={() => openMutationForm('disposal')} 
+                            disabled={isActionDisabled}
+                            className={cn(
+                              "rounded-xl h-10 px-8 bg-rose-600 hover:bg-rose-700 text-white font-black uppercase text-[10px] tracking-widest transition-all flex-1 sm:flex-none",
+                              isActionDisabled 
+                                ? "opacity-50 pointer-events-none shadow-none translate-y-0" 
+                                : "shadow-[0_5px_0_0_#9f1239] hover:translate-y-[1px] hover:shadow-[0_4px_0_0_#9f1239] active:translate-y-[5px] active:shadow-none"
+                            )}
+                          >
                             <Recycle className="mr-2 h-4 w-4" /> Disposal
                           </Button>
-                          <Button size="sm" variant="outline" onClick={() => openMutationForm('edit')} className="rounded-xl h-10 px-8 bg-white border-slate-200 text-slate-700 hover:bg-slate-50 font-black uppercase text-[10px] tracking-widest shadow-[0_4px_0_0_rgba(0,0,0,0.1)] hover:translate-y-[1px] active:translate-y-[4px] active:shadow-none transition-all">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={() => openMutationForm('edit')} 
+                            disabled={isActionDisabled}
+                            className={cn(
+                              "rounded-xl h-10 px-8 bg-white border-slate-200 text-slate-700 hover:bg-slate-50 font-black uppercase text-[10px] tracking-widest transition-all flex-1 sm:flex-none",
+                              isActionDisabled 
+                                ? "opacity-50 pointer-events-none shadow-none translate-y-0" 
+                                : "shadow-[0_4px_0_0_rgba(0,0,0,0.1)] hover:translate-y-[1px] active:translate-y-[4px] active:shadow-none"
+                            )}
+                          >
                               <ClipboardEdit className="mr-2 h-4 w-4 text-primary" /> Kondisi
                           </Button>
+
+                          {isPendingProcess && (
+                            <span className="text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-wider bg-rose-50 dark:bg-rose-950/20 px-4 py-2.5 rounded-xl border border-rose-100 dark:border-rose-900/40 animate-pulse flex-1 text-center sm:text-left">
+                              Aset dalam pengajuan (Mutasi / Disposal pending)
+                            </span>
+                          )}
+                          {isDisposedAsset && (
+                            <span className="text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-wider bg-rose-50 dark:bg-rose-950/20 px-4 py-2.5 rounded-xl border border-rose-100 dark:border-rose-900/40 flex-1 text-center sm:text-left">
+                              Aset dinonaktifkan (Disposal selesai)
+                            </span>
+                          )}
                           
                           <div className="h-8 w-px bg-slate-200 dark:bg-slate-800 mx-2 hidden md:block" />
                           
@@ -503,25 +563,36 @@ export default function AssetDetailDialog({ assetId, isOpen, onOpenChange }: Ass
                                     <Loader2 className="h-4 w-4 animate-spin" /> Sinkronisasi data...
                                 </div>
                             ) : maintenanceHistory.length > 0 ? (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-left">
-                                    {maintenanceHistory.map((m) => (
-                                        <div key={m.id} className="p-5 rounded-[2rem] bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-md hover:shadow-lg transition-all group text-left">
-                                            <div className="flex items-center justify-between mb-3 text-left">
-                                                <Badge variant={m.status === 'Selesai' ? 'success' : (m.status === 'Ditunda' ? 'destructive' : 'warning')} className="text-[9px] font-black uppercase px-3 py-0.5 rounded-full shadow-inner border-none text-left">
-                                                    {m.status}
-                                                </Badge>
-                                                <span className="text-[9px] font-black text-slate-400 uppercase flex items-center gap-1 text-left">
-                                                    <CalendarIcon className="w-2.5 h-2.5" /> {formatDate(m.scheduledDate)}
-                                                </span>
-                                            </div>
-                                            <p className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight truncate group-hover:text-primary transition-colors text-left">{m.type}</p>
-                                            <p className="mt-2 text-[10px] text-muted-foreground font-medium line-clamp-2 italic leading-relaxed text-left">"{m.notes || 'Pengerjaan rutin.'}"</p>
-                                            <div className="mt-4 pt-4 border-t border-slate-50 dark:border-slate-800 flex items-center text-[9px] font-black uppercase text-muted-foreground text-left">
-                                                <span className="flex items-center gap-1.5 text-left"><UserIcon className="h-3 w-3 text-primary" /> {m.technician || 'Staff IT/GA'}</span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
+                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-left">
+                                     {maintenanceHistory.map((m) => {
+                                         const mntCode = m.code || (`MNT-${m.id.slice(0, 6).toUpperCase()}`);
+                                         return (
+                                             <div
+                                                 key={m.id}
+                                                 onClick={() => setSelectedHistorySchedule(m)}
+                                                 className="p-5 rounded-[2rem] bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-md hover:shadow-xl hover:border-emerald-500/50 cursor-pointer transition-all group text-left relative overflow-hidden"
+                                             >
+                                                 <div className="flex items-center justify-between mb-3 text-left">
+                                                     <Badge className="text-[9px] font-black font-mono uppercase px-2.5 py-0.5 rounded-md bg-slate-900 text-emerald-400 border-none shadow-sm">
+                                                         {mntCode}
+                                                     </Badge>
+                                                     <div className="flex items-center gap-1.5">
+                                                         <Badge variant={m.status === 'Selesai' ? 'success' : (m.status === 'Ditunda' ? 'destructive' : 'warning')} className="text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full shadow-inner border-none text-left">
+                                                             {m.status}
+                                                         </Badge>
+                                                         <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-emerald-600 transition-colors" />
+                                                     </div>
+                                                 </div>
+                                                 <p className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight truncate group-hover:text-primary transition-colors text-left">{m.type}</p>
+                                                 <p className="mt-2 text-[10px] text-muted-foreground font-medium line-clamp-2 italic leading-relaxed text-left">"{m.notes || 'Pengerjaan rutin.'}"</p>
+                                                 <div className="mt-4 pt-4 border-t border-slate-50 dark:border-slate-800 flex items-center justify-between text-[9px] font-black uppercase text-muted-foreground text-left">
+                                                     <span className="flex items-center gap-1.5 text-left"><UserIcon className="h-3 w-3 text-primary" /> {m.technician || 'Staff IT/GA'}</span>
+                                                     <span className="flex items-center gap-1 text-slate-400 text-left"><CalendarIcon className="w-2.5 h-2.5" /> {formatDate(m.scheduledDate)}</span>
+                                                 </div>
+                                             </div>
+                                         );
+                                     })}
+                                 </div>
                             ) : (
                                 <div className="p-12 rounded-[3rem] bg-white dark:bg-slate-900 border-2 border-dashed border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center text-center gap-4 opacity-40 text-left">
                                     <CheckCircle2 className="h-10 w-10 text-emerald-500" />
@@ -537,8 +608,8 @@ export default function AssetDetailDialog({ assetId, isOpen, onOpenChange }: Ass
               </div>
             </ScrollArea>
 
-            <DialogFooter className="sticky bottom-0 bg-white/95 dark:bg-slate-950/95 p-6 border-t px-6 sm:px-10 text-left z-30">
-                <Button type="button" variant="outline" className="rounded-full h-12 px-12 w-full sm:w-auto font-black uppercase text-[10px] tracking-widest shadow-[0_5px_0_0_rgba(0,0,0,0.1)] hover:translate-y-[1px] active:translate-y-[5px] active:shadow-none transition-all text-left" onClick={() => onOpenChange(false)}>Tutup Detail</Button>
+            <DialogFooter className="shrink-0 bg-white/95 dark:bg-slate-950/95 p-4 border-t px-6 sm:px-10 text-left z-30 flex items-center justify-end">
+                <Button type="button" variant="outline" className="rounded-full h-10 px-10 w-full sm:w-auto font-black uppercase text-[10px] tracking-widest shadow-[0_4px_0_0_rgba(0,0,0,0.1)] hover:translate-y-[1px] active:translate-y-[4px] active:shadow-none transition-all text-left" onClick={() => onOpenChange(false)}>Tutup Detail</Button>
             </DialogFooter>
           </DialogContent>
         </DialogPortal>
@@ -563,6 +634,33 @@ export default function AssetDetailDialog({ assetId, isOpen, onOpenChange }: Ass
           />
         </>
       )}
+
+      {/* Modal Popup Detail Maintenance saat diklik di Histori */}
+      <Dialog open={!!selectedHistorySchedule} onOpenChange={(open) => !open && setSelectedHistorySchedule(null)}>
+        <DialogContent hideCloseButton className="sm:max-w-5xl max-h-[92vh] overflow-y-auto p-4 sm:p-6 rounded-[2.5rem] border-none shadow-2xl bg-slate-50 dark:bg-slate-950 text-black dark:text-white">
+          <DialogHeader className="flex flex-row items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+            <div className="text-left min-w-0">
+              <DialogTitle className="text-base font-black uppercase tracking-tight flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                <WrenchIcon className="w-5 h-5 shrink-0" />
+                <span>Detail Pemeliharaan — {selectedHistorySchedule?.code || (selectedHistorySchedule?.id ? `MNT-${selectedHistorySchedule.id.slice(0, 6).toUpperCase()}` : '')}</span>
+              </DialogTitle>
+              <DialogDescription className="text-xs font-medium text-slate-500">
+                Rincian pengerjaan, bukti foto, tanda tangan & dokumen keabsahan
+              </DialogDescription>
+            </div>
+            <DialogClose asChild>
+              <Button variant="ghost" size="icon" className="rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 h-9 w-9">
+                <XIcon className="w-5 h-5" />
+              </Button>
+            </DialogClose>
+          </DialogHeader>
+          <div className="mt-2">
+            {selectedHistorySchedule && (
+              <MaintenanceDetailCard schedule={selectedHistorySchedule} />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

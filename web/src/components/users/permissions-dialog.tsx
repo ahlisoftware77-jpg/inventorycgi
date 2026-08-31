@@ -39,6 +39,7 @@ const allPages = [
   { label: 'Inventaris', href: '/inventory' },
   { label: 'Permintaan Barang', href: '/inventory/requests' },
   { label: 'Mutasi & Disposal', href: '/mutations' },
+  { label: 'Broadcast Email', href: '/broadcast-email' },
   { label: 'IT Helpdesk', href: '/helpdesk' },
   { label: 'Laporan Stok', href: '/inventory/report' },
   { label: 'Kategori', href: '/kategori' },
@@ -65,6 +66,9 @@ const actionPermissions: { key: keyof UserPermissions; label: string }[] = [
   { key: 'canManageMaintenanceSignature', label: 'Bisa Tanda Tangan Maintenance' },
   { key: 'canEditMaintenance', label: 'Bisa Edit Jadwal Maintenance' },
   { key: 'canDeleteMaintenance', label: 'Bisa Hapus Jadwal Maintenance' },
+  { key: 'canAccessAllAssetsInMaintenance', label: 'Akses Semua Aset (Seluruh Perusahaan) di Maintenance' },
+  { key: 'canAccessPartialAssetsInMaintenance', label: 'Akses Sebagian Aset (Pilih Unit Lain) di Maintenance' },
+  { key: 'canViewTimeline', label: 'Bisa Lihat Timeline Aktivitas Dashboard' },
 ];
 
 export default function PermissionsDialog({ user, isOpen, onOpenChange }: PermissionsDialogProps) {

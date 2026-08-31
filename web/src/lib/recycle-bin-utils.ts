@@ -13,9 +13,21 @@ import {
 /**
  * Utility to move a document to the recycle bin and log the action.
  */
+export type RecyclableCollection = 
+  | 'assets' 
+  | 'inventory' 
+  | 'inventory_requests'
+  | 'maintenance_schedules' 
+  | 'helpdesk_tickets' 
+  | 'it_problem_reports'
+  | 'it_assets';
+
+/**
+ * Utility to move a document to the recycle bin and log the action.
+ */
 export async function recycleDocument(
   db: Firestore,
-  collectionName: 'assets' | 'inventory' | 'helpdesk_tickets' | 'it_problem_reports',
+  collectionName: RecyclableCollection,
   docId: string,
   userId: string,
   userName?: string,
@@ -30,24 +42,36 @@ export async function recycleDocument(
 
   const data = docSnap.data();
   let label = '';
-  let logType: 'ASSET' | 'INVENTORY' | 'HELPDESK' = 'ASSET';
+  let logType: 'ASSET' | 'INVENTORY' | 'HELPDESK' | 'MAINTENANCE' = 'ASSET';
 
   switch (collectionName) {
     case 'assets':
-      label = `Aset: ${data.code} (${data.name})`;
+      label = `Aset: ${data.code || ''} (${data.name || ''})`;
       logType = 'ASSET';
       break;
     case 'inventory':
-      label = `Inventaris: ${data.code} (${data.name})`;
+      label = `Inventaris: ${data.code || ''} (${data.name || ''})`;
       logType = 'INVENTORY';
       break;
+    case 'inventory_requests':
+      label = `Permintaan Inventaris: ${data.inventoryCode || ''} (${data.inventoryName || ''})`;
+      logType = 'INVENTORY';
+      break;
+    case 'maintenance_schedules':
+      label = `Jadwal Maintenance: ${data.code || ''} (${data.assetName || ''})`;
+      logType = 'MAINTENANCE';
+      break;
     case 'helpdesk_tickets':
-      label = `Tiket: ${data.ticketNumber} (${data.description?.substring(0, 30)}...)`;
+      label = `Tiket: ${data.ticketNumber || ''} (${data.description?.substring(0, 30) || ''}...)`;
       logType = 'HELPDESK';
       break;
     case 'it_problem_reports':
-      label = `Laporan IT: ${data.problem?.substring(0, 30)}... (${data.department})`;
+      label = `Laporan IT: ${data.problem?.substring(0, 30) || ''}... (${data.department || ''})`;
       logType = 'HELPDESK';
+      break;
+    case 'it_assets':
+      label = `Detail IT: ${data.assetCode || ''} (${data.computerName || ''})`;
+      logType = 'ASSET';
       break;
   }
 
@@ -72,8 +96,8 @@ export async function recycleDocument(
     action: 'DELETE_RECYCLE',
     description: `Memindahkan ${label} ke Tempat Sampah`,
     targetId: docId,
-    targetCode: data.code || data.ticketNumber || '',
-    targetName: data.name || data.problem || '',
+    targetCode: data.code || data.ticketNumber || data.inventoryCode || '',
+    targetName: data.name || data.problem || data.inventoryName || data.assetName || '',
     userId: userId,
     userName: userName || 'Admin',
     userDept: userDept || 'N/A',
@@ -109,9 +133,10 @@ export async function restoreDocument(db: Firestore, recycledItemId: string, use
   });
 
   // Log restoration
-  let logType: 'ASSET' | 'INVENTORY' | 'HELPDESK' = 'ASSET';
-  if (recycled.originalCollection === 'inventory') logType = 'INVENTORY';
+  let logType: 'ASSET' | 'INVENTORY' | 'HELPDESK' | 'MAINTENANCE' = 'ASSET';
+  if (recycled.originalCollection === 'inventory' || recycled.originalCollection === 'inventory_requests') logType = 'INVENTORY';
   if (recycled.originalCollection === 'helpdesk_tickets' || recycled.originalCollection === 'it_problem_reports') logType = 'HELPDESK';
+  if (recycled.originalCollection === 'maintenance_schedules') logType = 'MAINTENANCE';
 
   const logRef = doc(collection(db, 'system_logs'));
   batch.set(logRef, {

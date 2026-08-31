@@ -17,6 +17,9 @@ import AnalogClock from './analog-clock';
 import QuickActions from './quick-actions';
 import TopLocations from './top-locations';
 import AIInsights from './ai-insights';
+import DailyTip from './daily-tip';
+import TodoList from './todo-list';
+import DashboardGallery from './dashboard-gallery';
 import { Search, Info, ShieldCheck, Activity } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
@@ -31,6 +34,7 @@ export default function DashboardContent() {
   const [searchTerm, setSearchTerm] = useState('');
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const canViewTimeline = user?.role === 'Admin' || !!user?.permissions?.canViewTimeline;
 
   useEffect(() => {
     if (authLoading || !user) return;
@@ -48,7 +52,7 @@ export default function DashboardContent() {
             allVisibleDepts.push(userDept);
         }
 
-        const isPrivileged = ['ACCOUNTING', 'HR & GA', 'MANAGEMENT', 'IT'].includes(userDept || '');
+        const isPrivileged = ['ACCOUNTING', 'HR & GA', 'GA', 'MANAGEMENT', 'IT'].includes(userDept || '');
 
         if (userDept === 'ACCOUNTING') {
             constraints.push(where('category', 'in', ['A1-Lahan', 'A2-Peralatan Bangunan', 'A3-Peralatan Mesin', 'A4-Peralatan Listrik', 'A5-Peralatan Transportasi', 'A6-Peralatan Penelitian & Uji Lab', 'A9-Peralatan Lain-lain']));
@@ -172,6 +176,8 @@ export default function DashboardContent() {
             <SummaryCards data={summaryData} />
         </div>
 
+        <DailyTip />
+
         <div className="grid gap-6 grid-cols-1 lg:grid-cols-12">
             <div className="lg:col-span-8 grid gap-6 grid-cols-1 md:grid-cols-2">
                 <QuickActions />
@@ -194,12 +200,19 @@ export default function DashboardContent() {
             </div>
         </div>
 
+        <div className="grid gap-6 grid-cols-1">
+            <DashboardGallery assets={assets} />
+            <TodoList />
+        </div>
+
         <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
             <MutationActivityChart assets={assets} />
             <DisposalActivityChart assets={assets} />
         </div>
         
-        <RecentActivity assets={recentActivityAssets} />
+        {canViewTimeline && (
+          <RecentActivity assets={recentActivityAssets} />
+        )}
         
         <div className="flex items-center justify-center gap-6 pt-10 opacity-30 grayscale pointer-events-none">
             <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">

@@ -68,9 +68,8 @@ export default function RequestItemForm({ item, children }: RequestItemFormProps
     setIsLoading(true);
     try {
       // Map item type to specific standard labels consistently
-      let finalCategory = 'Lainnya';
+      let finalCategory = item.type || 'Lainnya';
       if (item.type === 'ATK') finalCategory = 'Logistik ATK';
-      else if (item.type === 'Sparepart') finalCategory = 'Sparepart';
       else if (item.type === 'Alat Kebersihan') finalCategory = 'Kebersihan';
 
       await addDoc(collection(db, 'inventory_requests'), {

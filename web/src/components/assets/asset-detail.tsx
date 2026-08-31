@@ -60,7 +60,8 @@ import {
   Zap, 
   Package as PackageIcon,
   History as HistoryIcon,
-  ImageIcon
+  ImageIcon,
+  Settings2
 } from 'lucide-react';
 import Image from 'next/image';
 import { format, formatDistance, differenceInDays, addYears, formatDistanceToNowStrict, differenceInYears } from 'date-fns';
@@ -88,6 +89,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import AssetCardPreview from './asset-card-preview';
+import MaintenanceDetailCard from '@/components/maintenance/maintenance-detail-card';
 import QRCode from 'qrcode';
 import { calculateDepreciation } from '@/lib/calculations';
 import { Progress } from '../ui/progress';
@@ -159,6 +161,7 @@ export default function AssetDetail({ assetId, isEmbedded = false }: AssetDetail
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [activeImage, setActiveImage] = useState<string | null>(null);
   const [isPreviewCardOpen, setIsPreviewCardOpen] = useState(false);
+  const [selectedHistorySchedule, setSelectedHistorySchedule] = useState<MaintenanceSchedule | null>(null);
   const [companyName, setCompanyName] = useState('PT. China Glaze Indonesia');
   const [categoryLabels, setCategoryLabels] = useState<Record<string, string[]>>({});
   
@@ -176,6 +179,24 @@ export default function AssetDetail({ assetId, isEmbedded = false }: AssetDetail
   const [mutationReason, setMutationReason] = useState('');
   const [mutationQuantity, setMutationQuantity] = useState(1);
   const [assetLocations, setAssetLocations] = useState<string[]>([]);
+
+  const formatDate = (timestamp: Timestamp | undefined | null, formatStr: string = "d MMMM yyyy") => {
+    if (!timestamp) return '-';
+    try {
+      return format(timestamp.toDate(), formatStr, { locale: id });
+    } catch (e) {
+      return '-';
+    }
+  };
+
+  const formatCurrency = (value: number | undefined | null, currency: string = 'IDR') => {
+    if (value === undefined || value === null || typeof value !== 'number') return '-';
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: currency,
+      maximumFractionDigits: 0
+    }).format(value);
+  };
 
   const [isConditionDialogOpen, setIsConditionDialogOpen] = useState(false);
   const [newCondition, setNewCondition] = useState<AssetCondition | ''>('');
@@ -635,16 +656,32 @@ export default function AssetDetail({ assetId, isEmbedded = false }: AssetDetail
                 <div className="flex items-center gap-3 text-xs font-black text-white/40 animate-pulse text-left"><Loader2 className="h-4 w-4 animate-spin" /> Sinkron data...</div>
             ) : maintenanceHistory.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-left">
-                    {maintenanceHistory.map((m) => (
-                        <div key={m.id} className="p-4 rounded-[1.5rem] bg-white text-black shadow-xl relative overflow-hidden text-left">
-                            <div className="flex items-center justify-between mb-2 text-left">
-                                <Badge className="text-[9px] font-black uppercase px-3 py-0.5 rounded-full">{m.status}</Badge>
-                                <span className="text-[9px] font-black text-slate-400 uppercase flex items-center gap-1 text-left"><CalendarIcon className="w-2.5 h-2.5" /> {formatDate(m.scheduledDate)}</span>
+                    {maintenanceHistory.map((m) => {
+                        const mntCode = m.code || (`MNT-${m.id.slice(0, 6).toUpperCase()}`);
+                        return (
+                            <div
+                                key={m.id}
+                                onClick={() => setSelectedHistorySchedule(m)}
+                                className="p-4 rounded-[1.5rem] bg-white text-black shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all cursor-pointer relative overflow-hidden text-left group"
+                            >
+                                <div className="flex items-center justify-between mb-2 text-left">
+                                    <Badge className="text-[9px] font-black font-mono uppercase px-2.5 py-0.5 rounded-md bg-slate-900 text-emerald-400 border-none shadow-sm">
+                                        {mntCode}
+                                    </Badge>
+                                    <div className="flex items-center gap-1.5">
+                                        <Badge className="text-[9px] font-black uppercase px-3 py-0.5 rounded-full">{m.status}</Badge>
+                                        <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-emerald-600 transition-colors" />
+                                    </div>
+                                </div>
+                                <p className="text-xs font-black text-slate-900 uppercase truncate text-left">{m.type}</p>
+                                <p className="mt-2 text-[10px] text-slate-500 font-bold line-clamp-2 italic text-left">"{m.notes || 'Pengerjaan rutin.'}"</p>
+                                <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-[9px] font-black uppercase text-slate-400 text-left">
+                                    <span>{m.technician || 'Staff IT/GA'}</span>
+                                    <span className="flex items-center gap-1 text-left"><CalendarIcon className="w-2.5 h-2.5" /> {formatDate(m.scheduledDate)}</span>
+                                </div>
                             </div>
-                            <p className="text-xs font-black text-slate-900 uppercase truncate text-left">{m.type}</p>
-                            <p className="mt-2 text-[10px] text-slate-500 font-bold line-clamp-2 italic text-left">"{m.notes || 'Pengerjaan rutin.'}"</p>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             ) : (
                 <div className="p-12 rounded-[2rem] bg-black/10 border-2 border-dashed border-white/10 flex flex-col items-center justify-center opacity-40 text-left"><CheckCircle2 className="h-10 w-10 text-white" /><p className="text-[10px] font-black uppercase mt-2 text-left">Log Bersih</p></div>
@@ -771,6 +808,33 @@ export default function AssetDetail({ assetId, isEmbedded = false }: AssetDetail
       {asset && (
         <AssetCardPreview assetId={asset.id} isOpen={isPreviewCardOpen} onOpenChange={setIsPreviewCardOpen} />
       )}
+
+      {/* Modal Popup Detail Maintenance saat diklik di Histori */}
+      <Dialog open={!!selectedHistorySchedule} onOpenChange={(open) => !open && setSelectedHistorySchedule(null)}>
+        <DialogContent hideCloseButton className="sm:max-w-5xl max-h-[92vh] overflow-y-auto p-4 sm:p-6 rounded-[2.5rem] border-none shadow-2xl bg-slate-50 dark:bg-slate-950 text-black dark:text-white">
+          <DialogHeader className="flex flex-row items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+            <div className="text-left min-w-0">
+              <DialogTitle className="text-base font-black uppercase tracking-tight flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                <WrenchIcon className="w-5 h-5 shrink-0" />
+                <span>Detail Pemeliharaan — {selectedHistorySchedule?.code || (selectedHistorySchedule?.id ? `MNT-${selectedHistorySchedule.id.slice(0, 6).toUpperCase()}` : '')}</span>
+              </DialogTitle>
+              <DialogDescription className="text-xs font-medium text-slate-500">
+                Rincian pengerjaan, bukti foto, tanda tangan & dokumen keabsahan
+              </DialogDescription>
+            </div>
+            <DialogClose asChild>
+              <Button variant="ghost" size="icon" className="rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 h-9 w-9">
+                <XIcon className="w-5 h-5" />
+              </Button>
+            </DialogClose>
+          </DialogHeader>
+          <div className="mt-2">
+            {selectedHistorySchedule && (
+              <MaintenanceDetailCard schedule={selectedHistorySchedule} />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

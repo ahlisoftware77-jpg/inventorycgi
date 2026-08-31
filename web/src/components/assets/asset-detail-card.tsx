@@ -59,6 +59,15 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import AssetDetailDialog from './asset-detail-dialog';
 import AssetCardPreview from './asset-card-preview';
+import MaintenanceDetailCard from '@/components/maintenance/maintenance-detail-card';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogClose,
+} from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import QRCode from 'qrcode';
 import { calculateDepreciation } from '@/lib/calculations';
@@ -143,6 +152,7 @@ export default function AssetDetailCard({ asset }: AssetDetailCardProps) {
   const [isAssetFormOpen, setIsAssetFormOpen] = useState(false);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isPreviewCardOpen, setIsPreviewCardOpen] = useState(false);
+  const [selectedHistorySchedule, setSelectedHistorySchedule] = useState<MaintenanceSchedule | null>(null);
   const [isSharing, setIsSharing] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
   const [itAssetId, setItAssetId] = useState<string | null>(null);
@@ -560,28 +570,38 @@ export default function AssetDetailCard({ asset }: AssetDetailCardProps) {
               </div>
             ) : maintenanceHistory.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {maintenanceHistory.map(m => (
-                  <div key={m.id} className="p-4 rounded-2xl bg-black/20 border border-white/10 shadow-sm relative overflow-hidden group">
-                    {/* Status Ribbon/Badge */}
-                    <div className="absolute top-0 right-0 h-16 w-16 pointer-events-none overflow-hidden">
-                      <div className={cn(
-                        "absolute transform rotate-45 text-center text-[7px] font-black uppercase tracking-widest py-1 w-24 -right-6 top-3 text-white shadow-sm",
-                        m.status === 'Selesai' ? "bg-emerald-500" :
-                        m.status === 'Diproses' ? "bg-amber-500" : "bg-blue-500"
-                      )}>
-                        {m.status}
+                {maintenanceHistory.map(m => {
+                  const mntCode = m.code || (`MNT-${m.id.slice(0, 6).toUpperCase()}`);
+                  return (
+                    <div 
+                      key={m.id} 
+                      onClick={() => setSelectedHistorySchedule(m)}
+                      className="p-4 rounded-2xl bg-black/30 border border-white/10 shadow-sm relative overflow-hidden group cursor-pointer hover:border-emerald-500/60 hover:scale-[1.01] transition-all text-left"
+                    >
+                      <div className="flex items-center justify-between mb-2 text-left">
+                        <Badge className="text-[9px] font-black font-mono uppercase px-2.5 py-0.5 rounded-md bg-slate-900 text-emerald-400 border-none shadow-sm">
+                          {mntCode}
+                        </Badge>
+                        <div className="flex items-center gap-1.5">
+                          <Badge className={cn(
+                            "text-[8px] font-black uppercase px-2.5 py-0.5 rounded-full border-none",
+                            m.status === 'Selesai' ? "bg-emerald-500 text-white" :
+                            m.status === 'Diproses' ? "bg-amber-500 text-white" : "bg-blue-500 text-white"
+                          )}>
+                            {m.status}
+                          </Badge>
+                          <ExternalLink className="w-3.5 h-3.5 text-white/40 group-hover:text-emerald-400 transition-colors" />
+                        </div>
+                      </div>
+                      <p className="text-xs font-black text-white uppercase truncate text-left">{m.type}</p>
+                      <p className="mt-2 text-[10px] text-white/60 font-bold line-clamp-2 italic text-left">"{m.notes || 'Pengerjaan rutin.'}"</p>
+                      <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between text-[9px] font-black uppercase text-white/40 text-left">
+                        <span>{m.technician || 'Staff IT/GA'}</span>
+                        <span className="flex items-center gap-1 text-left"><CalendarIcon className="w-2.5 h-2.5" /> {formatDate(m.scheduledDate)}</span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 mb-2 text-left">
-                      <span className="text-[10px] font-bold text-white/50 uppercase flex items-center gap-1 text-left">
-                        <CalendarIcon className="w-3.5 h-3.5" /> 
-                        {formatDate(m.scheduledDate)}
-                      </span>
-                    </div>
-                    <p className="text-xs font-black text-white uppercase truncate text-left">{m.type}</p>
-                    <p className="mt-2 text-[10px] text-white/60 font-bold line-clamp-2 italic text-left">"{m.notes || 'Pengerjaan rutin.'}"</p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="p-12 rounded-[2rem] bg-black/10 border-2 border-dashed border-white/10 flex flex-col items-center justify-center opacity-40 text-left">
@@ -675,6 +695,33 @@ export default function AssetDetailCard({ asset }: AssetDetailCardProps) {
         isOpen={isPreviewCardOpen}
         onOpenChange={setIsPreviewCardOpen}
     />
+
+    {/* Modal Popup Detail Maintenance saat diklik dari Log Maintenance & Kalibrasi */}
+    <Dialog open={!!selectedHistorySchedule} onOpenChange={(open) => !open && setSelectedHistorySchedule(null)}>
+      <DialogContent hideCloseButton className="sm:max-w-5xl max-h-[92vh] overflow-y-auto p-4 sm:p-6 rounded-[2.5rem] border-none shadow-2xl bg-slate-50 dark:bg-slate-950 text-black dark:text-white">
+        <DialogHeader className="flex flex-row items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+          <div className="text-left min-w-0">
+            <DialogTitle className="text-base font-black uppercase tracking-tight flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+              <WrenchIcon className="w-5 h-5 shrink-0" />
+              <span>Detail Pemeliharaan — {selectedHistorySchedule?.code || (selectedHistorySchedule?.id ? `MNT-${selectedHistorySchedule.id.slice(0, 6).toUpperCase()}` : '')}</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs font-medium text-slate-500">
+              Rincian pengerjaan, bukti foto, tanda tangan & dokumen keabsahan
+            </DialogDescription>
+          </div>
+          <DialogClose asChild>
+            <Button variant="ghost" size="icon" className="rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 h-9 w-9">
+              <ExternalLink className="w-5 h-5 sr-only" />
+            </Button>
+          </DialogClose>
+        </DialogHeader>
+        <div className="mt-2">
+          {selectedHistorySchedule && (
+            <MaintenanceDetailCard schedule={selectedHistorySchedule} />
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
     </>
   );
 }

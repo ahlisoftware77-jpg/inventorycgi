@@ -33,7 +33,8 @@ import {
   Crown,
   Verified,
   ArrowLeft,
-  QrCode
+  QrCode,
+  CircleDollarSign
 } from 'lucide-react';
 import Image from 'next/image';
 import { format } from 'date-fns';
@@ -43,6 +44,7 @@ import QRCode from 'qrcode';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { DocumentViewerModal } from '@/components/maintenance/document-viewer-modal';
 
 interface PublicAssetViewProps {
   assetId: string;
@@ -90,6 +92,11 @@ const formatDate = (timestamp: Timestamp | undefined | null) => {
     }
 };
 
+const formatCurrency = (value: number | undefined | null) => {
+  if (value === undefined || value === null) return '-';
+  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
+};
+
 export default function PublicAssetView({ assetId }: PublicAssetViewProps) {
   const [asset, setAsset] = useState<Asset | null>(null);
   const [maintenanceHistory, setMaintenanceHistory] = useState<MaintenanceSchedule[]>([]);
@@ -97,6 +104,7 @@ export default function PublicAssetView({ assetId }: PublicAssetViewProps) {
   const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
   const [companyName, setCompanyName] = useState('PT. CHINA GLAZE INDONESIA');
   const [categoryLabels, setCategoryLabels] = useState<Record<string, string[]>>({});
+  const [previewDoc, setPreviewDoc] = useState<{ title: string; url: string } | null>(null);
 
   useEffect(() => {
     const unsubGen = onSnapshot(doc(db, 'settings', 'general'), (snap) => {
@@ -361,6 +369,73 @@ export default function PublicAssetView({ assetId }: PublicAssetViewProps) {
             )}
         </section>
 
+        {asset.disposalType && (
+            <section className="space-y-6">
+                <SectionLabel title="Informasi & Bukti Disposal" icon={CircleDollarSign} />
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                    <DetailTile label="Jenis Disposal" value={asset.disposalType} icon={Tag} />
+                    {asset.disposalType === 'Dijual' && (
+                        <>
+                            <DetailTile label="Harga Jual" value={formatCurrency(asset.disposalPrice)} icon={CircleDollarSign} />
+                            <DetailTile label="Pembeli" value={asset.disposalBuyer} icon={User} />
+                        </>
+                    )}
+                    <DetailTile label="Harga Perolehan" value={formatCurrency(asset.disposalCost)} icon={FileText} />
+                    <DetailTile label="Akumulasi Penyusutan" value={formatCurrency(asset.disposalAccumulatedDepreciation)} icon={Wrench} />
+                    <DetailTile label="Nilai Buku Sisa" value={formatCurrency(asset.disposalBookValue)} icon={ShieldCheck} />
+                </div>
+
+                {(() => {
+                    const disposalPhotos = [
+                        asset.disposalPhotoURL1, 
+                        asset.disposalPhotoURL2, 
+                        asset.disposalPhotoURL3, 
+                        asset.disposalPhotoURL4
+                    ].filter((u): u is string => !!u);
+
+                    if (disposalPhotos.length > 0 && asset.isDisposalPhotoPublic !== false) {
+                        return (
+                            <div className="space-y-4">
+                                <p className="text-xs font-black uppercase text-slate-400 tracking-wider flex items-center gap-1.5 px-2 text-left">
+                                    <ImageIcon className="h-4 w-4" /> Bukti Lampiran Disposal Resmi
+                                </p>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                    {disposalPhotos.map((url, idx) => {
+                                        const isPdf = url.toLowerCase().includes('.pdf') || url.toLowerCase().includes('/raw/') || url.toLowerCase().includes('/files/');
+                                        return isPdf ? (
+                                            <div 
+                                                key={`disposal-photo-${idx}`} 
+                                                className="relative aspect-square rounded-[2rem] overflow-hidden border-4 border-rose-200 dark:border-rose-950/40 shadow-xl bg-rose-50/70 dark:bg-rose-950/30 cursor-pointer hover:scale-105 transition-all duration-500 group flex flex-col items-center justify-center p-2 text-center"
+                                                onClick={() => setPreviewDoc({ title: `Bukti Lampiran PDF ${idx + 1}`, url })}
+                                            >
+                                                <FileText className="w-10 h-10 text-rose-500 mb-1 group-hover:scale-110 transition-transform" />
+                                                <span className="text-[10px] font-black uppercase text-rose-600 tracking-wider">PDF {idx + 1}</span>
+                                                <div className="absolute inset-0 bg-rose-500/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                    <Button variant="secondary" size="sm" className="rounded-full font-black text-[9px] uppercase tracking-widest h-8 text-rose-700 bg-white">Preview PDF</Button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div 
+                                                key={`disposal-photo-${idx}`} 
+                                                className="relative aspect-square rounded-[2rem] overflow-hidden border-4 border-rose-100 dark:border-rose-950/20 shadow-xl bg-slate-200 cursor-pointer hover:scale-105 transition-all duration-500 group"
+                                                onClick={() => setPreviewDoc({ title: `Bukti Disposal ${idx + 1}`, url })}
+                                            >
+                                                <Image src={url} alt={`Bukti Disposal ${idx + 1}`} fill className="object-cover" />
+                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                    <Button variant="secondary" size="sm" className="rounded-full font-black text-[9px] uppercase tracking-widest h-8 text-black">Preview</Button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        );
+                    }
+                    return null;
+                })()}
+            </section>
+        )}
+
         <section>
             <SectionLabel title="Audit Trail & Catatan" icon={FileText} />
             <Card className="rounded-[2.5rem] border-none shadow-sm bg-white dark:bg-slate-900 overflow-hidden ring-1 ring-slate-100 dark:ring-slate-800">
@@ -383,20 +458,45 @@ export default function PublicAssetView({ assetId }: PublicAssetViewProps) {
             <section>
                 <SectionLabel title="Dokumentasi Visual Resmi" icon={ImageIcon} />
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    {galleryImages.map((url, idx) => (
-                        <div 
-                            key={idx} 
-                            className="relative aspect-square rounded-[2rem] overflow-hidden border-4 border-white dark:border-slate-800 shadow-xl bg-slate-200 cursor-pointer hover:scale-105 transition-all duration-500 group"
-                            onClick={() => window.open(url, '_blank')}
-                        >
-                            <Image src={url} alt={`Foto Aset ${idx + 1}`} fill className="object-cover" />
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                <Button variant="secondary" size="sm" className="rounded-full font-black text-[9px] uppercase tracking-widest h-8 text-black">Lihat</Button>
+                    {galleryImages.map((url, idx) => {
+                        const isPdf = url.toLowerCase().includes('.pdf') || url.toLowerCase().includes('/raw/') || url.toLowerCase().includes('/files/');
+                        return isPdf ? (
+                            <div 
+                                key={idx} 
+                                className="relative aspect-square rounded-[2rem] overflow-hidden border-4 border-rose-200 dark:border-rose-950/40 shadow-xl bg-rose-50/70 dark:bg-rose-950/30 cursor-pointer hover:scale-105 transition-all duration-500 group flex flex-col items-center justify-center p-2 text-center"
+                                onClick={() => setPreviewDoc({ title: `Dokumen PDF ${idx + 1}`, url })}
+                            >
+                                <FileText className="w-10 h-10 text-rose-500 mb-1 group-hover:scale-110 transition-transform" />
+                                <span className="text-[10px] font-black uppercase text-rose-600 tracking-wider">PDF {idx + 1}</span>
+                                <div className="absolute inset-0 bg-rose-500/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <Button variant="secondary" size="sm" className="rounded-full font-black text-[9px] uppercase tracking-widest h-8 text-rose-700 bg-white">Preview PDF</Button>
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        ) : (
+                            <div 
+                                key={idx} 
+                                className="relative aspect-square rounded-[2rem] overflow-hidden border-4 border-white dark:border-slate-800 shadow-xl bg-slate-200 cursor-pointer hover:scale-105 transition-all duration-500 group"
+                                onClick={() => setPreviewDoc({ title: `Foto Aset ${idx + 1}`, url })}
+                            >
+                                <Image src={url} alt={`Foto Aset ${idx + 1}`} fill className="object-cover" />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <Button variant="secondary" size="sm" className="rounded-full font-black text-[9px] uppercase tracking-widest h-8 text-black">Preview</Button>
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
             </section>
+        )}
+
+        {/* Modal Popup Viewer PDF & Dokumen */}
+        {previewDoc && (
+            <DocumentViewerModal
+                isOpen={!!previewDoc}
+                onOpenChange={(open) => !open && setPreviewDoc(null)}
+                title={previewDoc.title}
+                url={previewDoc.url}
+            />
         )}
     </motion.div>
   );

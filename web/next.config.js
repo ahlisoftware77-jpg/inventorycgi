@@ -9,7 +9,7 @@ const withPWA = require('next-pwa')({
 
 const nextConfig = {
   /* config options here */
-  output: 'export',
+  output: process.env.VERCEL ? undefined : 'export',
   typescript: {
     ignoreBuildErrors: true,
   },

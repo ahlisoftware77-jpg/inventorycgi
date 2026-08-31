@@ -4,15 +4,14 @@
 import React, { useEffect, useState } from 'react';
 import { useFontSize } from '@/components/providers/font-size-provider';
 import { Button } from './button';
-import { Minus, Plus, RotateCcw, Maximize2, Minimize2 } from 'lucide-react';
+import { Minus, Plus, RotateCcw, Maximize2, Minimize2, GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
 /**
  * @fileOverview Komponen kontrol zoom melayang di pojok kanan bawah.
  * Memungkinkan user mengubah skala font (REM) secara global.
- * Ditambahkan fitur minimize untuk menghemat ruang layar.
- * Status minimized kini tersimpan di localStorage agar tetap persisten setelah refresh.
+ * Ditambahkan fitur minimize & drag (dapat digeser ke mana saja di layar).
  */
 export default function FloatingZoomControl() {
   const { fontScale, setFontScale } = useFontSize();
@@ -48,11 +47,14 @@ export default function FloatingZoomControl() {
   };
 
   return (
-    <div className="fixed bottom-8 right-24 z-[100] flex items-center print:hidden">
+    <div className="fixed bottom-6 left-6 z-50 flex items-center print:hidden">
       <motion.div 
-        layout
+        drag
+        dragMomentum={false}
+        dragElastic={0.1}
+        whileDrag={{ scale: 1.05, cursor: "grabbing" }}
         className={cn(
-          "flex items-center gap-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl transition-all duration-500 hover:shadow-primary/10",
+          "flex items-center gap-1 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl transition-all duration-300 hover:shadow-primary/20 cursor-grab active:cursor-grabbing select-none touch-none",
           isMinimized ? "rounded-full w-12 h-12 justify-center" : "rounded-2xl"
         )}
       >
@@ -65,7 +67,7 @@ export default function FloatingZoomControl() {
               exit={{ opacity: 0, scale: 0.8 }}
               onClick={() => handleToggleMinimize(false)}
               className="flex flex-col items-center justify-center w-full h-full text-primary"
-              title="Buka Kontrol Zoom"
+              title="Buka & Geser Kontrol Zoom"
             >
               <p className="text-[9px] font-black leading-none">{Math.round(fontScale * 100)}%</p>
               <Maximize2 className="h-3 w-3 mt-0.5" />
@@ -78,6 +80,11 @@ export default function FloatingZoomControl() {
               exit={{ opacity: 0, x: 20 }}
               className="flex items-center gap-1"
             >
+              {/* Drag Handle Indicator */}
+              <div className="px-1 py-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-grab active:cursor-grabbing" title="Geser ke mana saja">
+                <GripVertical className="h-4 w-4" />
+              </div>
+
               <Button
                 variant="ghost"
                 size="icon"

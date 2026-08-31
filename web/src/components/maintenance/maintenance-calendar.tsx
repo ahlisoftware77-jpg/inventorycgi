@@ -9,7 +9,7 @@
  */
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { collection, onSnapshot, query, orderBy, where, QueryConstraint, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, where, QueryConstraint, addDoc, serverTimestamp, doc, updateDoc, getDoc, arrayUnion, Timestamp, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { useAuth } from '@/hooks/use-auth';
 import { type MaintenanceSchedule } from '@/lib/types';
@@ -38,7 +38,8 @@ import {
   Building,
   QrCode,
   Share2,
-  Loader2
+  Loader2,
+  RefreshCw
 } from 'lucide-react';
 import { format, isPast, getMonth, getYear } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -95,6 +96,7 @@ export default function MaintenanceCalendar() {
   const [schedules, setSchedules] = useState<MaintenanceSchedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSharing, setIsSharing] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -118,9 +120,28 @@ export default function MaintenanceCalendar() {
     setLoading(true);
 
     const queryConstraints: QueryConstraint[] = [];
-    
-    if (user.role !== 'Admin' && user.department) {
-        queryConstraints.push(where('department', '==', user.department));
+    const isAdmin = user.role === 'Admin';
+    const canAccessAll = isAdmin || !!user.permissions?.canAccessAllAssetsInMaintenance;
+    const canAccessPartial = isAdmin || canAccessAll || !!user.permissions?.canAccessPartialAssetsInMaintenance;
+
+    if (!canAccessAll) {
+        if (canAccessPartial) {
+            // Bisa melihat unitnya sendiri dan unit yang diizinkan oleh admin
+            const userDept = user.department;
+            const allowedDepts = user.allowedDepartments || [];
+            let allVisibleDepts = [...allowedDepts];
+            if (userDept && !allVisibleDepts.includes(userDept)) {
+                allVisibleDepts.push(userDept);
+            }
+            if (allVisibleDepts.length > 0) {
+                queryConstraints.push(where('department', 'in', allVisibleDepts.slice(0, 30)));
+            } else if (userDept) {
+                queryConstraints.push(where('department', '==', userDept));
+            }
+        } else if (user.department) {
+            // Hanya bisa melihat unitnya sendiri
+            queryConstraints.push(where('department', '==', user.department));
+        }
     }
     
     queryConstraints.push(orderBy('scheduledDate', 'desc'));
@@ -199,6 +220,61 @@ export default function MaintenanceCalendar() {
 
   const isAllSelected = filteredSchedules.length > 0 && selectedIds.length === filteredSchedules.length;
   const isIndeterminate = selectedIds.length > 0 && !isAllSelected;
+
+  const handleSyncHelpdesk = async () => {
+    const unsyncedSchedules = schedules.filter(
+      s => s.status === 'Selesai' && s.ticketId
+    );
+
+    if (unsyncedSchedules.length === 0) {
+      toast({ title: 'Sudah Sinkron', description: 'Tidak ada jadwal selesai yang perlu disinkronkan dengan helpdesk.' });
+      return;
+    }
+
+    setIsSyncing(true);
+    let syncCount = 0;
+    let skipCount = 0;
+
+    try {
+      for (const schedule of unsyncedSchedules) {
+        try {
+          const ticketRef = doc(db, 'helpdesk_tickets', schedule.ticketId!);
+          const ticketSnap = await getDoc(ticketRef);
+
+          if (ticketSnap.exists()) {
+            const ticketData = ticketSnap.data();
+            if (ticketData.status !== 'Selesai') {
+              await updateDoc(ticketRef, {
+                status: 'Selesai',
+                updates: arrayUnion({
+                  note: `Tiket disinkronkan otomatis — maintenance "${schedule.assetName}" telah selesai.`,
+                  updatedBy: 'system',
+                  updaterName: 'Sinkronisasi Maintenance',
+                  updatedAt: Timestamp.now(),
+                }),
+              });
+              syncCount++;
+            } else {
+              skipCount++;
+            }
+          }
+        } catch (e) {
+          console.warn(`Gagal sinkron tiket ${schedule.ticketId}:`, e);
+        }
+      }
+
+      if (syncCount > 0) {
+        toast({ title: 'Sinkronisasi Berhasil', description: `${syncCount} tiket helpdesk berhasil diperbarui ke status Selesai.${skipCount > 0 ? ` ${skipCount} sudah sinkron.` : ''}` });
+      } else {
+        toast({ title: 'Sudah Sinkron', description: `Semua ${skipCount} tiket helpdesk terkait sudah berstatus Selesai.` });
+      }
+    } catch (error) {
+      console.error('Sync error:', error);
+      toast({ variant: 'destructive', title: 'Gagal Sinkronisasi', description: 'Terjadi kesalahan saat menyinkronkan data.' });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
   
   const handlePrint = async () => {
     const schedulesToPrint = selectedIds.length > 0 ? filteredSchedules.filter(s => selectedIds.includes(s.id)) : filteredSchedules;
@@ -429,6 +505,9 @@ export default function MaintenanceCalendar() {
             
             <div className="flex flex-wrap items-center gap-3">
                 <div className="flex items-center gap-1.5 bg-white/5 p-1.5 rounded-2xl border border-white/10 backdrop-blur-sm">
+                    <Button onClick={handleSyncHelpdesk} variant="ghost" disabled={isSyncing} className="rounded-xl h-10 px-3 text-xs font-bold text-white hover:bg-white/10">
+                        {isSyncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="mr-2 h-4 w-4 text-emerald-400" />} Sinkronkan
+                    </Button>
                     <Button onClick={handleShareMaintenanceReport} variant="ghost" disabled={isSharing} className="rounded-xl h-10 px-3 text-xs font-bold text-white hover:bg-white/10">
                         {isSharing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Share2 className="mr-2 h-4 w-4 text-primary" />} Bagikan Log
                     </Button>

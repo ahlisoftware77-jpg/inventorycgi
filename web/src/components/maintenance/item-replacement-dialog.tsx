@@ -109,35 +109,10 @@ export default function ItemReplacementDialog({ schedule, isOpen, onOpenChange }
             })
         });
 
-        // 2. Reduce Inventory Stock
-        const inventoryRef = doc(db, 'inventory', selectedItem.id);
-        batch.update(inventoryRef, {
-            stock: increment(-quantity),
-            lastUpdated: serverTimestamp()
-        });
-
-        // 3. Record Inventory Transaction (Audit Trail)
-        const transactionRef = doc(collection(db, 'inventory_transactions'));
-        batch.set(transactionRef, {
-            inventoryId: selectedItem.id,
-            inventoryCode: selectedItem.code,
-            inventoryName: selectedItem.name,
-            action: 'out',
-            quantity: quantity,
-            notes: `Digunakan untuk Maintenance ${schedule.assetCode} (${schedule.assetName})`,
-            userId: user.uid,
-            userName: user.displayName || user.email,
-            requesterName: requesterName.trim(),
-            requesterDept: schedule.department,
-            transactionDate: serverTimestamp(),
-            createdAt: serverTimestamp(),
-        });
-
-        // 4. Create Inventory Request Record (Linked to Maintenance for Log visibility)
+        // 2. Create Inventory Request Record (Linked to Maintenance for Admin Validation)
         const requestRef = doc(collection(db, 'inventory_requests'));
-        let finalCategory = 'Lainnya';
+        let finalCategory = selectedItem.type || 'Lainnya';
         if (selectedItem.type === 'ATK') finalCategory = 'Logistik ATK';
-        else if (selectedItem.type === 'Sparepart') finalCategory = 'Sparepart';
         else if (selectedItem.type === 'Alat Kebersihan') finalCategory = 'Kebersihan';
 
         batch.set(requestRef, {
@@ -149,17 +124,17 @@ export default function ItemReplacementDialog({ schedule, isOpen, onOpenChange }
             requestingUserId: user.uid,
             requestingUserName: requesterName.trim(),
             requestingDept: schedule.department,
-            status: 'Disetujui', // Immediately marked as approved since it's processed by maintenance tech
+            status: 'Menunggu Persetujuan HRGA', // Requires Admin approval & validation
             requestedAt: serverTimestamp(),
-            processedByUserId: user.uid,
-            processedByUserName: 'SYSTEM (MAINTENANCE)',
-            processedAt: serverTimestamp(),
-            maintenanceId: schedule.id, // THE LINK
-            notes: `Otomatis melalui modul Maintenance untuk aset ${schedule.assetCode}`
+            maintenanceId: schedule.id, // THE LINK TO MAINTENANCE
+            notes: `Permintaan pergantian part maintenance aset ${schedule.assetCode} (${schedule.assetName})`
         });
 
         await batch.commit();
-        toast({ title: 'Barang Diganti', description: `${quantity} ${selectedItem.unit} ${selectedItem.name} telah dicatat dan log permintaan dibuat.` });
+        toast({ 
+            title: 'Permintaan Part Terkirim', 
+            description: `Permintaan ${quantity} ${selectedItem.unit} ${selectedItem.name} dikirim ke Logistik. Menunggu persetujuan Admin.` 
+        });
         onOpenChange(false);
     } catch (error) {
         console.error("Error saving replacement:", error);
@@ -171,7 +146,7 @@ export default function ItemReplacementDialog({ schedule, isOpen, onOpenChange }
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl p-0 overflow-hidden border-none shadow-3xl bg-white rounded-[2.5rem] mx-auto text-black">
+      <DialogContent hideCloseButton className="sm:max-w-2xl p-0 overflow-hidden border-none shadow-3xl bg-white rounded-[2.5rem] mx-auto text-black">
         <div className="px-8 py-8 bg-slate-900 text-white flex flex-col items-center text-center gap-2 shrink-0 relative">
           <div className="p-3.5 bg-white/10 rounded-full backdrop-blur-md mb-1 shadow-lg border border-white/20">
             <Package className="w-8 h-8 text-primary" />

@@ -108,7 +108,7 @@ export default function MutationItem({ asset, isExpanded, onToggle, isSelected, 
               <div className="flex flex-wrap items-center gap-x-2 text-[10px] font-black text-muted-foreground uppercase tracking-widest mt-0.5">
                 <span className="font-mono text-primary">{asset.code}</span>
                 <span className="opacity-20">|</span>
-                <span className="truncate max-w-[200px]">{getSecondaryText()}</span>
+                <span className="break-all">{getSecondaryText()}</span>
               </div>
             </div>
           </div>

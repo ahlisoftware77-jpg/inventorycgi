@@ -131,7 +131,7 @@ const StatCard = ({ title, value, emoji, colorClass }: { title: string, value: n
     </Card>
 );
 
-const TicketItem = ({ ticket, maintenanceCategory }: { ticket: HelpdeskTicket, maintenanceCategory?: string }) => {
+const TicketItem = ({ ticket, maintenanceInfo }: { ticket: HelpdeskTicket, maintenanceInfo?: { type: string; code: string } }) => {
     const styles = getAlertStyles(ticket.status);
     const StatusIcon = styles.icon;
     const [isOpen, setIsOpen] = useState(false);
@@ -165,10 +165,15 @@ const TicketItem = ({ ticket, maintenanceCategory }: { ticket: HelpdeskTicket, m
                                     <Paperclip className="h-2.5 w-2.5" /> Ada Lampiran
                                 </Badge>
                             )}
-                            {maintenanceCategory && (
-                                <Badge variant="outline" className="text-[8px] font-black px-2 py-0 h-4 uppercase border-primary/30 text-primary bg-primary/5 flex items-center gap-1">
-                                    <Wrench className="h-2.5 w-2.5" /> Maintenance: {maintenanceCategory}
-                                </Badge>
+                            {maintenanceInfo && (
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                    <Badge className="text-[8px] font-black font-mono px-2 py-0 h-4 uppercase bg-slate-900 text-emerald-400 border-none shadow-sm">
+                                        {maintenanceInfo.code}
+                                    </Badge>
+                                    <Badge variant="outline" className="text-[8px] font-black px-2 py-0 h-4 uppercase border-primary/30 text-primary bg-primary/5 flex items-center gap-1">
+                                        <Wrench className="h-2.5 w-2.5" /> Maintenance: {maintenanceInfo.type}
+                                    </Badge>
+                                </div>
                             )}
                         </div>
                         <h3 className="text-sm sm:text-base font-black uppercase tracking-tight truncate leading-tight text-slate-800 dark:text-slate-100 text-left">
@@ -210,7 +215,7 @@ const TicketItem = ({ ticket, maintenanceCategory }: { ticket: HelpdeskTicket, m
 
 export default function HelpdeskTable() {
   const [tickets, setTickets] = useState<HelpdeskTicket[]>([]);
-  const [maintenanceMap, setMaintenanceMap] = useState<Record<string, string>>({});
+  const [maintenanceMap, setMaintenanceMap] = useState<Record<string, { type: string; code: string }>>({});
   const [reportMap, setReportMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [isSharing, setIsSharing] = useState(false);
@@ -229,45 +234,53 @@ export default function HelpdeskTable() {
   
   const [isNewTicketOpen, setIsNewTicketOpen] = useState(false);
 
+  const fetchHelpdeskData = async (isManual = false) => {
+    if (!user) return;
+    try {
+      setLoading(true);
+      const qMaint = query(collection(db, 'maintenance_schedules'));
+      const snapMaint = await getDocs(qMaint);
+      const mappingMaint: Record<string, { type: string; code: string }> = {};
+      snapMaint.forEach(doc => {
+          const data = doc.data();
+          const code = data.code || (`MNT-${doc.id.slice(0, 6).toUpperCase()}`);
+          if (data.ticketId) mappingMaint[data.ticketId] = { type: data.type || 'Maintenance', code };
+      });
+      setMaintenanceMap(mappingMaint);
+
+      const qReports = query(collection(db, 'it_problem_reports'));
+      const snapReports = await getDocs(qReports);
+      const mappingReports: Record<string, string> = {};
+      snapReports.forEach(doc => {
+          const data = doc.data();
+          if (data.ticketId) mappingReports[data.ticketId] = doc.id;
+      });
+      setReportMap(mappingReports);
+
+      let q: QueryConstraint[] = [];
+      if (user.role !== 'Admin') {
+        q.push(where('reportedBy', '==', user.uid));
+      }
+      const finalQuery = query(collection(db, 'helpdesk_tickets'), ...q, limit(500));
+      const snapTickets = await getDocs(finalQuery);
+      const ticketsData = snapTickets.docs.map(doc => ({ id: doc.id, ...doc.data() } as HelpdeskTicket));
+      setTickets(ticketsData.sort((a, b) => (b.reportedAt?.toMillis() || 0) - (a.reportedAt?.toMillis() || 0)));
+      
+      if (isManual) {
+        toast({ title: 'Sinkronisasi Berhasil', description: 'Data helpdesk terbaru telah dimuat ulang.' });
+      }
+    } catch (error) {
+      console.error("Error loading helpdesk data:", error);
+      if (isManual) {
+        toast({ variant: 'destructive', title: 'Gagal', description: 'Gagal memuat ulang data.' });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (authLoading || !user) return;
-    setLoading(true);
-
-    const fetchHelpdeskData = async () => {
-      try {
-        const qMaint = query(collection(db, 'maintenance_schedules'));
-        const snapMaint = await getDocs(qMaint);
-        const mappingMaint: Record<string, string> = {};
-        snapMaint.forEach(doc => {
-            const data = doc.data();
-            if (data.ticketId) mappingMaint[data.ticketId] = data.type;
-        });
-        setMaintenanceMap(mappingMaint);
-
-        const qReports = query(collection(db, 'it_problem_reports'));
-        const snapReports = await getDocs(qReports);
-        const mappingReports: Record<string, string> = {};
-        snapReports.forEach(doc => {
-            const data = doc.data();
-            if (data.ticketId) mappingReports[data.ticketId] = doc.id;
-        });
-        setReportMap(mappingReports);
-
-        let q: QueryConstraint[] = [];
-        if (user.role !== 'Admin') {
-          q.push(where('reportedBy', '==', user.uid));
-        }
-        const finalQuery = query(collection(db, 'helpdesk_tickets'), ...q, limit(100));
-        const snapTickets = await getDocs(finalQuery);
-        const ticketsData = snapTickets.docs.map(doc => ({ id: doc.id, ...doc.data() } as HelpdeskTicket));
-        setTickets(ticketsData.sort((a, b) => (b.reportedAt?.toMillis() || 0) - (a.reportedAt?.toMillis() || 0)));
-      } catch (error) {
-        console.error("Error loading helpdesk data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchHelpdeskData();
   }, [user, authLoading]);
 
@@ -283,14 +296,17 @@ export default function HelpdeskTable() {
   }, [tickets]);
 
   const maintenanceCategoriesList = useMemo(() => {
-    return Array.from(new Set(Object.values(maintenanceMap))).sort();
+    return Array.from(new Set(Object.values(maintenanceMap).map(m => m.type))).sort();
   }, [maintenanceMap]);
 
   const filteredTickets = useMemo(() => {
     return tickets.filter(ticket => {
+      const maintInfo = maintenanceMap[ticket.id];
       const searchMatch = !searchTerm || 
         (ticket.ticketNumber?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-        (ticket.description?.toLowerCase() || '').includes(searchTerm.toLowerCase());
+        (ticket.description?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (maintInfo?.code?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (maintInfo?.type?.toLowerCase() || '').includes(searchTerm.toLowerCase());
       
       const reportedAt = ticket.reportedAt;
       if (!reportedAt) return false; // Abaikan data tanpa tanggal untuk filter waktu
@@ -305,7 +321,7 @@ export default function HelpdeskTable() {
       
       const statusMatch = statusFilters.length === 0 || statusFilters.includes(ticket.status);
 
-      const ticketMaintType = maintenanceMap[ticket.id] || 'None';
+      const ticketMaintType = maintInfo?.type || 'None';
       const maintenanceMatch = selectedMaintenanceType === 'all' || ticketMaintType === selectedMaintenanceType;
 
       return searchMatch && monthMatch && yearMatch && deptMatch && categoryMatch && reporterMatch && statusMatch && maintenanceMatch;
@@ -416,6 +432,9 @@ export default function HelpdeskTable() {
                 
                 <div className="flex flex-wrap items-center gap-2.5">
                     <div className="flex bg-white/5 p-1.5 rounded-2xl border border-white/10 backdrop-blur-sm shadow-inner gap-2">
+                        <Button onClick={() => fetchHelpdeskData(true)} variant="ghost" disabled={loading} className="h-10 w-10 p-0 rounded-xl text-white hover:bg-white/10" title="Refresh Data">
+                            <RotateCcw className={cn("h-4 w-4", loading && "animate-spin")} />
+                        </Button>
                         <ExportHelpdeskButton tickets={filteredTickets} reportMap={reportMap} />
                         <Button onClick={handleShareSummaryReport} variant="ghost" disabled={isSharing} className="h-10 rounded-xl text-xs font-bold text-white hover:bg-white/10">
                             {isSharing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Share2 className="mr-2 h-4 w-4" />} Bagikan Laporan
@@ -687,7 +706,7 @@ export default function HelpdeskTable() {
                             <TicketItem 
                                 key={ticket.id} 
                                 ticket={ticket} 
-                                maintenanceCategory={maintenanceMap[ticket.id]} 
+                                maintenanceInfo={maintenanceMap[ticket.id]} 
                             />
                         ))
                     ) : (

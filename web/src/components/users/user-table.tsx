@@ -16,7 +16,8 @@ import React from 'react';
 import UserItem from './user-item';
 import UserDetailCard from './user-detail-card';
 import { Button } from '../ui/button';
-import { Printer } from 'lucide-react';
+import { Input } from '../ui/input';
+import { Printer, Search } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 
@@ -24,6 +25,7 @@ export default function UserTable() {
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const { user: currentUser, loading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
@@ -52,7 +54,7 @@ export default function UserTable() {
       (querySnapshot) => {
         const usersData: User[] = [];
         querySnapshot.forEach((doc) => {
-          usersData.push({ ...doc.data() } as User);
+          usersData.push({ uid: doc.id, ...doc.data() } as User);
         });
         setAllUsers(usersData);
         setLoading(false);
@@ -67,10 +69,18 @@ export default function UserTable() {
   }, [isAdmin]);
 
   const { pendingUsers, approvedUsers } = useMemo(() => {
-    const pending = allUsers.filter(u => u.role === 'Pending').sort((a,b) => (a.name || '').localeCompare(b.name || ''));
-    const approved = allUsers.filter(u => u.role !== 'Pending').sort((a,b) => (a.name || '').localeCompare(b.name || ''));
+    const term = searchTerm.toLowerCase();
+    const filteredUsers = allUsers.filter(u => {
+      if (!term) return true;
+      return (u.name?.toLowerCase().includes(term) ||
+              u.email?.toLowerCase().includes(term) ||
+              u.department?.toLowerCase().includes(term));
+    });
+
+    const pending = filteredUsers.filter(u => u.role === 'Pending').sort((a,b) => (a.name || '').localeCompare(b.name || ''));
+    const approved = filteredUsers.filter(u => u.role !== 'Pending').sort((a,b) => (a.name || '').localeCompare(b.name || ''));
     return { pendingUsers: pending, approvedUsers: approved };
-  }, [allUsers]);
+  }, [allUsers, searchTerm]);
 
   const handleToggle = (id: string) => {
     setExpandedId(prevId => (prevId === id ? null : id));
@@ -206,6 +216,15 @@ export default function UserTable() {
             <Printer className="mr-2 h-4 w-4" />
             Cetak Laporan
           </Button>
+        </div>
+        <div className="pt-4 relative max-w-md">
+          <Search className="absolute left-3 top-[26px] h-4 w-4 text-muted-foreground pointer-events-none" />
+          <Input 
+            placeholder="Cari nama, email, atau departemen..." 
+            className="pl-9 h-10 w-full"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
       </CardHeader>
       <CardContent>

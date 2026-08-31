@@ -42,7 +42,8 @@ import {
   ListTodo,
   AlertTriangle,
   Layers,
-  GitBranch
+  GitBranch,
+  Mail
 } from 'lucide-react';
 import {
   Collapsible,
@@ -92,6 +93,7 @@ const itemColorMap: Record<string, { activeIconColor: string, shadow: string, ic
   settings: { activeIconColor: 'text-slate-700', shadow: 'shadow-teal-900/5', iconColor: 'text-slate-305', inactiveIconBg: 'bg-teal-950/40' },
   backup: { activeIconColor: 'text-teal-700', shadow: 'shadow-teal-900/5', iconColor: 'text-indigo-305', inactiveIconBg: 'bg-teal-950/40' },
   roles: { activeIconColor: 'text-cyan-700', shadow: 'shadow-teal-900/5', iconColor: 'text-cyan-305', inactiveIconBg: 'bg-teal-950/40' },
+  broadcast_email: { activeIconColor: 'text-rose-700', shadow: 'shadow-teal-900/5', iconColor: 'text-rose-305', inactiveIconBg: 'bg-teal-950/40' },
   help: { activeIconColor: 'text-sky-700', shadow: 'shadow-teal-900/5', iconColor: 'text-sky-305', inactiveIconBg: 'bg-teal-950/40' }
 };
 
@@ -275,6 +277,7 @@ export default function SidebarNav() {
     { id: 'thermal', label: 'Thermal Print', icon: Printer, href: '/thermal-print-58', hide: isUserRole },
     { id: 'recycle', label: 'Tempat Sampah', icon: Trash2, href: '/recycle-bin', hide: !isAdmin },
     { id: 'settings', label: 'Pengaturan', icon: Settings, href: '/settings', hide: !isAdmin },
+    { id: 'broadcast_email', label: 'Broadcast Email', icon: Mail, href: '/broadcast-email', hide: isUserRole },
     { id: 'backup', label: 'Backup & Restore', icon: DatabaseBackup, href: '/backup', hide: !isAdmin },
     { id: 'roles', label: 'Hak Akses', icon: UserCog, href: '/user-roles', hide: isUserRole },
     { id: 'help', label: 'Bantuan', icon: HelpCircle, href: '/help' },

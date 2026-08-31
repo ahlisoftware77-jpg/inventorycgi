@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useRouter } from 'next/navigation';
 import { Bar, BarChart, XAxis, YAxis, CartesianGrid, Cell } from 'recharts';
 import {
   Card,
@@ -23,6 +24,8 @@ interface AssetDistributionChartProps {
 }
 
 export default function AssetDistributionChart({ assets }: AssetDistributionChartProps) {
+  const router = useRouter();
+
   const chartData = React.useMemo(() => {
     const categoryCounts = assets.reduce((acc, asset) => {
       acc[asset.category] = (acc[asset.category] || 0) + 1;
@@ -47,6 +50,13 @@ export default function AssetDistributionChart({ assets }: AssetDistributionChar
     return config;
   }, [chartData]);
 
+  const handleBarClick = (data: any) => {
+    if (data && data.activePayload && data.activePayload.length > 0) {
+      const category = data.activePayload[0].payload.name;
+      router.push(`/assets?category=${encodeURIComponent(category)}`);
+    }
+  };
+
   return (
     <Card className="border border-slate-100 dark:border-slate-800 flex flex-col h-full overflow-hidden bg-white/40 dark:bg-slate-900/40 backdrop-blur-md rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.01)] border-b-4 border-b-indigo-500/70 dark:border-b-indigo-800/80 hover:-translate-y-[4px] active:translate-y-0 transition-all duration-300">
       <CardHeader className="text-left pb-2">
@@ -67,6 +77,8 @@ export default function AssetDistributionChart({ assets }: AssetDistributionChar
             <BarChart 
               accessibilityLayer 
               data={chartData} 
+              onClick={handleBarClick}
+              className="cursor-pointer"
               margin={{ top: 15, right: 5, left: -20, bottom: 40 }}
             >
               <defs>

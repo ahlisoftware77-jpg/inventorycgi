@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -15,13 +15,15 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { Loader2, Camera, FileImage, UploadCloud, X, Send, AlertTriangle, FileText, CheckCircle2, Zap, MessageSquare } from 'lucide-react';
-import { type TicketCategory, type TicketPriority } from '@/lib/types';
+import { Loader2, Camera, FileImage, UploadCloud, X, Send, AlertTriangle, FileText, CheckCircle2, Zap, MessageSquare, Search, User, Monitor, Info } from 'lucide-react';
+import { type TicketCategory, type TicketPriority, type Asset } from '@/lib/types';
 import { ticketSchema } from '@/lib/schemas';
 import Image from 'next/image';
 import { z } from 'zod';
 import Link from 'next/link';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 type TicketFormValues = z.infer<typeof ticketSchema>;
@@ -55,6 +57,115 @@ export default function NewTicketForm({ onComplete }: NewTicketFormProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+
+  // Asset search state
+  const [allAssets, setAllAssets] = useState<Asset[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [suggestions, setSuggestions] = useState<Asset[]>([]);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
+
+  useEffect(() => {
+    async function fetchAssets() {
+      try {
+        const qAssets = query(collection(db, 'assets'));
+        const assetSnapshot = await getDocs(qAssets);
+        const assetsData = assetSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Asset));
+        setAllAssets(assetsData);
+      } catch (e) {
+        console.error("Error fetching assets for helpdesk form:", e);
+      }
+    }
+    fetchAssets();
+  }, []);
+
+  // Filter assets based on user unit visibility permissions
+  const visibleAssets = useMemo(() => {
+    if (!user) return [];
+    
+    // Filter out deleted / disposed assets
+    const activeAssets = allAssets.filter(a => a.status !== 'approved_disposal' && a.status !== 'Dihapus');
+
+    const isUserAdmin = user.role === 'Admin';
+    const userDept = user.department || '';
+    const allowedDepts = user.allowedDepartments || [];
+
+    // Admin sees all active assets
+    if (isUserAdmin) {
+      return activeAssets;
+    }
+
+    // Privileged department defaults to all assets if no specific unit checklist is set
+    const isPrivilegedDept = ['ACCOUNTING', 'HR & GA', 'GA', 'MANAGEMENT', 'IT'].includes(userDept.toUpperCase().trim());
+    if (isPrivilegedDept && allowedDepts.length === 0) {
+      return activeAssets;
+    }
+
+    let visibleDepts = [...allowedDepts];
+    if (userDept && !visibleDepts.includes(userDept)) {
+      visibleDepts.push(userDept);
+    }
+
+    if (visibleDepts.length === 0) {
+      return activeAssets.filter(a => a.location?.toUpperCase().trim() === userDept.toUpperCase().trim());
+    }
+
+    return activeAssets.filter(a => {
+      if (!a.location) return false;
+      const loc = a.location.toUpperCase().trim();
+      return visibleDepts.some(dept => {
+        const d = dept.toUpperCase().trim();
+        if (loc === d) return true;
+        if (d === 'APP' && loc === 'APP-R&D') return true;
+        if (d === 'R&D' && ['APP', 'APP-R&D', 'QC', 'LAB'].includes(loc)) return true;
+        if (d === 'PPIC' && loc === 'MAINTENANCE') return true;
+        return false;
+      });
+    });
+  }, [allAssets, user]);
+
+  const handleSearchChange = (term: string) => {
+    setSearchTerm(term);
+    if (!term.trim()) {
+      setSuggestions([]);
+      return;
+    }
+    const lower = term.toLowerCase();
+    const filtered = visibleAssets.filter(a =>
+      a.code?.toLowerCase().includes(lower) ||
+      a.name?.toLowerCase().includes(lower) ||
+      a.user?.toLowerCase().includes(lower) ||
+      a.location?.toLowerCase().includes(lower)
+    );
+    setSuggestions(filtered);
+  };
+
+  const handleAssetSelect = (asset: Asset) => {
+    setSelectedAsset(asset);
+    setSearchTerm(`${asset.code} - ${asset.name}${asset.user ? ` (${asset.user})` : ''}`);
+    setSuggestions([]);
+    setIsSearchFocused(false);
+
+    form.setValue('assetId', asset.id);
+    form.setValue('assetCode', asset.code);
+    form.setValue('assetName', asset.name);
+    form.setValue('assetUser', asset.user || '');
+
+    const currentDesc = form.getValues('description');
+    if (!currentDesc) {
+      form.setValue('description', `Kendala pada Aset ${asset.code} (${asset.name}): `);
+    }
+  };
+
+  const handleClearAsset = () => {
+    setSelectedAsset(null);
+    setSearchTerm('');
+    setSuggestions([]);
+    form.setValue('assetId', '');
+    form.setValue('assetCode', '');
+    form.setValue('assetName', '');
+    form.setValue('assetUser', '');
+  };
 
   const form = useForm<TicketFormValues>({
     resolver: zodResolver(ticketSchema),
@@ -145,6 +256,15 @@ export default function NewTicketForm({ onComplete }: NewTicketFormProps) {
       toast({ variant: 'destructive', title: 'Anda harus login.' });
       return;
     }
+
+    if (!selectedAsset && !values.assetId) {
+      toast({ 
+        variant: 'destructive', 
+        title: 'Aset Wajib Dipilih', 
+        description: 'Silakan cari dan pilih aset (Ketik Kode, Nama, atau Pengguna) terlebih dahulu sebelum mengirim laporan.' 
+      });
+      return;
+    }
     
     setIsLoading(true);
     try {
@@ -163,6 +283,11 @@ export default function NewTicketForm({ onComplete }: NewTicketFormProps) {
         reporterDept: user.department,
         reportedAt: serverTimestamp(),
         updates: [],
+        assetId: selectedAsset?.id || values.assetId || '',
+        assetCode: selectedAsset?.code || values.assetCode || '',
+        assetName: selectedAsset?.name || values.assetName || '',
+        assetUser: selectedAsset?.user || values.assetUser || '',
+        assetLocation: selectedAsset?.location || '',
       });
 
       await addDoc(collection(db, 'system_logs'), {
@@ -319,6 +444,131 @@ export default function NewTicketForm({ onComplete }: NewTicketFormProps) {
                             </FormItem>
                             )}
                         />
+                    </div>
+
+                    {/* Cari Aset (Ketik Kode, Nama, atau Pengguna) */}
+                    <div className="space-y-2 relative group text-left">
+                        <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1 tracking-widest block text-left">
+                            Cari Aset (Ketik Kode, Nama, atau Pengguna) <span className="text-rose-500 font-bold">* (Wajib Diisi)</span>
+                        </Label>
+                        <div className="relative">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-primary transition-colors" />
+                            <Input 
+                                placeholder="Contoh: CPU, CGI-2024-001, Laptop Asus, atau Budi..." 
+                                value={searchTerm}
+                                onChange={(e) => handleSearchChange(e.target.value)}
+                                onFocus={() => setIsSearchFocused(true)}
+                                onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
+                                className={cn(
+                                    "h-12 pl-11 pr-10 bg-background border-slate-200 rounded-xl shadow-sm focus:ring-primary/20 font-bold text-slate-900 dark:text-white text-left",
+                                    form.formState.errors.assetId && "border-rose-500 ring-rose-500/20"
+                                )}
+                            />
+                            {searchTerm && (
+                                <button 
+                                    type="button" 
+                                    onClick={handleClearAsset}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-500 transition-colors"
+                                >
+                                    <X className="h-4 w-4" />
+                                </button>
+                            )}
+                        </div>
+                        {form.formState.errors.assetId && (
+                            <p className="text-xs font-bold text-rose-500 mt-1 ml-1 text-left flex items-center gap-1">
+                                <AlertTriangle className="h-3 w-3 inline shrink-0" />
+                                {form.formState.errors.assetId.message}
+                            </p>
+                        )}
+
+                        {/* Tips & Petunjuk Pemilihan Aset */}
+                        <div className="p-3.5 rounded-2xl bg-blue-50/80 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 flex items-start gap-3 text-left">
+                            <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                            <div className="text-[11px] leading-relaxed text-slate-700 dark:text-slate-300">
+                                <span className="font-black text-blue-900 dark:text-blue-200 uppercase tracking-wider block mb-0.5">💡 Petunjuk Memilih Kode Aset:</span>
+                                Ketik <strong>Kode Aset</strong>, <strong>Nama Perangkat/CPU</strong>, atau <strong>Pengguna</strong>. Jika pelaporan terkait <strong>masalah update Sistem Glaze</strong>, Anda disarankan memilih <strong>Aset CPU</strong> yang Anda gunakan saat ini.
+                            </div>
+                        </div>
+
+                        {/* Shortcut Filter Cepat */}
+                        <div className="flex flex-wrap gap-2 pt-1">
+                            <Button 
+                                type="button" 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => { handleSearchChange('CPU'); setIsSearchFocused(true); }}
+                                className="text-[10px] h-7 rounded-lg font-bold uppercase border-blue-200 bg-blue-50/50 text-blue-700 hover:bg-blue-100"
+                            >
+                                💻 Cari CPU
+                            </Button>
+                            {user?.displayName && (
+                                <Button 
+                                    type="button" 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={() => { handleSearchChange(user.displayName || ''); setIsSearchFocused(true); }}
+                                    className="text-[10px] h-7 rounded-lg font-bold uppercase border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
+                                >
+                                    👤 Aset Atas Nama Saya ({user.displayName.split(' ')[0]})
+                                </Button>
+                            )}
+                        </div>
+
+                        {/* Asset Suggestions Dropdown */}
+                        {isSearchFocused && suggestions.length > 0 && (
+                            <Card className="absolute z-[60] w-full mt-1 shadow-2xl border-slate-200 dark:border-slate-800 overflow-hidden rounded-2xl animate-in fade-in slide-in-from-top-2 duration-200">
+                                <div className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                                    <span className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-300">
+                                        Ditemukan {suggestions.length} Aset (Gulung/Scroll untuk melihat semua)
+                                    </span>
+                                </div>
+                                <div 
+                                    className="max-h-64 overflow-y-auto overscroll-contain bg-white dark:bg-slate-900 p-2 space-y-1"
+                                    onWheel={(e) => e.stopPropagation()}
+                                    onTouchMove={(e) => e.stopPropagation()}
+                                >
+                                    {suggestions.map(a => (
+                                        <div 
+                                            key={a.id} 
+                                            className="p-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl border-b last:border-0 border-slate-100 dark:border-slate-800 transition-colors group text-left"
+                                            onMouseDown={(e) => {
+                                                e.preventDefault();
+                                                handleAssetSelect(a);
+                                            }}
+                                        >
+                                            <div className="flex justify-between items-center mb-1">
+                                                <span className="font-black text-xs text-primary tracking-tighter group-hover:underline">{a.code}</span>
+                                                <Badge variant="outline" className="text-[9px] font-bold h-5 px-2 bg-slate-50 border-slate-200">{a.location || 'N/A'}</Badge>
+                                            </div>
+                                            <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight mb-1 uppercase text-left">{a.name}</p>
+                                            {a.user && (
+                                                <p className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
+                                                    <User className="w-2.5 h-2.5 text-primary/60" /> Pengguna: <span className="font-bold text-slate-700 dark:text-slate-300">{a.user}</span>
+                                                </p>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </Card>
+                        )}
+
+                        {/* Selected Asset Card */}
+                        {selectedAsset && (
+                            <div className="p-3 rounded-2xl bg-primary/5 border border-primary/20 flex items-center justify-between gap-3 animate-in fade-in duration-200">
+                                <div className="flex items-center gap-3 text-left min-w-0">
+                                    <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                                        <Monitor className="h-4 w-4" />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="text-xs font-black text-primary truncate">{selectedAsset.code} - {selectedAsset.name}</p>
+                                        <p className="text-[10px] font-medium text-slate-500 truncate">
+                                            Unit: {selectedAsset.location || '-'} {selectedAsset.user ? `| Pengguna: ${selectedAsset.user}` : ''}
+                                        </p>
+                                    </div>
+                                </div>
+                                <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 font-bold text-[9px] uppercase shrink-0">Aset Terpilih</Badge>
+                            </div>
+                        )}
                     </div>
 
                     <FormField

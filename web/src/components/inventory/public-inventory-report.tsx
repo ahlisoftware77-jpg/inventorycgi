@@ -61,6 +61,8 @@ interface PublicReportData {
     requester?: string;
     dept?: string;
     signature?: string;
+    verifierDeptSignature?: string;
+    verifierDeptName?: string;
     inventoryCategory?: string;
     isIncoming?: boolean;
   }>;
@@ -304,26 +306,45 @@ export default function PublicInventoryReport() {
                                             )}
                                         </TableCell>
                                         <TableCell className="text-right pr-8">
-                                            {itemSignature ? (
-                                                <div className="flex justify-end items-center gap-3">
-                                                    <div className="h-10 w-20 relative bg-slate-50 border rounded-xl p-1 opacity-70 cursor-pointer hover:opacity-100 transition-opacity hidden sm:block" onClick={() => setViewSignatureUrl(itemSignature)}>
-                                                        <Image src={itemSignature} alt="Sig" fill className="object-contain" />
-                                                    </div>
-                                                    <button 
-                                                        onClick={() => setViewSignatureUrl(itemSignature)} 
-                                                        className="h-9 w-9 flex items-center justify-center rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-600 hover:text-white transition-all shadow-sm print:hidden"
-                                                        title="Lihat Tanda Tangan"
-                                                    >
-                                                        <Pencil className="h-4 w-4" />
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <div className="flex flex-col items-end opacity-40">
-                                                    <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-                                                    <span className="text-[7px] font-black uppercase">Verified By Admin</span>
-                                                </div>
-                                            )}
-                                        </TableCell>
+                                             <div className="flex justify-end items-center gap-3">
+                                                 {item.verifierDeptSignature && (
+                                                     <div className="flex items-center gap-2">
+                                                         <div className="h-10 w-20 relative bg-slate-50 border rounded-xl p-1 opacity-70 cursor-pointer hover:opacity-100 transition-opacity hidden sm:block shadow-sm" onClick={() => setViewSignatureUrl(item.verifierDeptSignature || null)}>
+                                                             <Image src={item.verifierDeptSignature} alt="Verifier Sig" fill className="object-contain" />
+                                                         </div>
+                                                         <button 
+                                                             onClick={() => setViewSignatureUrl(item.verifierDeptSignature || null)} 
+                                                             className="h-9 w-9 flex items-center justify-center rounded-full bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-600 hover:text-white transition-all shadow-sm print:hidden shrink-0"
+                                                             title={`Lihat Tanda Tangan Departemen Peminta (Oleh: ${item.verifierDeptName})`}
+                                                         >
+                                                             <ShieldCheck className="h-4 w-4" />
+                                                         </button>
+                                                     </div>
+                                                 )}
+                                                 
+                                                 {itemSignature ? (
+                                                     <div className="flex items-center gap-2">
+                                                         <div className="h-10 w-20 relative bg-slate-50 border rounded-xl p-1 opacity-70 cursor-pointer hover:opacity-100 transition-opacity hidden sm:block shadow-sm" onClick={() => setViewSignatureUrl(itemSignature)}>
+                                                             <Image src={itemSignature} alt="Sig" fill className="object-contain" />
+                                                         </div>
+                                                         <button 
+                                                             onClick={() => setViewSignatureUrl(itemSignature)} 
+                                                             className="h-9 w-9 flex items-center justify-center rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-600 hover:text-white transition-all shadow-sm print:hidden shrink-0"
+                                                             title="Lihat Tanda Tangan Admin / HRGA"
+                                                         >
+                                                             <Pencil className="h-4 w-4" />
+                                                         </button>
+                                                     </div>
+                                                 ) : (
+                                                     !item.isIncoming && !item.verifierDeptSignature && (
+                                                         <div className="flex flex-col items-end opacity-40">
+                                                             <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                                                             <span className="text-[7px] font-black uppercase">Verified By Admin</span>
+                                                         </div>
+                                                     )
+                                                 )}
+                                             </div>
+                                         </TableCell>
                                     </TableRow>
                                 )
                             })}

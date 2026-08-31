@@ -18,6 +18,9 @@ export interface UserPermissions {
   canManageMaintenanceSignature?: boolean;
   canEditMaintenance?: boolean;
   canDeleteMaintenance?: boolean;
+  canAccessAllAssetsInMaintenance?: boolean;
+  canAccessPartialAssetsInMaintenance?: boolean;
+  canViewTimeline?: boolean;
 }
 
 export interface User extends FirebaseUser {
@@ -54,6 +57,13 @@ export interface Asset {
   disposalPhotoURL2?: string;
   disposalPhotoURL3?: string;
   disposalPhotoURL4?: string;
+  isDisposalPhotoPublic?: boolean;
+  disposalType?: 'Dijual' | 'Dibuang / Rusak' | 'Disumbangkan' | 'Lainnya' | null;
+  disposalPrice?: number | null;
+  disposalBuyer?: string | null;
+  disposalCost?: number | null;
+  disposalAccumulatedDepreciation?: number | null;
+  disposalBookValue?: number | null;
   brand?: string;
   user?: string;
   supplier?: string;
@@ -89,6 +99,14 @@ export interface Asset {
   accountingUpdatedBy?: string;
   accountingUpdatedAt?: Timestamp;
   location_from?: string; // For mutation history display
+  isPrintedFixAsset?: boolean;
+  printedFixAssetAt?: Timestamp | null;
+  isPrintedMutation?: boolean;
+  printedMutationAt?: Timestamp | null;
+  isPrintedDisposal?: boolean;
+  printedDisposalAt?: Timestamp | null;
+  placement?: string;
+  placementBefore?: string;
 }
 
 export interface Software {
@@ -120,6 +138,7 @@ export interface UsedPart {
 
 export interface MaintenanceSchedule {
     id: string;
+    code?: string;
     assetId: string;
     assetName: string;
     assetCode: string;
@@ -131,12 +150,18 @@ export interface MaintenanceSchedule {
     technician?: string;
     notes?: string;
     progressPhotoURL?: string;
+    progressPhotoURLs?: string[];
     completionPhotoURL?: string;
     emailProofURL?: string; // URL to the uploaded .msg/.eml file
     emailProofName?: string; // Original filename
     ticketId?: string; // Linked Helpdesk Ticket ID
     ticketNumber?: string; // Linked Helpdesk Ticket Number
     partsUsed?: UsedPart[]; // New field for inventory parts replacement
+    repairCost?: number | null;
+    vendorName?: string | null;
+    repairInvoicePhotoURL?: string | null;
+    spkPhotoURL?: string | null;
+    bastPhotoURL?: string | null;
     createdAt: Timestamp;
     updatedAt: Timestamp;
 }
@@ -193,6 +218,11 @@ export interface HelpdeskTicket {
     updatedAt: Timestamp;
     updaterName?: string; // Denormalized
   }[];
+  assetId?: string;
+  assetCode?: string;
+  assetName?: string;
+  assetUser?: string;
+  assetLocation?: string;
 }
 
 export type AssetFormValues = Omit<Asset, 'id' | 'purchaseDate' | 'inspectionDate' | 'projectInspectionDate' | 'midSemesterCheckDate' | 'endSemesterCheckDate' | 'borrowingHistory' | 'photoURL' | 'photoURL2' | 'photoURL3' | 'photoURL4' | 'disposalPhotoURL1' | 'disposalPhotoURL2' | 'disposalPhotoURL3' | 'disposalPhotoURL4' | 'updatedAt' | 'createdAt' | 'requestedAt' | 'approvedAt' | 'mutationDate' | 'disposalDate' | 'mutationTargetDepartment' | 'accountingUpdatedBy' | 'accountingUpdatedAt'> & {
@@ -215,7 +245,7 @@ export type AssetFormValues = Omit<Asset, 'id' | 'purchaseDate' | 'inspectionDat
   approvedAt?: Date | null;
 };
 
-export type InventoryType = 'ATK' | 'Sparepart' | 'Alat Kebersihan' | 'Obat-obatan';
+export type InventoryType = string;
 
 export interface InventoryItem {
   id: string;
@@ -255,6 +285,9 @@ export interface InventoryRequest {
   rejectionReason?: string;
   approvalSignature?: string; // Base64 signature image
   maintenanceId?: string; // Added to link with maintenance schedule
+  verifierDeptSignature?: string; // Base64 signature for Verifikasi Departemen Peminta
+  verifierDeptSignedAt?: Timestamp;
+  verifierDeptName?: string;
 }
 
 export interface InventoryTransaction {

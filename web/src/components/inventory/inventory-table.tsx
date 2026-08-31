@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect, useMemo } from 'react';
-import { collection, onSnapshot, query, where, Timestamp } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, Timestamp, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { useAuth } from '@/hooks/use-auth';
 import { type InventoryItem, type InventoryType, type InventoryRequest } from '@/lib/types';
@@ -39,6 +39,7 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import InventoryTip from './inventory-tip';
 
 type SortDirection = 'ascending' | 'descending';
 
@@ -53,23 +54,34 @@ interface EnrichedInventoryItem extends InventoryItem {
 }
 
 export default function InventoryTable() {
-  const [atkItems, setAtkItems] = useState<InventoryItem[]>([]);
-  const [sparepartItems, setSparepartItems] = useState<InventoryItem[]>([]);
-  const [alatKebersihanItems, setAlatKebersihanItems] = useState<InventoryItem[]>([]);
-  const [obatItems, setObatItems] = useState<InventoryItem[]>([]);
+  const [allItems, setAllItems] = useState<InventoryItem[]>([]);
+  const [inventoryTypes, setInventoryTypes] = useState<string[]>(['ATK', 'Sparepart', 'Alat Kebersihan', 'Obat-obatan']);
   const [requests, setRequests] = useState<InventoryRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSharing, setIsSharing] = useState(false);
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState<InventoryType>('ATK');
+  const [activeTab, setActiveTab] = useState<string>('ATK');
   const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
 
   // History Dialog State
   const [historyItem, setHistoryItem] = useState<InventoryItem | null>(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [previewPhoto, setPreviewPhoto] = useState<{ url: string; name: string } | null>(null);
+
+  useEffect(() => {
+    const unsubSettings = onSnapshot(doc(db, 'settings', 'general'), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.inventoryTypes && Array.isArray(data.inventoryTypes) && data.inventoryTypes.length > 0) {
+          setInventoryTypes(data.inventoryTypes);
+          setActiveTab(prev => data.inventoryTypes.includes(prev) ? prev : (data.inventoryTypes[0] || 'ATK'));
+        }
+      }
+    });
+    return () => unsubSettings();
+  }, []);
 
   useEffect(() => {
     if (authLoading) return;
@@ -80,10 +92,7 @@ export default function InventoryTable() {
 
     const unsubInventory = onSnapshot(inventoryQuery, (snapshot) => {
       const itemsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as InventoryItem));
-      setAtkItems(itemsData.filter(item => item.type === 'ATK'));
-      setSparepartItems(itemsData.filter(item => item.type === 'Sparepart'));
-      setAlatKebersihanItems(itemsData.filter(item => item.type === 'Alat Kebersihan'));
-      setObatItems(itemsData.filter(item => item.type === 'Obat-obatan'));
+      setAllItems(itemsData);
     }, (error) => {
       console.error("Error fetching inventory items:", error);
     });
@@ -115,15 +124,8 @@ export default function InventoryTable() {
     return sortConfig.direction === 'ascending' ? <ArrowUp className="ml-2 h-3 w-3" /> : <ArrowDown className="ml-2 h-3 w-3" />;
   };
 
- const enrichedItems = useMemo(() => {
-    let itemsToProcess: InventoryItem[];
-    switch (activeTab) {
-        case 'ATK': itemsToProcess = atkItems; break;
-        case 'Sparepart': itemsToProcess = sparepartItems; break;
-        case 'Alat Kebersihan': itemsToProcess = alatKebersihanItems; break;
-        case 'Obat-obatan': itemsToProcess = obatItems; break;
-        default: itemsToProcess = [];
-    }
+  const enrichedItems = useMemo(() => {
+    const itemsToProcess = allItems.filter(item => item.type === activeTab);
 
     const requestMap = new Map<string, number>();
     requests.forEach(r => {
@@ -141,7 +143,7 @@ export default function InventoryTable() {
             remainingStock: Math.max(0, (item.stock || 0) - outgoingRequests),
         };
     });
- }, [activeTab, atkItems, sparepartItems, alatKebersihanItems, obatItems, requests]);
+  }, [activeTab, allItems, requests]);
 
 
   const filteredAndSortedItems = useMemo(() => {
@@ -387,6 +389,8 @@ export default function InventoryTable() {
         </div>
       </div>
 
+      <InventoryTip />
+
       <Card className="border border-slate-100 dark:border-slate-800 bg-white/40 dark:bg-slate-900/40 backdrop-blur-md rounded-2xl overflow-hidden text-black shadow-[0_2px_12px_rgba(0,0,0,0.01)]">
         <CardHeader className="p-4 sm:p-6 pb-2 text-left">
           <div className="flex flex-col lg:flex-row gap-3 mb-6 text-left">
@@ -406,35 +410,21 @@ export default function InventoryTable() {
               </Button>
           </div>
 
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as InventoryType)} className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="bg-slate-100/50 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/50 mb-6 h-auto min-h-[2.75rem] w-full sm:w-fit flex flex-wrap gap-1">
-                  <TabsTrigger value="ATK" className="flex-1 sm:flex-none sm:px-6 rounded-lg font-bold text-[10px] uppercase tracking-wider data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all py-2 h-auto">
-                      Logistik ATK
-                  </TabsTrigger>
-                  <TabsTrigger value="Sparepart" className="flex-1 sm:flex-none sm:px-6 rounded-lg font-bold text-[10px] uppercase tracking-wider data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all py-2 h-auto">
-                      Sparepart
-                  </TabsTrigger>
-                  <TabsTrigger value="Alat Kebersihan" className="flex-1 sm:flex-none sm:px-6 rounded-lg font-bold text-[10px] uppercase tracking-wider data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all py-2 h-auto">
-                      Kebersihan
-                  </TabsTrigger>
-                  <TabsTrigger value="Obat-obatan" className="flex-1 sm:flex-none sm:px-6 rounded-lg font-bold text-[10px] uppercase tracking-wider data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all py-2 h-auto">
-                      Obat-obatan
-                  </TabsTrigger>
+                  {inventoryTypes.map(type => (
+                      <TabsTrigger key={type} value={type} className="flex-1 sm:flex-none sm:px-6 rounded-lg font-bold text-[10px] uppercase tracking-wider data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all py-2 h-auto">
+                          {type === 'ATK' ? 'Logistik ATK' : (type === 'Alat Kebersihan' ? 'Kebersihan' : type)}
+                      </TabsTrigger>
+                  ))}
               </TabsList>
               
               <div className="pb-4">
-                  <TabsContent value="ATK" className="mt-0 focus-visible:ring-0">
-                      {renderTable(filteredAndSortedItems)}
-                  </TabsContent>
-                  <TabsContent value="Sparepart" className="mt-0 focus-visible:ring-0">
-                      {renderTable(filteredAndSortedItems)}
-                  </TabsContent>
-                  <TabsContent value="Alat Kebersihan" className="mt-0 focus-visible:ring-0">
-                      {renderTable(filteredAndSortedItems)}
-                  </TabsContent>
-                  <TabsContent value="Obat-obatan" className="mt-0 focus-visible:ring-0">
-                      {renderTable(filteredAndSortedItems)}
-                  </TabsContent>
+                  {inventoryTypes.map(type => (
+                      <TabsContent key={type} value={type} className="mt-0 focus-visible:ring-0">
+                          {renderTable(filteredAndSortedItems)}
+                      </TabsContent>
+                  ))}
               </div>
           </Tabs>
         </CardHeader>

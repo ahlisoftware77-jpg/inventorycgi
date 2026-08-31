@@ -93,6 +93,7 @@ interface AssetListProps {
   assets: Asset[];
   initialSearchTerm?: string;
   initialCategoryFilter?: string;
+  initialConditionFilter?: string;
 }
 
 type SortDirection = 'ascending' | 'descending';
@@ -310,13 +311,13 @@ const AssetGridCard = ({ asset, isSelected, onSelect, isSelectionMode }: {
   );
 };
 
-export default function AssetList({ assets, initialSearchTerm = '', initialCategoryFilter = 'ALL' }: AssetListProps) {
+export default function AssetList({ assets, initialSearchTerm = '', initialCategoryFilter = 'ALL', initialConditionFilter = 'ALL' }: AssetListProps) {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
-  const [showFilters, setShowFilters] = useState(initialCategoryFilter !== 'ALL');
+  const [showFilters, setShowFilters] = useState(initialCategoryFilter !== 'ALL' || initialConditionFilter !== 'ALL');
   const [isSharing, setIsSharing] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -325,7 +326,7 @@ export default function AssetList({ assets, initialSearchTerm = '', initialCateg
   
   const [locationFilter, setLocationFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
-  const [conditionFilter, setConditionFilter] = useState<string>('ALL');
+  const [conditionFilter, setConditionFilter] = useState<string>(initialConditionFilter);
   const [categoryFilter, setCategoryFilter] = useState<string>(initialCategoryFilter);
   const [ownershipFilter, setOwnershipFilter] = useState<string>('ALL');
   
@@ -333,8 +334,13 @@ export default function AssetList({ assets, initialSearchTerm = '', initialCateg
 
   useEffect(() => {
     setCategoryFilter(initialCategoryFilter);
-    setShowFilters(initialCategoryFilter !== 'ALL');
+    if (initialCategoryFilter !== 'ALL') setShowFilters(true);
   }, [initialCategoryFilter]);
+
+  useEffect(() => {
+    setConditionFilter(initialConditionFilter);
+    if (initialConditionFilter !== 'ALL') setShowFilters(true);
+  }, [initialConditionFilter]);
 
   useEffect(() => {
     setSearchTerm(initialSearchTerm);
@@ -436,15 +442,15 @@ export default function AssetList({ assets, initialSearchTerm = '', initialCateg
   const selectedAssets = useMemo(() => assets.filter(asset => selectedAssetIds.includes(asset.id)), [assets, selectedAssetIds]);
 
   const summaryData = useMemo(() => {
-    const totalAssets = assets.length;
-    const totalQuantity = assets.reduce((sum, asset) => sum + (asset.qty || 0), 0);
-    const totalValue = assets.reduce((sum, asset) => sum + (asset.price || 0) * (asset.qty || 1), 0);
-    const totalValueUSD = assets.reduce((sum, asset) => sum + (asset.priceUSD || 0) * (asset.qty || 1), 0);
-    const onLoan = assets.filter((asset) => asset.status === 'Dipinjam').length;
-    const damaged = assets.filter((asset) => asset.condition === 'Rusak').length;
-    const needsRepair = assets.filter((asset) => asset.condition === 'Perlu Perbaikan').length;
+    const totalAssets = filteredAssets.length;
+    const totalQuantity = filteredAssets.reduce((sum, asset) => sum + (asset.qty || 0), 0);
+    const totalValue = filteredAssets.reduce((sum, asset) => sum + (asset.price || 0) * (asset.qty || 1), 0);
+    const totalValueUSD = filteredAssets.reduce((sum, asset) => sum + (asset.priceUSD || 0) * (asset.qty || 1), 0);
+    const onLoan = filteredAssets.filter((asset) => asset.status === 'Dipinjam').length;
+    const damaged = filteredAssets.filter((asset) => asset.condition === 'Rusak').length;
+    const needsRepair = filteredAssets.filter((asset) => asset.condition === 'Perlu Perbaikan').length;
     return { totalAssets, totalQuantity, totalValue, totalValueUSD, onLoan, damaged, needsRepair };
-  }, [assets]);
+  }, [filteredAssets]);
 
   const canAdd = user?.role === 'Admin' || user?.permissions?.canAddAsset;
   const isAdmin = user?.role === 'Admin';
@@ -500,11 +506,14 @@ export default function AssetList({ assets, initialSearchTerm = '', initialCateg
                       variant="outline" 
                       onClick={() => setShowFilters(!showFilters)}
                       className={cn(
-                          "h-10 px-4 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-bold uppercase tracking-wider transition-all text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50",
-                          activeFiltersCount > 0 && "border-primary text-primary hover:text-primary hover:bg-primary/5"
+                          "h-10 px-4 rounded-xl border font-bold uppercase tracking-wider transition-all duration-300 text-xs shadow-sm hover:shadow-md hover:-translate-y-0.5",
+                          showFilters 
+                             ? "bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white" 
+                             : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50",
+                          activeFiltersCount > 0 && "border-primary/50 bg-primary/5 text-primary hover:bg-primary/10 hover:text-primary"
                       )}
                   >
-                      <span className="mr-1.5 text-sm select-none">🎛️</span>
+                      <Filter className={cn("mr-2 h-4 w-4 transition-transform", showFilters && "text-primary")} />
                       Filter {activeFiltersCount > 0 && `(${activeFiltersCount})`}
                   </Button>
 

@@ -23,6 +23,7 @@ function AssetsPageContent() {
   const searchParams = useSearchParams();
   const initialSearchTerm = searchParams.get('search') || '';
   const initialCategoryFilter = searchParams.get('category') || 'ALL';
+  const initialConditionFilter = searchParams.get('condition') || 'ALL';
 
   useEffect(() => {
     if (authLoading || !user) return;
@@ -47,7 +48,7 @@ function AssetsPageContent() {
         }
 
         // Ekspansi Lintas Dept jika diperlukan (e.g., Accounting, IT, GA)
-        const isPrivileged = ['ACCOUNTING', 'HR & GA', 'MANAGEMENT', 'IT'].includes(userDept || '');
+        const isPrivileged = ['ACCOUNTING', 'HR & GA', 'GA', 'MANAGEMENT', 'IT'].includes(userDept || '');
         
         if (userDept === 'ACCOUNTING') {
             constraints.push(where('category', 'in', ['A1-Lahan', 'A2-Peralatan Bangunan', 'A3-Peralatan Mesin', 'A4-Peralatan Listrik', 'A5-Peralatan Transportasi', 'A6-Peralatan Penelitian & Uji Lab', 'A9-Peralatan Lain-lain']));
@@ -126,6 +127,7 @@ function AssetsPageContent() {
         assets={allAssets} 
         initialSearchTerm={initialSearchTerm} 
         initialCategoryFilter={initialCategoryFilter}
+        initialConditionFilter={initialConditionFilter}
       />
     </DashboardLayout>
   );

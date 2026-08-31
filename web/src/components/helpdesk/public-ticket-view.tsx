@@ -27,10 +27,13 @@ import {
   ImageIcon,
   LifeBuoy,
   ChevronRight,
+  AlertCircle,
+  Layers,
+  Wrench,
+  ExternalLink,
   ShieldCheck,
   Printer,
-  AlertCircle,
-  Layers
+  X
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -38,6 +41,16 @@ import { format } from 'date-fns';
 import { id as localeID } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { type MaintenanceSchedule } from '@/lib/types';
+import MaintenanceDetailCard from '@/components/maintenance/maintenance-detail-card';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogClose,
+} from '@/components/ui/dialog';
 
 const isImageUrl = (url: string) => {
   if (!url) return false;
@@ -57,20 +70,31 @@ interface PublicTicketViewProps {
   ticketId: string;
 }
 
-const DetailTile = ({ label, value, icon: Icon }: { label: string, value: any, icon: any }) => (
-    <div className="p-3 rounded-2xl bg-white border border-slate-100 shadow-sm flex items-center gap-3 text-left">
-        <div className="p-2 bg-primary/5 rounded-xl shrink-0">
-            <Icon className="h-4 w-4 text-primary" />
+const DetailTile = ({ label, value, icon: Icon, onClick }: { label: string, value: any, icon: any, onClick?: () => void }) => (
+    <div 
+        onClick={onClick}
+        className={cn(
+            "p-3 rounded-2xl bg-white border border-slate-100 shadow-sm flex items-center gap-3 text-left transition-all",
+            onClick && "cursor-pointer hover:border-emerald-500/60 hover:bg-emerald-50/50 group"
+        )}
+    >
+        <div className="p-2 bg-primary/5 rounded-xl shrink-0 group-hover:bg-emerald-500/10 transition-colors">
+            <Icon className="h-4 w-4 text-primary group-hover:text-emerald-600 transition-colors" />
         </div>
         <div className="min-w-0 flex-1 text-left">
             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1 text-left">{label}</p>
-            <p className="text-xs font-bold text-slate-900 truncate uppercase text-left">{value || '-'}</p>
+            <p className="text-xs font-bold text-slate-900 truncate uppercase text-left group-hover:text-emerald-600 transition-colors flex items-center gap-1.5">
+                {value || '-'}
+                {onClick && <ExternalLink className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 shrink-0" />}
+            </p>
         </div>
     </div>
 );
 
 export default function PublicTicketView({ ticketId }: PublicTicketViewProps) {
   const [ticket, setTicket] = useState<HelpdeskTicket | null>(null);
+  const [maintenanceSchedule, setMaintenanceSchedule] = useState<MaintenanceSchedule | null>(null);
+  const [isMaintenanceDetailOpen, setIsMaintenanceDetailOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [hasOfficialForm, setHasOfficialForm] = useState(false);
   const [reportId, setReportId] = useState<string | null>(null);
@@ -79,7 +103,7 @@ export default function PublicTicketView({ ticketId }: PublicTicketViewProps) {
   useEffect(() => {
     onSnapshot(doc(db, 'settings', 'general'), (snap) => {
         if (snap.exists() && snap.data().companyName) setCompanyName(snap.data().companyName);
-    });
+    }, (err) => console.warn('Public settings load:', err));
 
     const unsubscribe = onSnapshot(doc(db, 'helpdesk_tickets', ticketId), (docSnap) => {
       if (docSnap.exists()) {
@@ -95,10 +119,22 @@ export default function PublicTicketView({ ticketId }: PublicTicketViewProps) {
                 setHasOfficialForm(false);
                 setReportId(null);
             }
-        });
+        }, (err) => console.warn('IT report query:', err));
+
+        const qMaint = query(collection(db, 'maintenance_schedules'), where('ticketId', '==', ticketId));
+        onSnapshot(qMaint, (snap) => {
+            if (!snap.empty) {
+                setMaintenanceSchedule({ id: snap.docs[0].id, ...snap.docs[0].data() } as MaintenanceSchedule);
+            } else {
+                setMaintenanceSchedule(null);
+            }
+        }, (err) => console.warn('Maintenance query:', err));
       } else {
         setTicket(null);
       }
+      setLoading(false);
+    }, (error) => {
+      console.error("Error loading public helpdesk ticket:", error);
       setLoading(false);
     });
 
@@ -175,6 +211,23 @@ export default function PublicTicketView({ ticketId }: PublicTicketViewProps) {
                         <DetailTile label="Tanggal Lapor" value={ticket.reportedAt ? format(ticket.reportedAt.toDate(), 'd MMM yyyy', { locale: localeID }) : '-'} icon={Calendar} />
                     </div>
                 </div>
+
+                {maintenanceSchedule && (
+                    <div className="space-y-4">
+                        <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.3em] pl-1 border-l-2 border-emerald-600 text-left">Integrasi Maintenance</p>
+                        <div className="space-y-3">
+                            <DetailTile 
+                                label="No. Maintenance" 
+                                value={maintenanceSchedule.code || (`MNT-${maintenanceSchedule.id.slice(0, 6).toUpperCase()}`)} 
+                                icon={Hash} 
+                                onClick={() => setIsMaintenanceDetailOpen(true)}
+                            />
+                            <DetailTile label="Kategori Pekerjaan" value={maintenanceSchedule.type} icon={Wrench} />
+                            <DetailTile label="Teknisi PIC" value={maintenanceSchedule.technician || 'Staff IT/GA'} icon={User} />
+                            <DetailTile label="Status Jadwal" value={maintenanceSchedule.status} icon={Clock} />
+                        </div>
+                    </div>
+                )}
 
                 <div className="space-y-4">
                     <p className="text-[10px] font-black text-primary uppercase tracking-[0.3em] pl-1 border-l-2 border-primary text-left">Status Dokumen</p>
@@ -306,6 +359,33 @@ export default function PublicTicketView({ ticketId }: PublicTicketViewProps) {
                 <Printer className="h-6 w-6" />
             </Button>
         </div>
+
+        {/* Modal Popup Detail Maintenance saat No. Maintenance diklik */}
+        <Dialog open={isMaintenanceDetailOpen} onOpenChange={setIsMaintenanceDetailOpen}>
+          <DialogContent hideCloseButton className="sm:max-w-5xl max-h-[92vh] overflow-y-auto p-4 sm:p-6 rounded-[2.5rem] border-none shadow-2xl bg-slate-50 dark:bg-slate-950 text-black dark:text-white">
+            <DialogHeader className="flex flex-row items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+              <div className="text-left min-w-0">
+                <DialogTitle className="text-base font-black uppercase tracking-tight flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                  <Wrench className="w-5 h-5 shrink-0" />
+                  <span>Detail Pemeliharaan — {maintenanceSchedule?.code || (maintenanceSchedule?.id ? `MNT-${maintenanceSchedule.id.slice(0, 6).toUpperCase()}` : '')}</span>
+                </DialogTitle>
+                <DialogDescription className="text-xs font-medium text-slate-500">
+                  Rincian pengerjaan, bukti foto, tanda tangan & dokumen keabsahan
+                </DialogDescription>
+              </div>
+              <DialogClose asChild>
+                <Button variant="ghost" size="icon" className="rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 h-9 w-9">
+                  <X className="w-5 h-5" />
+                </Button>
+              </DialogClose>
+            </DialogHeader>
+            <div className="mt-2">
+              {maintenanceSchedule && (
+                <MaintenanceDetailCard schedule={maintenanceSchedule} />
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
     </div>
   );
 }

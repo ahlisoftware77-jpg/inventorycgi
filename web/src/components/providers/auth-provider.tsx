@@ -57,6 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               role: firestoreData.role,
               department: firestoreData.department,
               allowedPages: firestoreData.allowedPages || [],
+              allowedDepartments: firestoreData.allowedDepartments || [],
               permissions: firestoreData.permissions || {},
             } as User);
           } else {

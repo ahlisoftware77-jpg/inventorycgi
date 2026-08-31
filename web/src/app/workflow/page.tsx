@@ -33,6 +33,7 @@ import {
   Printer,
   ClipboardCheck
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 const FlowStep = ({ 
@@ -67,7 +68,7 @@ const FlowStep = ({
     </div>
 
     {!isLast && (
-      <div className="hidden lg:block absolute top-10 left-full w-full h-[2px] bg-gradient-to-r from-primary/30 to-transparent -z-0">
+      <div className="hidden lg:block print:block absolute top-10 left-full w-full h-[2px] bg-gradient-to-r from-primary/30 to-transparent -z-0">
         <div className="absolute right-0 -top-1">
           <ArrowRight className="h-3 w-3 text-primary/30" />
         </div>
@@ -81,16 +82,25 @@ export default function WorkflowPage() {
     <DashboardLayout>
       <div className="space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-32 text-black">
         {/* Header */}
-        <div className="relative p-10 rounded-[3rem] bg-slate-950 text-white overflow-hidden shadow-2xl">
-          <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-primary/20 to-transparent opacity-50" />
-          <div className="relative z-10 flex items-center gap-6">
-            <div className="p-4 bg-white/10 rounded-2xl backdrop-blur-md shadow-xl border border-white/5">
-              <GitBranch className="h-10 w-10 text-primary" />
+        <div className="relative p-10 rounded-[3rem] bg-slate-950 text-white overflow-hidden shadow-2xl print:bg-slate-900 print:shadow-none print:break-inside-avoid">
+          <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-primary/20 to-transparent opacity-50 print:opacity-20" />
+          <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div className="flex items-center gap-6">
+              <div className="p-4 bg-white/10 rounded-2xl backdrop-blur-md shadow-xl border border-white/5 print:border-slate-800">
+                <GitBranch className="h-10 w-10 text-primary" />
+              </div>
+              <div className="text-left">
+                <h1 className="text-4xl font-black tracking-tighter uppercase italic text-left">Workflow System</h1>
+                <p className="text-primary/60 font-black text-[10px] uppercase tracking-[0.3em] mt-1 text-left">Standard Operating Procedure Visualizer</p>
+              </div>
             </div>
-            <div className="text-left">
-              <h1 className="text-4xl font-black tracking-tighter uppercase italic text-left">Workflow System</h1>
-              <p className="text-primary/60 font-black text-[10px] uppercase tracking-[0.3em] mt-1 text-left">Standard Operating Procedure Visualizer</p>
-            </div>
+            <Button 
+              onClick={() => window.print()}
+              className="print:hidden bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest rounded-xl h-12 px-6 shadow-lg hover:shadow-xl transition-all"
+            >
+              <Printer className="w-4 h-4 mr-2" />
+              Cetak Dokumen
+            </Button>
           </div>
         </div>
 
@@ -104,7 +114,7 @@ export default function WorkflowPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 items-start justify-items-center bg-white dark:bg-slate-900/50 p-10 rounded-[3rem] shadow-lg border border-slate-100 dark:border-slate-800">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 print:grid-cols-5 gap-8 items-start justify-items-center bg-white dark:bg-slate-900/50 p-10 rounded-[3rem] shadow-lg border border-slate-100 dark:border-slate-800 print:shadow-none print:border-slate-300 print:break-inside-avoid">
             <FlowStep 
               icon={Ticket} 
               title="Lapor Kendala" 
@@ -154,7 +164,7 @@ export default function WorkflowPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-8 items-start justify-items-center bg-white dark:bg-slate-900/50 p-10 rounded-[3rem] shadow-lg border border-slate-100 dark:border-slate-800">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 print:grid-cols-6 gap-8 items-start justify-items-center bg-white dark:bg-slate-900/50 p-10 rounded-[3rem] shadow-lg border border-slate-100 dark:border-slate-800 print:shadow-none print:border-slate-300 print:break-inside-avoid">
             <FlowStep 
               icon={QrCode} 
               title="Registrasi" 
@@ -207,11 +217,11 @@ export default function WorkflowPage() {
             <div className="p-3 bg-emerald-50 rounded-2xl shadow-sm"><ShoppingCart className="h-6 w-6 text-emerald-600" /></div>
             <div className="text-left">
               <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white text-left">3. Logistik & Permintaan Barang</h2>
-              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest opacity-60 text-left">Alur pengambilan ATK, Sparepart, & Alat Kebersihan</p>
+              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest opacity-60 text-left">Alur pengambilan & manajemen stok barang inventaris</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 items-start justify-items-center bg-white dark:bg-slate-900/50 p-10 rounded-[3rem] shadow-lg border border-slate-100 dark:border-slate-800">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 print:grid-cols-5 gap-8 items-start justify-items-center bg-white dark:bg-slate-900/50 p-10 rounded-[3rem] shadow-lg border border-slate-100 dark:border-slate-800 print:shadow-none print:border-slate-300 print:break-inside-avoid">
             <FlowStep 
               icon={Search} 
               title="Portal Publik" 
@@ -261,7 +271,7 @@ export default function WorkflowPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 items-start justify-items-center bg-white dark:bg-slate-900/50 p-10 rounded-[3rem] shadow-lg border border-slate-100 dark:border-slate-800">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 print:grid-cols-4 gap-8 items-start justify-items-center bg-white dark:bg-slate-900/50 p-10 rounded-[3rem] shadow-lg border border-slate-100 dark:border-slate-800 print:shadow-none print:border-slate-300 print:break-inside-avoid">
             <FlowStep 
               icon={UserCog} 
               title="Hak Akses" 
@@ -295,7 +305,7 @@ export default function WorkflowPage() {
         </section>
 
         {/* Footer info */}
-        <Card className="rounded-[2.5rem] border-none shadow-xl bg-primary text-white overflow-hidden relative">
+        <Card className="rounded-[2.5rem] border-none shadow-xl bg-primary text-white overflow-hidden relative print:shadow-none print:bg-slate-900 print:break-inside-avoid">
             <div className="absolute top-0 right-0 p-12 opacity-10 pointer-events-none"><ShieldCheck className="w-40 h-40" /></div>
             <CardContent className="p-10 flex items-start gap-6 text-left">
                 <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-md shadow-inner shrink-0">
