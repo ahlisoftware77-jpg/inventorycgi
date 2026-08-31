@@ -110,7 +110,7 @@ export default function BroadcastEmailPage() {
 
   const getApiUrl = () => {
     if (typeof window !== 'undefined' && window.location.hostname.includes('web.app')) {
-      return 'https://ISI-DENGAN-LINK-VERCEL-BAPAK.vercel.app/api/send-email';
+      return 'https://inventorycgi.vercel.app/api/send-email';
     }
     return '/api/send-email';
   };
