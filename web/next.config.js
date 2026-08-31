@@ -9,7 +9,7 @@ const withPWA = require('next-pwa')({
 
 const nextConfig = {
   /* config options here */
-  output: process.env.VERCEL ? undefined : 'export',
+  output: process.env.BUILD_TARGET === 'firebase' ? 'export' : undefined,
   typescript: {
     ignoreBuildErrors: true,
   },
