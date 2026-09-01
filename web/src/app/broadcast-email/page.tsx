@@ -485,17 +485,17 @@ export default function BroadcastEmailPage() {
                           <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 font-bold text-red-500" onClick={() => setSelectedEmails([])}>Kosongkan</Button>
                         </div>
                       </div>
-                      <ScrollArea className="h-24 w-full rounded-md border bg-white dark:bg-slate-900 p-2">
-                        <div className="flex flex-col gap-1">
+                      <ScrollArea className="h-64 w-full rounded-xl border bg-white dark:bg-slate-950 p-3 shadow-inner">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           {validatedEmails.length > 0 ? validatedEmails.map((email, idx) => {
                             const isSelected = selectedEmails.includes(email);
                             return (
-                              <label key={idx} className={cn("flex items-center space-x-3 p-2 rounded-lg cursor-pointer transition-colors border", isSelected ? "bg-primary/5 border-primary/20" : "bg-slate-50 dark:bg-slate-800 border-transparent opacity-60 hover:opacity-100")}>
+                              <label key={idx} className={cn("flex items-center space-x-3 p-2.5 rounded-xl cursor-pointer transition-all border", isSelected ? "bg-primary/10 border-primary/30 shadow-sm" : "bg-slate-50 dark:bg-slate-900 border-transparent opacity-70 hover:opacity-100 hover:shadow-sm")}>
                                 <Checkbox checked={isSelected} onCheckedChange={(checked) => {
                                   if (checked) setSelectedEmails([...selectedEmails, email]);
                                   else setSelectedEmails(selectedEmails.filter(e => e !== email));
                                 }} />
-                                <span className="text-sm font-medium">{email}</span>
+                                <span className="text-sm font-bold text-slate-700 dark:text-slate-300 truncate" title={email}>{email}</span>
                               </label>
                             );
                           }) : <span className="text-[11px] text-muted-foreground italic p-2">Tidak ada email yang valid.</span>}
