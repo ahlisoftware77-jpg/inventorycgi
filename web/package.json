@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev --turbopack -p 9003",
     "build": "next build",
+    "build:firebase": "npx cross-env BUILD_TARGET=firebase next build",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
     "start": "next start",

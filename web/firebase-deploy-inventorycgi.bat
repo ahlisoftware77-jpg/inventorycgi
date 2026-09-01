@@ -2,8 +2,7 @@
 echo Deploying to Firebase Hosting...
 cd /d "%~dp0"
 
-set BUILD_TARGET=firebase
-call npm run build
+call npm run build:firebase
 firebase deploy --only hosting:inventorycgi
 
 echo Done!
