@@ -464,7 +464,7 @@ export default function MutationTable() {
 
     if (asset.status === 'waiting_disposal' && isAdmin) {
         try {
-            const transactionCode = await generateTransactionCode('DIS', asset.location);
+            const transactionCode = asset.transactionCode || await generateTransactionCode('DIS', asset.location);
             const reviewNote = `Pengajuan disposal direview oleh Admin (${user.displayName}) pada ${format(new Date(), 'PPpp', { locale: id })}. Kode Transaksi: ${transactionCode}`;
             
             await updateDoc(assetRef, {
@@ -504,7 +504,7 @@ export default function MutationTable() {
     setIsUpdating(asset.id);
     const assetRef = doc(db, 'assets', asset.id);
     try {
-        const transactionCode = await generateTransactionCode('DIS', asset.location);
+        const transactionCode = asset.transactionCode || await generateTransactionCode('DIS', asset.location);
         const updateNote = `Proses pusat dimulai pada ${format(new Date(), 'PPpp', { locale: id })} oleh ${user?.displayName}. Kode Transaksi: ${transactionCode}`;
         await updateDoc(assetRef, {
             notes: `${asset.notes}\n\n${updateNote}`.trim(),
@@ -613,7 +613,7 @@ export default function MutationTable() {
             const newUser = userMatch ? userMatch[1].trim() : '';
             const mutationQuantity = quantityMatch ? parseInt(quantityMatch[1], 10) : asset.qty;
             const isPartialMutation = mutationQuantity < asset.qty;
-            const transactionCode = await generateTransactionCode('MUT', newLocation);
+            const transactionCode = asset.transactionCode || await generateTransactionCode('MUT', newLocation);
 
             const approvalNote = `Mutasi ${mutationQuantity} unit dari: ${asset.location} ke ${newLocation} disetujui oleh ${approverRole} (${approverName}). Diajukan oleh: ${originalRequesterName}. Kode Transaksi: ${transactionCode}`;
             const cleanedNotes = notes.split('--- MUTASI DIAJUKAN ---')[0].trim();
@@ -662,7 +662,7 @@ export default function MutationTable() {
               timestamp: serverTimestamp(),
             });
         } else if (asset.status === 'waiting_edit') {
-             const transactionCode = await generateTransactionCode('EDT', asset.location);
+             const transactionCode = asset.transactionCode || await generateTransactionCode('EDT', asset.location);
              const notes = asset.notes || '';
              const conditionMatch = notes.match(/Kondisi Baru: (.*)/);
              const newCondition = conditionMatch ? conditionMatch[1].trim() as AssetCondition : asset.condition;

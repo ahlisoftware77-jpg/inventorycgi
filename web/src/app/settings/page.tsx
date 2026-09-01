@@ -30,6 +30,7 @@ import { Slider } from '@/components/ui/slider';
 import { useFontSize } from '@/components/providers/font-size-provider';
 import { Reorder } from 'framer-motion';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { DeptGroup } from '@/lib/types';
 
 interface CategoryObject {
@@ -472,7 +473,17 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* VIEW ACCESSIBILITY & ZOOM */}
+        
+        <Tabs defaultValue="umum" className="w-full space-y-6">
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 h-auto p-2 bg-slate-100 dark:bg-slate-800/50 rounded-2xl gap-2">
+            <TabsTrigger value="umum" className="rounded-xl py-3 text-xs font-black uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">Umum</TabsTrigger>
+            <TabsTrigger value="aset" className="rounded-xl py-3 text-xs font-black uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">Aset & Kategori</TabsTrigger>
+            <TabsTrigger value="organisasi" className="rounded-xl py-3 text-xs font-black uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">Organisasi</TabsTrigger>
+            <TabsTrigger value="integrasi" className="rounded-xl py-3 text-xs font-black uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">Integrasi AI</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="umum" className="space-y-10 mt-6">
+{/* VIEW ACCESSIBILITY & ZOOM */}
         <Card className="rounded-[2.5rem] border-none shadow-2xl overflow-hidden bg-white dark:bg-slate-900 text-black border-2 border-primary/20">
           <CardHeader className="p-8 sm:p-10 pb-4 bg-primary/5 text-left">
             <CardTitle className="flex items-center gap-2 text-xl font-black uppercase tracking-tight text-primary text-left">
@@ -618,130 +629,94 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* GEMINI AI CONFIGURATION */}
-        <Card className="rounded-[2.5rem] border-none shadow-2xl overflow-hidden bg-white dark:bg-slate-900 text-black border-2 border-indigo-500/20">
-          <CardHeader className="p-8 sm:p-10 pb-4 bg-indigo-500/5 text-left">
-            <CardTitle className="flex items-center gap-2 text-xl font-black uppercase tracking-tight text-indigo-600 text-left">
-              <Sparkles className="w-6 h-6 text-indigo-600 animate-pulse" /> Integrasi Kecerdasan Buatan (Gemini AI)
+        {/* MARQUEE SETTINGS */}
+        <Card className="rounded-[2.5rem] border-none shadow-2xl overflow-hidden bg-white dark:bg-slate-900 text-black">
+          <CardHeader className="p-8 pb-4 bg-slate-900 text-white border-b text-left">
+            <CardTitle className="flex items-center gap-2 text-lg font-black uppercase tracking-tight text-left">
+              <FileText className="w-6 h-6 text-primary" /> Pengumuman Berjalan (Marquee)
             </CardTitle>
-            <CardDescription className="text-[10px] font-black uppercase tracking-widest text-left">Konfigurasi API Key Google Gemini untuk fitur Analis Aset Pintar.</CardDescription>
+            <CardDescription className="text-[10px] font-black uppercase tracking-widest text-white/40 text-left">Visualisasi informasi digital pada bagian atas layar.</CardDescription>
           </CardHeader>
-          <CardContent className="p-8 sm:p-10 space-y-6">
-            <div className="p-5 rounded-3xl bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-800/20 flex items-start gap-4 mb-6">
-              <Info className="h-5 w-5 text-indigo-600 mt-0.5" />
-              <p className="text-[11px] leading-relaxed text-indigo-800 dark:text-indigo-200 font-medium text-left">
-                Gunakan API Key dari Google AI Studio (Gemini) agar sistem dapat menghasilkan wawasan otomatis, mendeteksi tren kerusakan barang, dan memberikan rekomendasi preventif bagi tim manajemen.
-              </p>
-            </div>
-            
+          <CardContent className="p-8 sm:p-10 space-y-8">
             <div className="space-y-2 text-left">
-              <Label htmlFor="gemini-api-key" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Gemini API Key</Label>
-              <div className="relative">
-                <Input
-                  id="gemini-api-key"
-                  type="password"
-                  value={geminiApiKey}
-                  onChange={(e) => setGeminiApiKey(e.target.value)}
-                  placeholder="AIzaSy..."
-                  className="rounded-xl h-12 bg-slate-50 dark:bg-slate-800 border-none shadow-inner font-mono text-sm pr-10 text-black dark:text-white"
-                />
-                <Sparkles className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-indigo-400" />
-              </div>
-              <p className="text-[9px] text-muted-foreground italic px-1 text-left">
-                Kunci API ini disimpan secara aman di database dan hanya digunakan di server internal untuk pemrosesan data wawasan.
-              </p>
+              <Label htmlFor="marquee-text" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Pesan Pengumuman</Label>
+              <Textarea
+                id="marquee-text"
+                placeholder="Masukkan pesan pengumuman..."
+                value={marqueeText}
+                onChange={(e) => setMarqueeText(e.target.value)}
+                className="min-h-[120px] rounded-2xl bg-slate-50 dark:bg-slate-800 border-none shadow-inner font-bold text-sm leading-relaxed text-black"
+              />
             </div>
-          </CardContent>
-        </Card>
 
-        {/* 2ND CHECKER AUTHORIZATION */}
-        <Card className="rounded-[2.5rem] border-none shadow-2xl overflow-hidden bg-white dark:bg-slate-900 text-black border-2 border-primary/20">
-          <CardHeader className="p-8 sm:p-10 pb-4 bg-primary/5 text-left">
-            <CardTitle className="flex items-center gap-2 text-xl font-black uppercase tracking-tight text-primary text-left">
-              <ShieldAlert className="w-6 h-6 text-primary" /> Otoritas Verifikasi Audit (2nd Checker)
-            </CardTitle>
-            <CardDescription className="text-[10px] font-black uppercase tracking-widest text-left">Pilih departemen yang berhak melakukan checklist verifikasi tingkat kedua.</CardDescription>
-          </CardHeader>
-          <CardContent className="p-8 sm:p-10 space-y-6">
-            <div className="p-5 rounded-3xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 flex items-start gap-4 mb-6">
-              <Info className="h-5 w-5 text-blue-600 mt-0.5" />
-              <p className="text-[11px] leading-relaxed text-blue-800 dark:text-blue-200 font-medium text-left">
-                User yang berada di departemen terpilih di bawah ini akan memiliki akses untuk mencentang kolom <b>2nd Checker</b> di halaman Audit Aset. Departemen yang tidak terpilih hanya bisa melakukan pengisian 1st Checker.
-              </p>
-            </div>
-            
-            <ScrollArea className="h-64 rounded-2xl bg-slate-50 dark:bg-slate-950/50 border shadow-inner p-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {departments.sort().map(dept => (
-                    <div key={dept} className="flex items-center space-x-3 p-2 hover:bg-white dark:hover:bg-slate-800 rounded-lg transition-colors">
-                      <Checkbox 
-                        id={`2nd-checker-dept-${dept}`}
-                        checked={secondCheckerDepts.includes(dept)}
-                        onCheckedChange={(checked) => {
-                          if (checked) setSecondCheckerDepts(prev => [...prev, dept]);
-                          else setSecondCheckerDepts(prev => prev.filter(d => d !== dept));
-                        }}
-                      />
-                      <Label htmlFor={`2nd-checker-dept-${dept}`} className="text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer uppercase truncate">{dept}</Label>
-                    </div>
-                  ))}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="space-y-3 text-left">
+                    <Label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+                        <Zap className="w-3.5 h-3.5 text-primary" /> Gaya Visual
+                    </Label>
+                    <Select value={marqueeEffect} onValueChange={setMarqueeEffect}>
+                        <SelectTrigger className="rounded-xl h-12 bg-slate-50 dark:bg-slate-800 border-none shadow-sm font-bold text-black text-left">
+                        <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl">
+                            <SelectItem value="classic">Modern Classic</SelectItem>
+                            <SelectItem value="gradient">Vibrant Gradient</SelectItem>
+                            <SelectItem value="neon">Neon Glow</SelectItem>
+                            <SelectItem value="glass">Glass Reflection</SelectItem>
+                            <SelectItem value="cyber">Cyberpunk</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
 
-        {/* DEPARTMENT GROUPING */}
-        <Card className="rounded-[2.5rem] border-none shadow-2xl overflow-hidden bg-white dark:bg-slate-900 text-black border-2 border-primary/10">
-          <CardHeader className="p-8 sm:p-10 pb-4 bg-primary/5 text-left">
-            <CardTitle className="flex items-center gap-2 text-xl font-black uppercase tracking-tight text-primary text-left">
-              <Users2 className="w-6 h-6 text-primary" /> Pengelompokan Unit (Dept Groups)
-            </CardTitle>
-            <CardDescription className="text-[10px] font-black uppercase tracking-widest text-left">Kelola grup departemen untuk mempermudah pemilihan unit saat audit fisik.</CardDescription>
-          </CardHeader>
-          <CardContent className="p-8 sm:p-10 space-y-6">
-            <div className="flex justify-end">
-              <Button onClick={() => handleOpenGroupDialog()} className="rounded-xl h-11 bg-primary hover:bg-primary/90 text-white font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20">
-                <Plus className="mr-2 h-4 w-4" /> Tambah Grup Unit
-              </Button>
+                <div className="space-y-3 text-left">
+                    <Label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+                        <Activity className="w-3.5 h-3.5 text-primary" /> Tipe Pergerakan
+                    </Label>
+                    <Select value={marqueeBehavior} onValueChange={setMarqueeBehavior}>
+                        <SelectTrigger className="rounded-xl h-12 bg-slate-50 dark:bg-slate-800 border-none shadow-sm font-bold text-black text-left">
+                        <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl">
+                            <SelectItem value="scroll">Scroll (Linear)</SelectItem>
+                            <SelectItem value="fixed">Fixed (Statis)</SelectItem>
+                            <SelectItem value="bounce">Bounce (Memantul)</SelectItem>
+                            <SelectItem value="fade">Fade In-Out</SelectItem>
+                            <SelectItem value="typewriter">Typewriter</SelectItem>
+                            <SelectItem value="blink">Blinking</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div className="space-y-3 text-left">
+                    <Label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1 text-left">
+                        <Activity className="w-3.5 h-3.5 text-primary" /> Kecepatan
+                    </Label>
+                    <Select value={marqueeSpeed} onValueChange={setMarqueeSpeed} disabled={['fixed', 'typewriter'].includes(marqueeBehavior)}>
+                        <SelectTrigger className="rounded-xl h-12 bg-slate-50 dark:bg-slate-800 border-none shadow-sm font-bold text-black text-left">
+                        <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl">
+                            <SelectItem value="slow">Slow</SelectItem>
+                            <SelectItem value="normal">Normal</SelectItem>
+                            <SelectItem value="fast">Fast</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
             </div>
 
-            <div className="border rounded-[2.5rem] overflow-hidden bg-white dark:bg-slate-950 shadow-inner">
-                <Table>
-                    <TableHeader className="bg-slate-50 dark:bg-slate-800/50">
-                        <TableRow className="h-14 border-none">
-                            <TableHead className="pl-10 text-[10px] font-black uppercase tracking-widest">Nama Grup</TableHead>
-                            <TableHead className="text-[10px] font-black uppercase tracking-widest text-left">Daftar Unit Terkait</TableHead>
-                            <TableHead className="text-right pr-10 text-[10px] font-black uppercase tracking-widest">Aksi</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {deptGroups.length > 0 ? deptGroups.map((group) => (
-                            <TableRow key={group.id} className="h-16 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border-slate-50 dark:border-slate-800 group">
-                                <TableCell className="pl-10 font-black text-sm text-primary uppercase tracking-tight text-left">{group.name}</TableCell>
-                                <TableCell>
-                                    <div className="flex flex-wrap gap-1.5 py-2">
-                                        {group.departments.map(d => (
-                                          <Badge key={d} variant="secondary" className="text-[9px] font-black uppercase bg-slate-100 text-slate-600 border-none px-2.5">{d}</Badge>
-                                        ))}
-                                    </div>
-                                </TableCell>
-                                <TableCell className="text-right pr-10">
-                                    <div className="flex justify-end gap-2">
-                                        <Button variant="ghost" size="icon" onClick={() => handleOpenGroupDialog(group)} className="h-9 w-9 rounded-xl text-slate-300 hover:text-amber-600 hover:bg-amber-50 opacity-0 group-hover:opacity-100 transition-all"><Edit className="h-4 w-4" /></Button>
-                                        <Button variant="ghost" size="icon" onClick={() => handleRemoveGroup(group.id)} className="h-9 w-9 rounded-xl text-slate-300 hover:text-rose-600 hover:bg-rose-50 opacity-0 group-hover:opacity-100 transition-all"><Trash2 className="h-4 w-4" /></Button>
-                                    </div>
-                                </TableCell>
-                            </TableRow>
-                        )) : (
-                            <TableRow><TableCell colSpan={3} className="h-32 text-center text-[10px] font-black uppercase opacity-20 italic">Belum ada grup unit kerja.</TableCell></TableRow>
-                        )}
-                    </TableBody>
-                </Table>
+            <div className="pt-4 border-t border-slate-100 flex justify-end">
+                <Button onClick={handleSaveMarquee} disabled={isSaving} className="rounded-xl px-12 h-14 bg-slate-900 hover:bg-black text-white font-black uppercase tracking-widest shadow-2xl transition-all active:scale-95">
+                {isSaving ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Sparkles className="mr-2 h-5 w-5 text-primary" />}
+                Terapkan Visual
+                </Button>
             </div>
           </CardContent>
         </Card>
+      
+          </TabsContent>
 
-        {/* SERIES MANAGEMENT */}
+          <TabsContent value="aset" className="space-y-10 mt-6">
+{/* SERIES MANAGEMENT */}
         <Card className="rounded-[2.5rem] border-none shadow-2xl overflow-hidden bg-white dark:bg-slate-900 text-black">
           <CardHeader className="p-8 sm:p-10 pb-4 bg-slate-50/50 dark:bg-slate-800/50 border-b text-left">
             <CardTitle className="flex items-center gap-2 text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white text-left">
@@ -1030,6 +1005,120 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
+        {/* TECHNICAL LABELS CUSTOMIZATION */}
+        <Card className="rounded-[2.5rem] border-none shadow-2xl overflow-hidden bg-white dark:bg-slate-900 text-black border-2 border-primary/20">
+          <CardHeader className="p-8 sm:p-10 pb-4 bg-primary/5 text-left">
+            <CardTitle className="flex items-center gap-2 text-xl font-black uppercase tracking-tight text-primary text-left">
+              <Tags className="w-6 h-6" /> Kustomisasi Label per Kategori
+            </CardTitle>
+            <CardDescription className="text-[10px] font-black uppercase tracking-widest text-left">Tentukan nama label spesifikasi teknis untuk setiap kategori unik.</CardDescription>
+          </CardHeader>
+          <CardContent className="p-8 sm:p-10 pt-8 space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-start">
+                <div className="space-y-4 text-left">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">1. Pilih Kategori Aset</Label>
+                    <Select value={selectedCategoryForLabels} onValueChange={setSelectedCategoryForLabels}>
+                        <SelectTrigger className="h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none shadow-inner font-black text-sm text-primary uppercase">
+                            <SelectValue placeholder="Pilih kategori untuk diedit..." />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-2xl">
+                            {categories.sort((a,b) => a.name.localeCompare(b.name)).map(cat => <SelectItem key={cat.name} value={cat.name} className="font-bold text-xs">{cat.name}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                    <div className="p-5 rounded-3xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 flex items-start gap-3">
+                        <Info className="h-5 w-5 text-blue-600 mt-0.5" />
+                        <p className="text-[11px] leading-relaxed text-blue-800 dark:text-blue-200 font-medium text-left">Label ini akan otomatis muncul pada Formulir Input, Profil Aset, dan Cetakan Identitas untuk kategori yang Anda pilih.</p>
+                    </div>
+                </div>
+
+                <div className={cn("space-y-4 transition-all duration-500", !selectedCategoryForLabels ? "opacity-20 pointer-events-none" : "opacity-100")}>
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">2. Tentukan 4 Nama Label Spesifik</Label>
+                    <div className="grid grid-cols-1 gap-3">
+                        {tempLabels.map((label, idx) => (
+                            <div key={idx} className="space-y-1 text-left">
+                                <Label className="text-[8px] font-black uppercase text-slate-400 ml-3">Kolom Teknis {idx + 1}</Label>
+                                <Input 
+                                    placeholder={`e.g., ${idx === 0 ? 'Model' : (idx === 1 ? 'Volume' : 'S/N')}`}
+                                    value={label}
+                                    onChange={(e) => {
+                                        const next = [...tempLabels];
+                                        next[idx] = e.target.value;
+                                        setTempLabels(next);
+                                    }}
+                                    className="h-11 rounded-xl bg-slate-50 dark:bg-slate-950 border-none shadow-inner font-bold text-black"
+                                />
+                            </div>
+                        ))}
+                    </div>
+                    <Button onClick={handleSaveCategoryLabels} className="w-full h-11 bg-slate-900 hover:bg-black text-white font-black uppercase text-[10px] tracking-widest rounded-xl shadow-lg mt-2">
+                        Terapkan Label Sementara
+                    </Button>
+                </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        
+          </TabsContent>
+
+          <TabsContent value="organisasi" className="space-y-10 mt-6">
+{/* DEPARTMENT MANAGEMENT TABLE */}
+        <Card className="rounded-[2.5rem] border-none shadow-2xl overflow-hidden bg-white dark:bg-slate-900 text-black">
+          <CardHeader className="p-8 sm:p-10 pb-4 bg-slate-50/50 dark:bg-slate-800/50 border-b text-left">
+            <CardTitle className="flex items-center gap-2 text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white text-left">
+              <Building2 className="w-6 h-6 text-primary" /> Manajemen Departemen (Bagian)
+            </CardTitle>
+            <CardDescription className="text-[10px] font-black uppercase tracking-widest text-left">Daftar unit kerja yang diizinkan untuk memiliki dan memindahkan aset.</CardDescription>
+          </CardHeader>
+          <CardContent className="p-8 sm:p-10 space-y-8">
+            <div className="p-6 bg-primary/5 dark:bg-primary/10 rounded-[2rem] border-2 border-dashed border-primary/20">
+                <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-4 ml-1 text-left">Tambah Departemen</p>
+                <div className="flex gap-4">
+                    <Input 
+                        placeholder="Ketik Nama Departemen..." 
+                        value={newDept} 
+                        onChange={(e) => setNewDept(e.target.value)}
+                        className="h-12 rounded-xl bg-white dark:bg-slate-900 border-slate-200 shadow-sm font-bold text-base text-black"
+                        onKeyDown={(e) => e.key === 'Enter' && handleAddDept()}
+                    />
+                    <Button onClick={handleAddDept} className="h-12 w-12 rounded-xl bg-primary shadow-lg shadow-primary/20 p-0 text-white">
+                        <Plus className="h-6 w-6" />
+                    </Button>
+                </div>
+            </div>
+
+            <div className="border rounded-[2.5rem] overflow-hidden bg-white dark:bg-slate-950 shadow-inner">
+                <Table>
+                    <TableHeader className="bg-slate-50 dark:bg-slate-800/50">
+                        <TableRow className="h-14 border-none">
+                            <TableHead className="pl-10 text-[10px] font-black uppercase tracking-widest w-[80px]">No</TableHead>
+                            <TableHead className="text-[10px] font-black uppercase tracking-widest text-left">Identitas Unit / Departemen</TableHead>
+                            <TableHead className="text-right pr-10 text-[10px] font-black uppercase tracking-widest">Aksi</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {departments.sort().map((dept, idx) => (
+                            <TableRow key={dept} className="h-16 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border-slate-50 dark:border-slate-800 group">
+                                <TableCell className="pl-10 text-xs font-black text-slate-400">{idx + 1}</TableCell>
+                                <TableCell className="font-black text-sm text-slate-900 dark:text-white uppercase tracking-tight drop-shadow-sm text-left">{dept}</TableCell>
+                                <TableCell className="text-right pr-10">
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        onClick={() => handleRemoveDept(dept)}
+                                        className="h-9 w-9 rounded-xl text-slate-300 hover:text-rose-600 hover:bg-rose-50 transition-all opacity-0 group-hover:opacity-100"
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* COST CENTER MANAGEMENT TABLE */}
         <Card className="rounded-[2.5rem] border-none shadow-2xl overflow-hidden bg-white dark:bg-slate-900 text-black">
           <CardHeader className="p-8 sm:p-10 pb-4 bg-slate-50/50 dark:bg-slate-800/50 border-b text-left">
@@ -1110,117 +1199,138 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* TECHNICAL LABELS CUSTOMIZATION */}
-        <Card className="rounded-[2.5rem] border-none shadow-2xl overflow-hidden bg-white dark:bg-slate-900 text-black border-2 border-primary/20">
+        {/* DEPARTMENT GROUPING */}
+        <Card className="rounded-[2.5rem] border-none shadow-2xl overflow-hidden bg-white dark:bg-slate-900 text-black border-2 border-primary/10">
           <CardHeader className="p-8 sm:p-10 pb-4 bg-primary/5 text-left">
             <CardTitle className="flex items-center gap-2 text-xl font-black uppercase tracking-tight text-primary text-left">
-              <Tags className="w-6 h-6" /> Kustomisasi Label per Kategori
+              <Users2 className="w-6 h-6 text-primary" /> Pengelompokan Unit (Dept Groups)
             </CardTitle>
-            <CardDescription className="text-[10px] font-black uppercase tracking-widest text-left">Tentukan nama label spesifikasi teknis untuk setiap kategori unik.</CardDescription>
+            <CardDescription className="text-[10px] font-black uppercase tracking-widest text-left">Kelola grup departemen untuk mempermudah pemilihan unit saat audit fisik.</CardDescription>
           </CardHeader>
-          <CardContent className="p-8 sm:p-10 pt-8 space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-start">
-                <div className="space-y-4 text-left">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">1. Pilih Kategori Aset</Label>
-                    <Select value={selectedCategoryForLabels} onValueChange={setSelectedCategoryForLabels}>
-                        <SelectTrigger className="h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none shadow-inner font-black text-sm text-primary uppercase">
-                            <SelectValue placeholder="Pilih kategori untuk diedit..." />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-2xl">
-                            {categories.sort((a,b) => a.name.localeCompare(b.name)).map(cat => <SelectItem key={cat.name} value={cat.name} className="font-bold text-xs">{cat.name}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                    <div className="p-5 rounded-3xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 flex items-start gap-3">
-                        <Info className="h-5 w-5 text-blue-600 mt-0.5" />
-                        <p className="text-[11px] leading-relaxed text-blue-800 dark:text-blue-200 font-medium text-left">Label ini akan otomatis muncul pada Formulir Input, Profil Aset, dan Cetakan Identitas untuk kategori yang Anda pilih.</p>
-                    </div>
-                </div>
-
-                <div className={cn("space-y-4 transition-all duration-500", !selectedCategoryForLabels ? "opacity-20 pointer-events-none" : "opacity-100")}>
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">2. Tentukan 4 Nama Label Spesifik</Label>
-                    <div className="grid grid-cols-1 gap-3">
-                        {tempLabels.map((label, idx) => (
-                            <div key={idx} className="space-y-1 text-left">
-                                <Label className="text-[8px] font-black uppercase text-slate-400 ml-3">Kolom Teknis {idx + 1}</Label>
-                                <Input 
-                                    placeholder={`e.g., ${idx === 0 ? 'Model' : (idx === 1 ? 'Volume' : 'S/N')}`}
-                                    value={label}
-                                    onChange={(e) => {
-                                        const next = [...tempLabels];
-                                        next[idx] = e.target.value;
-                                        setTempLabels(next);
-                                    }}
-                                    className="h-11 rounded-xl bg-slate-50 dark:bg-slate-950 border-none shadow-inner font-bold text-black"
-                                />
-                            </div>
-                        ))}
-                    </div>
-                    <Button onClick={handleSaveCategoryLabels} className="w-full h-11 bg-slate-900 hover:bg-black text-white font-black uppercase text-[10px] tracking-widest rounded-xl shadow-lg mt-2">
-                        Terapkan Label Sementara
-                    </Button>
-                </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* DEPARTMENT MANAGEMENT TABLE */}
-        <Card className="rounded-[2.5rem] border-none shadow-2xl overflow-hidden bg-white dark:bg-slate-900 text-black">
-          <CardHeader className="p-8 sm:p-10 pb-4 bg-slate-50/50 dark:bg-slate-800/50 border-b text-left">
-            <CardTitle className="flex items-center gap-2 text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white text-left">
-              <Building2 className="w-6 h-6 text-primary" /> Manajemen Departemen (Bagian)
-            </CardTitle>
-            <CardDescription className="text-[10px] font-black uppercase tracking-widest text-left">Daftar unit kerja yang diizinkan untuk memiliki dan memindahkan aset.</CardDescription>
-          </CardHeader>
-          <CardContent className="p-8 sm:p-10 space-y-8">
-            <div className="p-6 bg-primary/5 dark:bg-primary/10 rounded-[2rem] border-2 border-dashed border-primary/20">
-                <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-4 ml-1 text-left">Tambah Departemen</p>
-                <div className="flex gap-4">
-                    <Input 
-                        placeholder="Ketik Nama Departemen..." 
-                        value={newDept} 
-                        onChange={(e) => setNewDept(e.target.value)}
-                        className="h-12 rounded-xl bg-white dark:bg-slate-900 border-slate-200 shadow-sm font-bold text-base text-black"
-                        onKeyDown={(e) => e.key === 'Enter' && handleAddDept()}
-                    />
-                    <Button onClick={handleAddDept} className="h-12 w-12 rounded-xl bg-primary shadow-lg shadow-primary/20 p-0 text-white">
-                        <Plus className="h-6 w-6" />
-                    </Button>
-                </div>
+          <CardContent className="p-8 sm:p-10 space-y-6">
+            <div className="flex justify-end">
+              <Button onClick={() => handleOpenGroupDialog()} className="rounded-xl h-11 bg-primary hover:bg-primary/90 text-white font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20">
+                <Plus className="mr-2 h-4 w-4" /> Tambah Grup Unit
+              </Button>
             </div>
 
             <div className="border rounded-[2.5rem] overflow-hidden bg-white dark:bg-slate-950 shadow-inner">
                 <Table>
                     <TableHeader className="bg-slate-50 dark:bg-slate-800/50">
                         <TableRow className="h-14 border-none">
-                            <TableHead className="pl-10 text-[10px] font-black uppercase tracking-widest w-[80px]">No</TableHead>
-                            <TableHead className="text-[10px] font-black uppercase tracking-widest text-left">Identitas Unit / Departemen</TableHead>
+                            <TableHead className="pl-10 text-[10px] font-black uppercase tracking-widest">Nama Grup</TableHead>
+                            <TableHead className="text-[10px] font-black uppercase tracking-widest text-left">Daftar Unit Terkait</TableHead>
                             <TableHead className="text-right pr-10 text-[10px] font-black uppercase tracking-widest">Aksi</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {departments.sort().map((dept, idx) => (
-                            <TableRow key={dept} className="h-16 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border-slate-50 dark:border-slate-800 group">
-                                <TableCell className="pl-10 text-xs font-black text-slate-400">{idx + 1}</TableCell>
-                                <TableCell className="font-black text-sm text-slate-900 dark:text-white uppercase tracking-tight drop-shadow-sm text-left">{dept}</TableCell>
+                        {deptGroups.length > 0 ? deptGroups.map((group) => (
+                            <TableRow key={group.id} className="h-16 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border-slate-50 dark:border-slate-800 group">
+                                <TableCell className="pl-10 font-black text-sm text-primary uppercase tracking-tight text-left">{group.name}</TableCell>
+                                <TableCell>
+                                    <div className="flex flex-wrap gap-1.5 py-2">
+                                        {group.departments.map(d => (
+                                          <Badge key={d} variant="secondary" className="text-[9px] font-black uppercase bg-slate-100 text-slate-600 border-none px-2.5">{d}</Badge>
+                                        ))}
+                                    </div>
+                                </TableCell>
                                 <TableCell className="text-right pr-10">
-                                    <Button 
-                                        variant="ghost" 
-                                        size="icon" 
-                                        onClick={() => handleRemoveDept(dept)}
-                                        className="h-9 w-9 rounded-xl text-slate-300 hover:text-rose-600 hover:bg-rose-50 transition-all opacity-0 group-hover:opacity-100"
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
+                                    <div className="flex justify-end gap-2">
+                                        <Button variant="ghost" size="icon" onClick={() => handleOpenGroupDialog(group)} className="h-9 w-9 rounded-xl text-slate-300 hover:text-amber-600 hover:bg-amber-50 opacity-0 group-hover:opacity-100 transition-all"><Edit className="h-4 w-4" /></Button>
+                                        <Button variant="ghost" size="icon" onClick={() => handleRemoveGroup(group.id)} className="h-9 w-9 rounded-xl text-slate-300 hover:text-rose-600 hover:bg-rose-50 opacity-0 group-hover:opacity-100 transition-all"><Trash2 className="h-4 w-4" /></Button>
+                                    </div>
                                 </TableCell>
                             </TableRow>
-                        ))}
+                        )) : (
+                            <TableRow><TableCell colSpan={3} className="h-32 text-center text-[10px] font-black uppercase opacity-20 italic">Belum ada grup unit kerja.</TableCell></TableRow>
+                        )}
                     </TableBody>
                 </Table>
             </div>
           </CardContent>
         </Card>
 
-        {/* SAVE STICKY BUTTON */}
+        {/* 2ND CHECKER AUTHORIZATION */}
+        <Card className="rounded-[2.5rem] border-none shadow-2xl overflow-hidden bg-white dark:bg-slate-900 text-black border-2 border-primary/20">
+          <CardHeader className="p-8 sm:p-10 pb-4 bg-primary/5 text-left">
+            <CardTitle className="flex items-center gap-2 text-xl font-black uppercase tracking-tight text-primary text-left">
+              <ShieldAlert className="w-6 h-6 text-primary" /> Otoritas Verifikasi Audit (2nd Checker)
+            </CardTitle>
+            <CardDescription className="text-[10px] font-black uppercase tracking-widest text-left">Pilih departemen yang berhak melakukan checklist verifikasi tingkat kedua.</CardDescription>
+          </CardHeader>
+          <CardContent className="p-8 sm:p-10 space-y-6">
+            <div className="p-5 rounded-3xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 flex items-start gap-4 mb-6">
+              <Info className="h-5 w-5 text-blue-600 mt-0.5" />
+              <p className="text-[11px] leading-relaxed text-blue-800 dark:text-blue-200 font-medium text-left">
+                User yang berada di departemen terpilih di bawah ini akan memiliki akses untuk mencentang kolom <b>2nd Checker</b> di halaman Audit Aset. Departemen yang tidak terpilih hanya bisa melakukan pengisian 1st Checker.
+              </p>
+            </div>
+            
+            <ScrollArea className="h-64 rounded-2xl bg-slate-50 dark:bg-slate-950/50 border shadow-inner p-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {departments.sort().map(dept => (
+                    <div key={dept} className="flex items-center space-x-3 p-2 hover:bg-white dark:hover:bg-slate-800 rounded-lg transition-colors">
+                      <Checkbox 
+                        id={`2nd-checker-dept-${dept}`}
+                        checked={secondCheckerDepts.includes(dept)}
+                        onCheckedChange={(checked) => {
+                          if (checked) setSecondCheckerDepts(prev => [...prev, dept]);
+                          else setSecondCheckerDepts(prev => prev.filter(d => d !== dept));
+                        }}
+                      />
+                      <Label htmlFor={`2nd-checker-dept-${dept}`} className="text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer uppercase truncate">{dept}</Label>
+                    </div>
+                  ))}
+                </div>
+            </ScrollArea>
+          </CardContent>
+        </Card>
+
+        
+          </TabsContent>
+
+          <TabsContent value="integrasi" className="space-y-10 mt-6">
+{/* GEMINI AI CONFIGURATION */}
+        <Card className="rounded-[2.5rem] border-none shadow-2xl overflow-hidden bg-white dark:bg-slate-900 text-black border-2 border-indigo-500/20">
+          <CardHeader className="p-8 sm:p-10 pb-4 bg-indigo-500/5 text-left">
+            <CardTitle className="flex items-center gap-2 text-xl font-black uppercase tracking-tight text-indigo-600 text-left">
+              <Sparkles className="w-6 h-6 text-indigo-600 animate-pulse" /> Integrasi Kecerdasan Buatan (Gemini AI)
+            </CardTitle>
+            <CardDescription className="text-[10px] font-black uppercase tracking-widest text-left">Konfigurasi API Key Google Gemini untuk fitur Analis Aset Pintar.</CardDescription>
+          </CardHeader>
+          <CardContent className="p-8 sm:p-10 space-y-6">
+            <div className="p-5 rounded-3xl bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-800/20 flex items-start gap-4 mb-6">
+              <Info className="h-5 w-5 text-indigo-600 mt-0.5" />
+              <p className="text-[11px] leading-relaxed text-indigo-800 dark:text-indigo-200 font-medium text-left">
+                Gunakan API Key dari Google AI Studio (Gemini) agar sistem dapat menghasilkan wawasan otomatis, mendeteksi tren kerusakan barang, dan memberikan rekomendasi preventif bagi tim manajemen.
+              </p>
+            </div>
+            
+            <div className="space-y-2 text-left">
+              <Label htmlFor="gemini-api-key" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Gemini API Key</Label>
+              <div className="relative">
+                <Input
+                  id="gemini-api-key"
+                  type="password"
+                  value={geminiApiKey}
+                  onChange={(e) => setGeminiApiKey(e.target.value)}
+                  placeholder="AIzaSy..."
+                  className="rounded-xl h-12 bg-slate-50 dark:bg-slate-800 border-none shadow-inner font-mono text-sm pr-10 text-black dark:text-white"
+                />
+                <Sparkles className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-indigo-400" />
+              </div>
+              <p className="text-[9px] text-muted-foreground italic px-1 text-left">
+                Kunci API ini disimpan secara aman di database dan hanya digunakan di server internal untuk pemrosesan data wawasan.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        
+          </TabsContent>
+        </Tabs>
+
+{/* SAVE STICKY BUTTON */}
         <div className="sticky bottom-10 z-[60] flex justify-center">
             <Button onClick={handleSaveGeneral} disabled={isSaving} className="rounded-full px-20 h-16 bg-slate-900 hover:bg-black text-white font-black uppercase tracking-[0.2em] shadow-3xl shadow-primary/30 active:scale-95 transition-all border-4 border-white dark:border-slate-800">
                 {isSaving ? <Loader2 className="mr-3 h-6 w-6 animate-spin" /> : <ShieldCheck className="mr-3 h-6 w-6 text-primary" />}
@@ -1228,90 +1338,7 @@ export default function SettingsPage() {
             </Button>
         </div>
 
-        {/* MARQUEE SETTINGS */}
-        <Card className="rounded-[2.5rem] border-none shadow-2xl overflow-hidden bg-white dark:bg-slate-900 text-black">
-          <CardHeader className="p-8 pb-4 bg-slate-900 text-white border-b text-left">
-            <CardTitle className="flex items-center gap-2 text-lg font-black uppercase tracking-tight text-left">
-              <FileText className="w-6 h-6 text-primary" /> Pengumuman Berjalan (Marquee)
-            </CardTitle>
-            <CardDescription className="text-[10px] font-black uppercase tracking-widest text-white/40 text-left">Visualisasi informasi digital pada bagian atas layar.</CardDescription>
-          </CardHeader>
-          <CardContent className="p-8 sm:p-10 space-y-8">
-            <div className="space-y-2 text-left">
-              <Label htmlFor="marquee-text" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Pesan Pengumuman</Label>
-              <Textarea
-                id="marquee-text"
-                placeholder="Masukkan pesan pengumuman..."
-                value={marqueeText}
-                onChange={(e) => setMarqueeText(e.target.value)}
-                className="min-h-[120px] rounded-2xl bg-slate-50 dark:bg-slate-800 border-none shadow-inner font-bold text-sm leading-relaxed text-black"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="space-y-3 text-left">
-                    <Label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-                        <Zap className="w-3.5 h-3.5 text-primary" /> Gaya Visual
-                    </Label>
-                    <Select value={marqueeEffect} onValueChange={setMarqueeEffect}>
-                        <SelectTrigger className="rounded-xl h-12 bg-slate-50 dark:bg-slate-800 border-none shadow-sm font-bold text-black text-left">
-                        <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl">
-                            <SelectItem value="classic">Modern Classic</SelectItem>
-                            <SelectItem value="gradient">Vibrant Gradient</SelectItem>
-                            <SelectItem value="neon">Neon Glow</SelectItem>
-                            <SelectItem value="glass">Glass Reflection</SelectItem>
-                            <SelectItem value="cyber">Cyberpunk</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-
-                <div className="space-y-3 text-left">
-                    <Label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-                        <Activity className="w-3.5 h-3.5 text-primary" /> Tipe Pergerakan
-                    </Label>
-                    <Select value={marqueeBehavior} onValueChange={setMarqueeBehavior}>
-                        <SelectTrigger className="rounded-xl h-12 bg-slate-50 dark:bg-slate-800 border-none shadow-sm font-bold text-black text-left">
-                        <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl">
-                            <SelectItem value="scroll">Scroll (Linear)</SelectItem>
-                            <SelectItem value="fixed">Fixed (Statis)</SelectItem>
-                            <SelectItem value="bounce">Bounce (Memantul)</SelectItem>
-                            <SelectItem value="fade">Fade In-Out</SelectItem>
-                            <SelectItem value="typewriter">Typewriter</SelectItem>
-                            <SelectItem value="blink">Blinking</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-
-                <div className="space-y-3 text-left">
-                    <Label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1 text-left">
-                        <Activity className="w-3.5 h-3.5 text-primary" /> Kecepatan
-                    </Label>
-                    <Select value={marqueeSpeed} onValueChange={setMarqueeSpeed} disabled={['fixed', 'typewriter'].includes(marqueeBehavior)}>
-                        <SelectTrigger className="rounded-xl h-12 bg-slate-50 dark:bg-slate-800 border-none shadow-sm font-bold text-black text-left">
-                        <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl">
-                            <SelectItem value="slow">Slow</SelectItem>
-                            <SelectItem value="normal">Normal</SelectItem>
-                            <SelectItem value="fast">Fast</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-            </div>
-
-            <div className="pt-4 border-t border-slate-100 flex justify-end">
-                <Button onClick={handleSaveMarquee} disabled={isSaving} className="rounded-xl px-12 h-14 bg-slate-900 hover:bg-black text-white font-black uppercase tracking-widest shadow-2xl transition-all active:scale-95">
-                {isSaving ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Sparkles className="mr-2 h-5 w-5 text-primary" />}
-                Terapkan Visual
-                </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+        </div>
 
       {/* EDIT CATEGORY DIALOG */}
       <Dialog open={!!editingCat} onOpenChange={(o) => !o && setEditingCat(null)}>
