@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Printer, Download, Save, Info, FileText, Pencil, Trash, Lock, Unlock, User, History, Share2, Loader2, X, Search, Check, Trash2, FileSpreadsheet, Upload, AlertTriangle } from "lucide-react";
+import {  Printer, Download, Save, Info, FileText, Pencil, Trash, Lock, Unlock, User, History, Share2, Loader2, X, Search, Check, Trash2, FileSpreadsheet, Upload, AlertTriangle , Plus } from "lucide-react";
 import SignatureCanvas from 'react-signature-canvas';
 import Image from 'next/image';
 import * as XLSX from 'xlsx';
@@ -38,6 +38,7 @@ export default function FormAppPage() {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [previewReportId, setPreviewReportId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form States
@@ -45,6 +46,7 @@ export default function FormAppPage() {
   const [latestDarNo, setLatestDarNo] = useState("");
   const [suggestedDarNo, setSuggestedDarNo] = useState("");
   const [darExists, setDarExists] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
   const [checkingDar, setCheckingDar] = useState(false);
   const [customer, setCustomer] = useState("");
   const [entryDate, setEntryDate] = useState("");
@@ -74,6 +76,7 @@ export default function FormAppPage() {
   const [surfaceTemp, setSurfaceTemp] = useState("");
   
   const [guPtv, setGuPtv] = useState(["", "", "", "", "", ""]);
+  const [guPtvChecks, setGuPtvChecks] = useState<boolean[]>([false, false, false, false, false, false]);
   
   const [inkChecks, setInkChecks] = useState<string[]>([]);
   const [inkOther, setInkOther] = useState("");
@@ -112,7 +115,9 @@ export default function FormAppPage() {
   };
 
   const toggleLock = (role: 'manager' | 'sectionHead' | 'designer') => {
-    setLockedSignatures(prev => ({ ...prev, [role]: !prev[role] }));
+    const newLocks = { ...lockedSignatures, [role]: !lockedSignatures[role] };
+    setLockedSignatures(newLocks);
+    handleSave({ lockedSignatures: newLocks });
   };
 
   useEffect(() => {
@@ -165,6 +170,7 @@ export default function FormAppPage() {
         if (d.surfaceChecks) setSurfaceChecks(d.surfaceChecks);
         if (d.surfaceTemp) setSurfaceTemp(d.surfaceTemp);
         if (d.guPtv) setGuPtv(d.guPtv);
+        if (d.guPtvChecks) setGuPtvChecks(d.guPtvChecks);
         if (d.inkChecks) setInkChecks(d.inkChecks);
         if (d.inkOther) setInkOther(d.inkOther);
         if (d.sendBy) setSendBy(d.sendBy);
@@ -206,6 +212,10 @@ export default function FormAppPage() {
   }, [darExists]);
 
   useEffect(() => {
+    if (!darNo || editId) {
+      setDarExists(false);
+      return;
+    }
     if (!darNo) {
       setDarExists(false);
       return;
@@ -231,14 +241,14 @@ export default function FormAppPage() {
     const draft = {
       darNo, customer, entryDate, designer, technician, purpose, designNo, items, numColumns,
       requiredDate, closingDate, type, sizeChecks, sizeFaces, sizeCm1, sizeCm2,
-      glazeChecks, glazeResidue, surfaceChecks, surfaceTemp, guPtv, inkChecks, inkOther, sendBy,
+      glazeChecks, glazeResidue, surfaceChecks, surfaceTemp, guPtv, guPtvChecks, inkChecks, inkOther, sendBy,
       benefit, lastTimeReq, feedback, feedbackRows, note2Rows, lastDesignSupp, generalNote
     };
     localStorage.setItem("formDarDraft", JSON.stringify(draft));
   }, [
     darNo, customer, entryDate, designer, technician, purpose, designNo, items, numColumns,
     requiredDate, closingDate, type, sizeChecks, sizeFaces, sizeCm1, sizeCm2,
-    glazeChecks, glazeResidue, surfaceChecks, surfaceTemp, guPtv, inkChecks, inkOther, sendBy,
+    glazeChecks, glazeResidue, surfaceChecks, surfaceTemp, guPtv, guPtvChecks, inkChecks, inkOther, sendBy,
     benefit, lastTimeReq, feedback, feedbackRows, note2Rows, lastDesignSupp, generalNote, loading
   ]);
 
@@ -247,41 +257,54 @@ export default function FormAppPage() {
     window.print();
   };
 
-  const handleSave = async () => {
+  const handleSave = async (overrides?: any) => {
     if (!darNo) {
       toast({ title: "Gagal", description: "Nomor DAR harus diisi", variant: "destructive" });
       return;
     }
     try {
-      updateSignaturesState(); // Ensure canvas is extracted before saving
+      // Extract current signatures directly from canvas refs to ensure latest data
+      const currentSignatures = {
+        manager: sigManager.current?.isEmpty() ? signatures.manager : sigManager.current?.getTrimmedCanvas().toDataURL('image/png') || signatures.manager,
+        sectionHead: sigSectionHead.current?.isEmpty() ? signatures.sectionHead : sigSectionHead.current?.getTrimmedCanvas().toDataURL('image/png') || signatures.sectionHead,
+        designer: sigDesigner.current?.isEmpty() ? signatures.designer : sigDesigner.current?.getTrimmedCanvas().toDataURL('image/png') || signatures.designer,
+      };
+      setSignatures(currentSignatures);
       
       const payload = {
         darNo, customer, entryDate, designer, technician, purpose, designNo, items,
         requiredDate, closingDate, type, sizeChecks, sizeFaces, sizeCm1, sizeCm2,
-        glazeChecks, glazeResidue, surfaceChecks, surfaceTemp, guPtv, inkChecks, inkOther, sendBy,
+        glazeChecks, glazeResidue, surfaceChecks, surfaceTemp, guPtv, guPtvChecks, inkChecks, inkOther, sendBy,
         benefit, lastTimeReq, feedback, feedbackRows, lastDesignSupp, note2Rows, generalNote,
-        signatures, lockedSignatures, penColors, numColumns,
+        signatures: currentSignatures, lockedSignatures, penColors, numColumns,
         createdBy: user?.uid || "unknown",
         updatedBy: user?.displayName || user?.email || user?.uid || "unknown",
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        ...(overrides || {})
       };
       
       const cleanPayload = Object.fromEntries(
         Object.entries(payload).map(([k, v]) => [k, v === undefined ? null : v])
       );
 
-      // Check if DAR exists
-      const q = query(collection(db, "form_dar"), where("darNo", "==", darNo));
-      const snap = await getDocs(q);
-      
-      if (!snap.empty) {
-        toast({ title: "Gagal", description: "Nomor DAR sudah ada di database! Tidak dapat menimpa data.", variant: "destructive" });
-        return;
-      }
+      if (editId) {
+        // Update existing document
+        await updateDoc(doc(db, "form_dar", editId), { ...cleanPayload, updatedAt: new Date() });
+        toast({ title: "Berhasil", description: "Form DAR berhasil diperbarui!" });
+      } else {
+        // Check if DAR exists
+        const q = query(collection(db, "form_dar"), where("darNo", "==", darNo));
+        const snap = await getDocs(q);
+        
+        if (!snap.empty) {
+          toast({ title: "Gagal", description: "Nomor DAR sudah ada di database! Tidak dapat menimpa data.", variant: "destructive" });
+          return;
+        }
 
-      // Add new
-      await addDoc(collection(db, "form_dar"), { ...cleanPayload, createdAt: new Date() });
-      toast({ title: "Berhasil", description: "Form DAR berhasil disimpan!" });
+        // Add new
+        await addDoc(collection(db, "form_dar"), { ...cleanPayload, createdAt: new Date() });
+        toast({ title: "Berhasil", description: "Form DAR berhasil disimpan!" });
+      }
 
       localStorage.removeItem("formDarDraft"); // Bersihkan draft setelah sukses simpan
       setHistoryData([]); // Reset history to refetch next time
@@ -313,6 +336,7 @@ export default function FormAppPage() {
   }, [isHistoryOpen]);
 
   const loadReport = (report: any) => {
+    setEditId(report.id || null);
     setDarNo(report.darNo || "");
     setCustomer(report.customer || "");
     setEntryDate(report.entryDate || "");
@@ -335,6 +359,7 @@ export default function FormAppPage() {
     setSurfaceChecks(report.surfaceChecks || []);
     setSurfaceTemp(report.surfaceTemp || "");
     setGuPtv(report.guPtv || ["", "", "", "", "", ""]);
+    setGuPtvChecks(report.guPtvChecks || [false, false, false, false, false, false]);
     setInkChecks(report.inkChecks || []);
     setInkOther(report.inkOther || "");
     setSendBy(report.sendBy || []);
@@ -353,6 +378,51 @@ export default function FormAppPage() {
     
     setIsHistoryOpen(false);
     toast({ title: "Berhasil", description: `Data DAR ${report.darNo || ''} dimuat!` });
+  };
+
+  const resetForm = () => {
+    setEditId(null);
+    setDarNo("");
+    setCustomer("");
+    setEntryDate("");
+    setDesigner("");
+    setTechnician("");
+    setPurpose([]);
+    setDesignNo("");
+    
+    setItems(Array(32).fill(""));
+    setNumColumns(32);
+    setRequiredDate("");
+    setClosingDate("");
+    setType([]);
+    setSizeChecks([]);
+    setSizeFaces("");
+    setSizeCm1("");
+    setSizeCm2("");
+    setGlazeChecks([]);
+    setGlazeResidue("");
+    setSurfaceChecks([]);
+    setSurfaceTemp("");
+    setGuPtv(["", "", "", "", "", ""]);
+    setGuPtvChecks([false, false, false, false, false, false]);
+    setInkChecks([]);
+    setInkOther("");
+    setSendBy([]);
+    
+    setBenefit("");
+    setLastTimeReq("");
+    setFeedback("");
+    setFeedbackRows(Array.from({ length: 4 }, () => ({ c1: "", c2: "" })));
+    setNote2Rows(Array.from({ length: 3 }, () => ({ c1: "", c2: "" })));
+    setLastDesignSupp(Array.from({ length: 6 }, () => ({ c1: "", c2: "" })));
+    setGeneralNote("");
+    
+    setSignatures({ manager: '', sectionHead: '', designer: '' });
+    setLockedSignatures({ manager: false, sectionHead: false, designer: false });
+    setPenColors({ manager: '#000000', sectionHead: '#000000', designer: '#000000' });
+    
+    
+    toast({ title: "Form Dikosongkan", description: "Siap untuk membuat form DAR baru" });
   };
 
   const handleDeleteReport = async (id: string) => {
@@ -485,6 +555,11 @@ export default function FormAppPage() {
     newGu[idx] = val;
     setGuPtv(newGu);
   };
+  const updateGuCheck = (idx: number, checked: boolean) => {
+    const newChecks = [...guPtvChecks];
+    newChecks[idx] = checked;
+    setGuPtvChecks(newChecks);
+  };
   
   const updateFeedbackRow = (idx: number, field: "c1" | "c2", val: string) => {
     const newRows = [...feedbackRows];
@@ -507,6 +582,20 @@ export default function FormAppPage() {
   if (loading) return <DashboardLayout><div className="p-8">Memuat halaman...</div></DashboardLayout>;
   if (!hasAccess) return <DashboardLayout><div className="p-8 text-red-500 font-bold">Akses Ditolak. Anda tidak memiliki otoritas untuk melihat form ini.</div></DashboardLayout>;
 
+  const highlightMatch = (text: string, search: string) => {
+    if (!search || !text) return text;
+    const parts = text.split(new RegExp(`(${search})`, 'gi'));
+    return (
+        <>
+            {parts.map((part, i) => 
+                part.toLowerCase() === search.toLowerCase() ? 
+                    <span key={i} className="bg-yellow-300 text-yellow-900 font-bold px-0.5 rounded shadow-sm">{part}</span> : 
+                    part
+            )}
+        </>
+    );
+  };
+
   return (
     <DashboardLayout>
       <div className="flex items-center gap-3 px-1 text-left mb-6 print:hidden">
@@ -525,8 +614,9 @@ export default function FormAppPage() {
           
           <div className="flex flex-col gap-2 sticky top-0 bg-slate-50 dark:bg-slate-950 z-10 py-2 border-b">
             <div className="flex gap-2">
-              <Button onClick={handlePrint} className="flex-1 bg-slate-800 hover:bg-slate-900 text-white"><Printer className="w-4 h-4 mr-2" /> Print</Button>
-              <Button onClick={handleSave} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"><Save className="w-4 h-4 mr-2" /> Simpan</Button>
+              <Button onClick={resetForm} variant="outline" className="flex-1 border-blue-600 text-blue-600 hover:bg-blue-50 px-1"><Plus className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">Buat Baru</span></Button>
+              <Button onClick={handlePrint} className="flex-1 bg-slate-800 hover:bg-slate-900 text-white px-1"><Printer className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">Print</span></Button>
+              <Button onClick={handleSave} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white px-1"><Save className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">Simpan</span></Button>
             </div>
             <Button onClick={() => setIsHistoryOpen(true)} className="w-full bg-blue-600 hover:bg-blue-700 text-white"><History className="w-4 h-4 mr-2" /> Riwayat & Excel</Button>
           </div>
@@ -548,7 +638,7 @@ export default function FormAppPage() {
               <div>
                 <Label className="text-xs font-bold">No. DAR</Label>
                 <div className="relative">
-                  <Input value={darNo} onChange={e => setDarNo(e.target.value)} className={darExists ? "border-rose-500 bg-rose-50 pr-10" : "pr-10"} />
+                  <Input value={darNo} onChange={e => setDarNo(e.target.value)} disabled={!!editId} className={darExists ? "border-rose-500 bg-rose-50 pr-10" : "pr-10"} />
                   {checkingDar && <Loader2 className="h-4 w-4 absolute right-3 top-2.5 animate-spin text-slate-400" />}
                 </div>
                 {darExists && (
@@ -663,8 +753,13 @@ export default function FormAppPage() {
               
               <div className="space-y-2 border-t pt-2 mt-2">
                 <Label className="text-xs font-bold text-blue-600">GU / PTV</Label>
-                <div className="flex gap-2">
-                  {guPtv.map((v, i) => <Input key={i} className="h-7 text-xs px-1" value={v} onChange={e => updateGu(i, e.target.value)} />)}
+                <div className="flex flex-wrap gap-3">
+                  {guPtv.map((v, i) => (
+                    <div key={i} className="flex items-center gap-1">
+                      <Checkbox checked={guPtvChecks[i]} onCheckedChange={(c) => updateGuCheck(i, !!c)} />
+                      <Input className="w-12 h-7 text-xs px-1" value={v} onChange={e => updateGu(i, e.target.value)} />
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -1009,7 +1104,9 @@ export default function FormAppPage() {
                                 <div className="flex-1 flex flex-wrap gap-x-4 gap-y-1 p-1 items-center">
                                     {guPtv.map((v, i) => (
                                         <div key={i} className="flex items-center gap-1">
-                                            <span className="border border-black w-2.5 h-2.5 inline-block" />
+                                            <span className="border border-black w-2.5 h-2.5 inline-flex items-center justify-center text-[8px] font-bold">
+                                                {guPtvChecks[i] ? "✓" : ""}
+                                            </span>
                                             <span className="border-b border-black min-w-[30px] inline-block text-center">{v}</span>
                                         </div>
                                     ))}
@@ -1182,8 +1279,10 @@ export default function FormAppPage() {
 
       </div>
       
+      
+      {/* HISTORY DIALOG */}
       <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
-        <DialogContent className="sm:max-w-4xl h-[90vh] flex flex-col p-0 border-none rounded-[2rem] shadow-2xl overflow-hidden bg-white text-black">
+        <DialogContent className="sm:max-w-[95vw] h-[90vh] flex flex-col p-0 border-none rounded-[2rem] shadow-2xl overflow-hidden bg-white text-black">
             <div className="p-8 bg-slate-900 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                     <div className="p-3 bg-blue-600/20 rounded-2xl text-left"><History className="h-6 w-6 text-blue-400" /></div>
@@ -1204,54 +1303,94 @@ export default function FormAppPage() {
                 </div>
             </div>
             
-            <div className="p-6 border-b bg-slate-50 flex items-center gap-4">
+            <div className={`p-6 border-b flex items-center gap-4 transition-colors ${historySearch ? 'bg-blue-50/50' : 'bg-slate-50'}`}>
                 <div className="relative flex-1 group">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
-                    <Input placeholder="Cari No DAR, Customer, atau Designer..." value={historySearch} onChange={(e) => setHistorySearch(e.target.value)} className="pl-11 h-12 bg-white rounded-xl shadow-sm border-slate-200" />
+                    <Search className={`absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors ${historySearch ? 'text-blue-500' : 'text-slate-300 group-focus-within:text-blue-400'}`} />
+                    <Input 
+                        placeholder="Cari No DAR, Customer, Designer, atau Item..." 
+                        value={historySearch} 
+                        onChange={(e) => setHistorySearch(e.target.value)} 
+                        className={`pl-11 h-12 rounded-xl transition-all focus-visible:ring-blue-500 ${historySearch ? 'bg-white border-blue-400 ring-2 ring-blue-500/20 shadow-md' : 'bg-white shadow-sm border-slate-200 hover:border-slate-300'}`} 
+                    />
                 </div>
             </div>
             
             <ScrollArea className="flex-1 w-full">
                 <div className="p-6 flex flex-col gap-4 w-full">
-                    {loadingHistory ? Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-24 w-full rounded-2xl" />) : 
-                        historyData.filter(r => (r.darNo || '').toLowerCase().includes(historySearch.toLowerCase()) || (r.customer || '').toLowerCase().includes(historySearch.toLowerCase()) || (r.designer || '').toLowerCase().includes(historySearch.toLowerCase())).map((report) => (
-                        <div key={report.id} className="p-5 rounded-2xl border hover:border-blue-500/30 hover:bg-slate-50 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-black text-left w-full">
-                            <div className="flex-1 text-left min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <Badge variant="outline" className="text-[10px] uppercase font-black bg-blue-50 text-blue-700 border-blue-200">{report.darNo}</Badge>
-                                    <span className="text-[10px] font-bold text-muted-foreground">{report.createdAt?.seconds ? `Dibuat: ${new Date(report.createdAt.seconds * 1000).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}` : report.entryDate}</span>
-                                    {report.updatedAt?.seconds && (
-                                        <span className="text-[9px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full border border-blue-200 shadow-sm">
-                                            Diupdate: {new Date(report.updatedAt.seconds * 1000).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })} ({report.updatedBy || 'Sistem'})
-                                        </span>
-                                    )}
-                                </div>
-                                <h4 className="font-black text-slate-900 uppercase tracking-tight text-left break-words leading-snug">{report.customer || 'Tanpa Customer'}</h4>
-                                <p className="text-[10px] text-muted-foreground mt-1">Designer: {report.designer || '-'} | Item: {report.designNo || '-'}</p>
-                            </div>
-                            <div className="flex items-center gap-2 shrink-0">
-                              {confirmDeleteId === report.id ? (
-                                <div className="flex items-center gap-1.5 animate-in fade-in zoom-in duration-200">
-                                  <Button variant="outline" size="icon" onClick={() => setConfirmDeleteId(null)} className="h-11 w-11 rounded-xl text-slate-400 border-slate-200 hover:bg-slate-50" disabled={isDeleting}>
-                                    <X className="h-5 w-5" />
-                                  </Button>
-                                  <Button onClick={() => handleDeleteReport(report.id)} className="h-11 w-11 rounded-xl bg-rose-600 text-white hover:bg-rose-700 shadow-lg shadow-rose-600/20" disabled={isDeleting}>
-                                    {isDeleting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Check className="h-5 w-5" />}
-                                  </Button>
-                                </div>
-                              ) : (
-                                <>
-                                  <Button onClick={() => loadReport(report)} className="h-11 px-6 bg-slate-900 text-white uppercase text-[10px] font-black rounded-xl hover:bg-black shadow-md">Lihat & Muat</Button>
-                                  {user?.role === 'Admin' && (
-                                    <Button variant="outline" size="icon" onClick={() => setConfirmDeleteId(report.id)} className="h-11 w-11 rounded-xl text-rose-600 border-rose-100 hover:bg-rose-50">
-                                      <Trash2 className="h-5 w-5" />
-                                    </Button>
-                                  )}
-                                </>
-                              )}
-                            </div>
+                    {loadingHistory ? (
+                        <div className="space-y-2">
+                            {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12 w-full rounded-lg" />)}
                         </div>
-                    ))}
+                    ) : (
+                        <div className="border rounded-xl overflow-x-auto bg-white shadow-sm">
+                            <table className="w-full text-left text-xs whitespace-nowrap">
+                                <thead className="bg-slate-100 border-b text-slate-600 font-bold uppercase tracking-wider text-[10px]">
+                                    <tr>
+                                        <th className="p-3 pl-4">No. DAR</th>
+                                        <th className="p-3">Waktu</th>
+                                        <th className="p-3">Customer</th>
+                                        <th className="p-3">Designer</th>
+                                        <th className="p-3">Design No</th>
+                                        <th className="p-3">Items</th>
+                                        <th className="p-3 text-right pr-4">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {historyData.filter(r => {
+                                        const searchLower = historySearch.toLowerCase();
+                                        return (r.darNo || '').toLowerCase().includes(searchLower) || 
+                                            (r.customer || '').toLowerCase().includes(searchLower) || 
+                                            (r.designer || '').toLowerCase().includes(searchLower) ||
+                                            (r.items && Array.isArray(r.items) && r.items.some((item: string) => (item || '').toLowerCase().includes(searchLower)));
+                                    }).map(report => (
+                                        <tr key={report.id} className="border-b last:border-0 hover:bg-slate-50 transition-colors">
+                                            <td className="p-3 pl-4 font-bold text-blue-700">{highlightMatch(report.darNo || '', historySearch)}</td>
+                                            <td className="p-3 text-slate-500">
+                                                {report.createdAt?.seconds ? new Date(report.createdAt.seconds * 1000).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' }) : report.entryDate}
+                                                {report.updatedAt?.seconds && <span className="ml-1.5 px-1 py-0.5 bg-amber-50 text-amber-600 rounded text-[9px]" title={`Diupdate oleh: ${report.updatedBy || 'Sistem'}`}>Upd</span>}
+                                            </td>
+                                            <td className="p-3 font-semibold text-slate-900">{highlightMatch(report.customer || '-', historySearch)}</td>
+                                            <td className="p-3">{highlightMatch(report.designer || '-', historySearch)}</td>
+                                            <td className="p-3">{highlightMatch(report.designNo || '-', historySearch)}</td>
+                                            <td className="p-3">
+                                                {report.items && Array.isArray(report.items) && report.items.filter(Boolean).length > 0 ? (
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {report.items.filter(Boolean).map((item: string, idx: number) => (
+                                                            <Badge key={idx} variant="secondary" className="text-[9px] font-medium bg-slate-100 text-slate-600 rounded">
+                                                                {highlightMatch(item, historySearch)}
+                                                            </Badge>
+                                                        ))}
+                                                    </div>
+                                                ) : <span className="text-slate-300">-</span>}
+                                            </td>
+                                            <td className="p-2 pr-4 text-right">
+                                                <div className="flex items-center justify-end gap-1.5">
+                                                {confirmDeleteId === report.id ? (
+                                                    <>
+                                                        <Button variant="outline" size="icon" onClick={() => setConfirmDeleteId(null)} className="h-7 w-7 text-slate-400 rounded-lg" disabled={isDeleting}><X className="h-4 w-4" /></Button>
+                                                        <Button onClick={() => handleDeleteReport(report.id)} className="h-7 w-7 bg-rose-600 text-white rounded-lg" disabled={isDeleting}>
+                                                            {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                                                        </Button>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Button onClick={() => setPreviewReportId(report.id)} className="h-7 text-[10px] bg-blue-600 hover:bg-blue-700 text-white px-3 rounded-lg font-bold">Preview</Button>
+                                                        <Button onClick={() => loadReport(report)} className="h-7 text-[10px] bg-slate-900 hover:bg-black text-white px-3 rounded-lg font-bold">Muat</Button>
+                                                        {user?.role === 'Admin' && (
+                                                            <Button variant="outline" size="icon" onClick={() => setConfirmDeleteId(report.id)} className="h-7 w-7 text-rose-600 hover:bg-rose-50 rounded-lg">
+                                                                <Trash2 className="h-3.5 w-3.5" />
+                                                            </Button>
+                                                        )}
+                                                    </>
+                                                )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                     {!loadingHistory && historyData.length === 0 && (
                         <div className="py-20 text-center flex flex-col items-center gap-3 opacity-20 text-black">
                             <History className="h-12 w-12" />
@@ -1259,8 +1398,20 @@ export default function FormAppPage() {
                         </div>
                     )}
                 </div>
-                <ScrollBar orientation="vertical" />
             </ScrollArea>
+        </DialogContent>
+      </Dialog>
+      
+      {/* PREVIEW DIALOG */}
+      <Dialog open={!!previewReportId} onOpenChange={(open) => !open && setPreviewReportId(null)}>
+        <DialogContent className="sm:max-w-4xl max-w-[95vw] h-[95vh] p-0 border-none rounded-xl shadow-2xl overflow-hidden bg-slate-200 flex flex-col">
+          <div className="flex items-center justify-between p-4 bg-white border-b shadow-sm z-10">
+            <DialogTitle className="text-lg font-bold">Preview Form DAR</DialogTitle>
+            <DialogClose asChild><Button variant="ghost" size="icon"><X className="h-5 w-5" /></Button></DialogClose>
+          </div>
+          <div className="flex-1 w-full bg-slate-200 relative overflow-hidden">
+             {previewReportId && <iframe src={`/form-app/preview/${previewReportId}`} className="w-full h-full border-none absolute inset-0" />}
+          </div>
         </DialogContent>
       </Dialog>
     </DashboardLayout>

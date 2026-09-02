@@ -21,11 +21,11 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
   const [isVisible, setIsVisible] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Daftar halaman publik
-  const isPublicPage = pathname.startsWith('/public/') || pathname === '/login' || pathname === '/register';
+  // Daftar halaman publik dan standalone
+  const isStandalonePage = pathname.startsWith('/public/') || pathname === '/login' || pathname === '/register' || pathname.startsWith('/form-app/preview');
   
   // Sidebar ditampilan jika bukan halaman publik (dan user login ATAU masih loading di halaman privat)
-  const showSidebar = !isPublicPage && (user !== null || loading);
+  const showSidebar = !isStandalonePage && (user !== null || loading);
 
   const handleScroll = () => {
     if (scrollContainerRef.current) {
@@ -44,7 +44,7 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
     <SidebarProvider defaultOpen={showSidebar}>
       <div className="flex flex-col h-screen w-full overflow-hidden bg-background">
         {/* Header hanya muncul jika bukan halaman publik */}
-        {!isPublicPage && <Header />}
+        {!isStandalonePage && <Header />}
 
         <div className="flex flex-1 overflow-hidden">
           {/* Sidebar tetap dirender jika showSidebar true. 
@@ -62,14 +62,14 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
 
           <SidebarInset className={cn(
             "flex-1 flex flex-col overflow-hidden bg-slate-50 dark:bg-slate-900 transition-colors duration-300 relative",
-            !isPublicPage && "bg-teal-700 dark:bg-teal-900"
+            !isStandalonePage && "bg-teal-700 dark:bg-teal-900"
           )}>
             <div 
               ref={scrollContainerRef}
               onScroll={handleScroll}
               className={cn(
                 "flex-1 overflow-y-auto relative custom-scrollbar",
-                !isPublicPage && "m-3 mt-0 ml-0 bg-slate-50 dark:bg-slate-900 rounded-br-[24px] rounded-l-none rounded-tr-none border-b border-r border-slate-200/20 shadow-[0_10px_40px_rgba(0,0,0,0.06)]"
+                !isStandalonePage && "m-3 mt-0 ml-0 bg-slate-50 dark:bg-slate-900 rounded-br-[24px] rounded-l-none rounded-tr-none border-b border-r border-slate-200/20 shadow-[0_10px_40px_rgba(0,0,0,0.06)]"
               )}
             >
               {/* Loader diletakkan di dalam area konten utama agar tidak menutup menu/header */}
@@ -86,14 +86,14 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
               ) : (
                 <div className={cn(
                   "p-4 md:p-10 lg:p-12 min-h-full pb-40 transition-all duration-500",
-                  isPublicPage && "p-0 md:p-0 lg:p-0"
+                  isStandalonePage && "p-0 md:p-0 lg:p-0"
                 )}>
                   {children}
                 </div>
               )}
             </div>
             
-            {!isPublicPage && (
+            {!isStandalonePage && (
               <>
                 <AICopilot />
                 <Button
