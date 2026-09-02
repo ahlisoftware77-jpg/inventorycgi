@@ -94,7 +94,8 @@ const itemColorMap: Record<string, { activeIconColor: string, shadow: string, ic
   backup: { activeIconColor: 'text-teal-700', shadow: 'shadow-teal-900/5', iconColor: 'text-indigo-305', inactiveIconBg: 'bg-teal-950/40' },
   roles: { activeIconColor: 'text-cyan-700', shadow: 'shadow-teal-900/5', iconColor: 'text-cyan-305', inactiveIconBg: 'bg-teal-950/40' },
   broadcast_email: { activeIconColor: 'text-rose-700', shadow: 'shadow-teal-900/5', iconColor: 'text-rose-305', inactiveIconBg: 'bg-teal-950/40' },
-  help: { activeIconColor: 'text-sky-700', shadow: 'shadow-teal-900/5', iconColor: 'text-sky-305', inactiveIconBg: 'bg-teal-950/40' }
+  help: { activeIconColor: 'text-sky-700', shadow: 'shadow-teal-900/5', iconColor: 'text-sky-305', inactiveIconBg: 'bg-teal-950/40' },
+  form_app: { activeIconColor: 'text-blue-700', shadow: 'shadow-teal-900/5', iconColor: 'text-blue-305', inactiveIconBg: 'bg-teal-950/40' },
 };
 
 export default function SidebarNav() {
@@ -141,6 +142,7 @@ export default function SidebarNav() {
   
   const [customMainOrder, setCustomMainOrder] = useState<string[] | null>(null);
   const [customSystemOrder, setCustomSystemOrder] = useState<string[] | null>(null);
+  const [formAppUsers, setFormAppUsers] = useState<string[]>([]);
 
   const { toast } = useToast();
 
@@ -167,6 +169,7 @@ export default function SidebarNav() {
         setFullCompanyName(data.companyName || 'SISTEM ASET');
         if (data.mainMenuOrder) setCustomMainOrder(data.mainMenuOrder);
         if (data.systemMenuOrder) setCustomSystemOrder(data.systemMenuOrder);
+        if (data.formAppUsers) setFormAppUsers(data.formAppUsers);
       }
     });
 
@@ -262,7 +265,8 @@ export default function SidebarNav() {
     { id: 'mutations', label: 'Mutasi & Disposal', icon: History, href: '/mutations', hide: isUserRole, count: waitingCount },
     { id: 'inventory_report', label: 'Laporan Stok', icon: FileText, href: '/inventory/report', hide: isUserRole },
     { id: 'logs', label: 'Log Aktivitas', icon: ListTodo, href: '/logs', hide: isUserRole },
-  ], [isUserRole, hasNewAnnouncement, helpdeskCount, inventoryRequestCount, waitingCount]);
+    { id: 'form_app', label: 'Form APP (DAR)', icon: FileText, href: '/form-app', hide: !(isAdmin || (user && formAppUsers.includes(user.uid))) },
+  ], [isUserRole, hasNewAnnouncement, helpdeskCount, inventoryRequestCount, waitingCount, isAdmin, user, formAppUsers]);
 
   const systemMenuItems = useMemo(() => [
     { id: 'users', label: 'Manajemen User', icon: Users, href: '/users', hide: !isAdmin, count: pendingUserCount },

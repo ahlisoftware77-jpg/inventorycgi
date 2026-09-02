@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, getDocs, collection } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import DashboardLayout from '@/components/dashboard/layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -70,6 +70,7 @@ const ALL_MAIN_MENU_ITEMS: MenuItem[] = [
   { id: 'mutations', label: 'Mutasi & Disposal' },
   { id: 'inventory_report', label: 'Laporan Stok' },
   { id: 'logs', label: 'Log Aktivitas' },
+  { id: 'form_app', label: 'Form APP (DAR)' },
 ];
 
 const ALL_SYSTEM_MENU_ITEMS: MenuItem[] = [
@@ -108,6 +109,8 @@ export default function SettingsPage() {
   const [costCenters, setCostCenters] = useState<CostCenterObject[]>([]);
   const [deptGroups, setDeptGroups] = useState<DeptGroup[]>([]);
   const [secondCheckerDepts, setSecondCheckerDepts] = useState<string[]>([]);
+  const [formAppUsers, setFormAppUsers] = useState<string[]>([]);
+  const [allUsersList, setAllUsersList] = useState<{uid: string, name: string}[]>([]);
   const [assetStatuses, setAssetStatuses] = useState<string[]>(defaultAssetStatuses);
   const [assetConditions, setAssetConditions] = useState<string[]>(defaultAssetConditions);
   
@@ -178,6 +181,13 @@ export default function SettingsPage() {
           }
 
           const generalSnap = await getDoc(doc(db, 'settings', 'general'));
+          
+          try {
+            const usersSnap = await getDocs(collection(db, 'users'));
+            const uList = usersSnap.docs.map(d => ({ uid: d.id, name: d.data().name || d.data().email }));
+            setAllUsersList(uList);
+          } catch(e) {}
+
           if (generalSnap.exists()) {
             const data = generalSnap.data();
             setAppVersion(data.appVersion || '1.0');
@@ -189,6 +199,7 @@ export default function SettingsPage() {
             setCostCenters(data.costCenters || []);
             setDeptGroups(data.deptGroups || []);
             setSecondCheckerDepts(data.secondCheckerDepts || []);
+            setFormAppUsers(data.formAppUsers || []);
             setAssetStatuses(data.assetStatuses || defaultAssetStatuses);
             setAssetConditions(data.assetConditions || defaultAssetConditions);
             
@@ -283,6 +294,7 @@ export default function SettingsPage() {
         categoryLabels,
         assetStatuses,
         assetConditions,
+        formAppUsers,
         geminiApiKey,
         mainMenuOrder: mainMenuOrder.map(m => m.id),
         systemMenuOrder: systemMenuOrder.map(m => m.id),
@@ -1196,6 +1208,42 @@ export default function SettingsPage() {
                     </TableBody>
                 </Table>
             </div>
+          </CardContent>
+        </Card>
+
+                {/* FORM APP AUTHORIZATION */}
+        <Card className="rounded-[2.5rem] border-none shadow-2xl overflow-hidden bg-white dark:bg-slate-900 text-black border-2 border-primary/20 mt-10">
+          <CardHeader className="p-8 sm:p-10 pb-4 bg-primary/5 text-left">
+            <CardTitle className="flex items-center gap-2 text-xl font-black uppercase tracking-tight text-primary text-left">
+              <ShieldAlert className="w-6 h-6 text-primary" /> Otoritas Akses Form APP (DAR)
+            </CardTitle>
+            <CardDescription className="text-[10px] font-black uppercase tracking-widest text-left">Pilih user mana saja yang berhak melihat dan membuat form DAR (Design Application Request).</CardDescription>
+          </CardHeader>
+          <CardContent className="p-8 sm:p-10 space-y-6">
+            <div className="p-5 rounded-3xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 flex items-start gap-4 mb-6">
+              <Info className="h-5 w-5 text-blue-600 mt-0.5" />
+              <p className="text-[11px] leading-relaxed text-blue-800 dark:text-blue-200 font-medium text-left">
+                User yang tercentang di bawah ini akan dapat melihat menu Form APP di bilah navigasi (Sidebar) dan menggunakan fitur pembuatan dokumen DAR.
+              </p>
+            </div>
+            
+            <ScrollArea className="h-64 rounded-2xl bg-slate-50 dark:bg-slate-950/50 border shadow-inner p-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {allUsersList.sort((a,b) => a.name.localeCompare(b.name)).map(u => (
+                    <div key={u.uid} className="flex items-center space-x-3 p-2 hover:bg-white dark:hover:bg-slate-800 rounded-lg transition-colors">
+                      <Checkbox 
+                        id={`form-app-user-${u.uid}`}
+                        checked={formAppUsers.includes(u.uid)}
+                        onCheckedChange={(checked) => {
+                          if (checked) setFormAppUsers(prev => [...prev, u.uid]);
+                          else setFormAppUsers(prev => prev.filter(uid => uid !== u.uid));
+                        }}
+                      />
+                      <Label htmlFor={`form-app-user-${u.uid}`} className="text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer truncate">{u.name}</Label>
+                    </div>
+                  ))}
+                </div>
+            </ScrollArea>
           </CardContent>
         </Card>
 
