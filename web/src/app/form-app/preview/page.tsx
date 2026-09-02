@@ -1,19 +1,20 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
-import { useParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 
-export default function PreviewPage() {
-    const params = useParams();
+function PreviewContent() {
+    const searchParams = useSearchParams();
+    const id = searchParams.get('id');
     const [report, setReport] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchReport = async () => {
-            if (!params.id) return;
+            if (!id) return;
             try {
-                const docRef = doc(db, 'form_dar', params.id as string);
+                const docRef = doc(db, 'form_dar', id as string);
                 const snap = await getDoc(docRef);
                 if (snap.exists()) {
                     setReport(snap.data());
@@ -24,7 +25,7 @@ export default function PreviewPage() {
             setLoading(false);
         };
         fetchReport();
-    }, [params.id]);
+    }, [id]);
 
     if (loading) return <div className="flex items-center justify-center h-screen bg-slate-100">Memuat preview...</div>;
     if (!report) return <div className="flex items-center justify-center h-screen bg-slate-100">Form tidak ditemukan</div>;
@@ -415,4 +416,12 @@ export default function PreviewPage() {
         </div>
         </div>
     );
+}
+
+export default function PreviewPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-screen bg-slate-100">Memuat preview...</div>}>
+      <PreviewContent />
+    </Suspense>
+  );
 }
