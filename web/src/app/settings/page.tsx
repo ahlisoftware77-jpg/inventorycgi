@@ -101,9 +101,7 @@ export default function SettingsPage() {
   const [appVersion, setAppVersion] = useState('1.0');
   const [companyName, setCompanyName] = useState('PT. CHINA GLAZE INDONESIA');
   const [publicFooter, setPublicFooter] = useState('© 2026 PT. China Glaze Indonesia. Seluruh hak cipta dilindungi undang-undang.');
-  const [geminiApiKey,
-        googleDriveServiceAccount,
-        googleDriveFolderId, setGeminiApiKey] = useState('');
+  const [geminiApiKey, setGeminiApiKey] = useState('');
   const [googleDriveServiceAccount, setGoogleDriveServiceAccount] = useState('');
   const [googleDriveFolderId, setGoogleDriveFolderId] = useState('');
   
