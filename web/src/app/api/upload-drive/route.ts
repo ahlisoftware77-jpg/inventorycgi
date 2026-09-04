@@ -34,12 +34,15 @@ export async function POST(request: Request) {
         const { token } = await oauth2Client.getAccessToken();
         const metadata = { name: fileName, parents: [settingsData.googleDriveFolderId] };
         
+        const reqOrigin = request.headers.get('origin') || 'https://inventorycgi.web.app';
+        
         const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable', {
           method: 'POST',
           headers: {
             'Authorization': 'Bearer ' + token,
             'Content-Type': 'application/json',
-            'X-Upload-Content-Type': mimeType
+            'X-Upload-Content-Type': mimeType,
+            'Origin': reqOrigin
           },
           body: JSON.stringify(metadata)
         });

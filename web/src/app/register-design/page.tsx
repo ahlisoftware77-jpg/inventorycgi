@@ -96,6 +96,7 @@ const CellImageUpload = ({
   handleUpdateCell: (id: string, field: keyof RegisterDesignItem, value: any) => void 
 }) => {
   const [isUploading, setIsUploading] = useState(false);
+  const [localPreviewUrl, setLocalPreviewUrl] = useState<string | null>(null);
   const { toast } = useToast();
   
 
@@ -134,6 +135,7 @@ const CellImageUpload = ({
       
       handleUpdateCell(row.id, 'designImage', '');
       handleUpdateCell(row.id, 'designImageName', '');
+      setLocalPreviewUrl(null);
       toast({ title: 'Terhapus', description: 'Gambar berhasil dihapus dari Google Drive.' });
     } catch (err: any) {
       toast({ variant: 'destructive', title: 'Gagal Menghapus', description: err.message });
@@ -147,6 +149,7 @@ const CellImageUpload = ({
     if (!file) return;
     
     setIsUploading(true);
+    setLocalPreviewUrl(URL.createObjectURL(file));
     toast({ title: 'Mempersiapkan Upload...', description: 'Membuka jalur langsung ke Google Drive.' });
     
     try {
@@ -173,18 +176,25 @@ const CellImageUpload = ({
       if (!uploadRes.ok) throw new Error('Proses unggah ke Google gagal');
       const uploadedFile = await uploadRes.json();
       const fileId = uploadedFile.id;
+      if (!fileId) throw new Error('Tidak mendapatkan ID file dari Google Drive');
 
       // 3. Beritahu Vercel untuk mengatur file menjadi publik (anyone with link)
-      await fetch(getUploadApiUrl(), {
+      const finishRes = await fetch(getUploadApiUrl(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'finish', fileId: fileId }),
       });
+      
+      if (!finishRes.ok) {
+        const errData = await finishRes.json();
+        throw new Error('Gagal mengatur privasi file: ' + (errData.error || finishRes.statusText));
+      }
 
       handleUpdateCell(row.id, 'designImage', fileId);
       handleUpdateCell(row.id, 'designImageName', file.name);
       toast({ title: 'Upload Berhasil', description: 'File gambar besar berhasil disimpan langsung ke Google Drive.' });
     } catch (err: any) {
+      setLocalPreviewUrl(null);
       toast({ variant: 'destructive', title: 'Upload Gagal', description: err.message });
     } finally {
       setIsUploading(false);
@@ -193,7 +203,7 @@ const CellImageUpload = ({
   };
 
   if (row.designImage) {
-    const imgUrl = `https://drive.google.com/thumbnail?id=${row.designImage}&sz=s1000`;
+    const imgUrl = localPreviewUrl || `https://drive.google.com/thumbnail?id=${row.designImage}&sz=s1000`;
     const viewUrl = `https://drive.google.com/file/d/${row.designImage}/view`;
     return (
       <div className="relative group flex items-center justify-center w-full h-full">
@@ -210,7 +220,12 @@ const CellImageUpload = ({
             </div>
           )}
           <div className="relative w-48 h-48 sm:w-64 sm:h-64 rounded-lg overflow-hidden flex items-center justify-center bg-slate-100">
-             <img src={imgUrl} alt="Preview" className="w-full h-full object-contain" />
+             <img 
+               src={imgUrl} 
+               alt="Preview" 
+               className="w-full h-full object-contain"
+               onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/400x400.png?text=Proses+Google+Drive...'; }}
+             />
           </div>
 
           <div className="mt-3 text-[10px] sm:text-xs bg-slate-50 p-2 rounded-lg border border-slate-200 shadow-inner w-full space-y-1.5 text-slate-700 font-medium">
