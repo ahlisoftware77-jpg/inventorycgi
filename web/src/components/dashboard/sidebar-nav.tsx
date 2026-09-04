@@ -302,7 +302,19 @@ export default function SidebarNav() {
 
   const filterItems = (items: any[]) => items.filter(item => {
     if (isAdmin) return !item.hide;
-    const isExplicitlyAllowed = allowedPages.includes(item.href) || (item.href.startsWith('/assets?') && allowedPages.includes('/assets')) || (item.href === '/workflow' && !isUserRole);
+    
+    let isExplicitlyAllowed = allowedPages.includes(item.href) 
+      || (item.href.startsWith('/assets?') && allowedPages.includes('/assets')) 
+      || (item.href === '/workflow' && !isUserRole);
+
+    if (item.href === '/register-design' && user?.permissions?.canAccessRegisterDesign) {
+      isExplicitlyAllowed = true;
+    }
+    
+    if (item.href === '/form-app' && user && formAppUsers.includes(user.uid)) {
+      isExplicitlyAllowed = true;
+    }
+
     return isExplicitlyAllowed && !item.hide;
   });
 

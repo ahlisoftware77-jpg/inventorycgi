@@ -1477,7 +1477,7 @@ export default function SettingsPage() {
                              alert("Client ID dan Folder ID harus diisi dulu!");
                              return;
                            }
-                           const redirectUri = window.location.hostname === 'localhost' ? `${window.location.origin}/api/oauth2callback` : 'https://inventorycgi.vercel.app/api/oauth2callback';
+                           const redirectUri = window.location.origin + '/oauth-callback';
                            const scope = 'https://www.googleapis.com/auth/drive.file';
                            const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&access_type=offline&prompt=consent`;
                            window.location.href = authUrl;
@@ -1487,7 +1487,7 @@ export default function SettingsPage() {
                        </div>
                     )}
                   </div>
-                  <p className="text-[10px] text-slate-400 mt-2">Pastikan Bapak sudah menyimpan Client ID & Secret sebelum mengeklik tombol Login. Redirect URI yang diatur di GCP harus sama dengan: <b>{typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:3000/api/oauth2callback' : 'https://inventorycgi.vercel.app/api/oauth2callback'}</b></p>
+                  <p className="text-[10px] text-slate-400 mt-2">Pastikan Bapak sudah menyimpan Client ID & Secret sebelum mengeklik tombol Login. Redirect URI yang diatur di GCP harus sama dengan: <b>{typeof window !== 'undefined' ? window.location.origin + '/oauth-callback' : ''}</b></p>
                 </div>
               </div>
             </div>

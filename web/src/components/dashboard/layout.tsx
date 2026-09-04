@@ -45,10 +45,16 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     // Kontrol Akses Halaman
     if (user.role !== 'Admin') {
       const allowedPages = user.allowedPages || [];
-      const isPathAllowed = allowedPages.some(page => {
+      let isPathAllowed = allowedPages.some(page => {
         if (page === '/') return pathname === '/';
         return pathname.startsWith(page);
       });
+
+      // Bypass untuk halaman yang mengelola izinnya sendiri
+      const selfManagedPages = ['/register-design', '/form-app'];
+      if (selfManagedPages.some(page => pathname.startsWith(page))) {
+        isPathAllowed = true;
+      }
 
       const isDashboard = pathname === '/';
 
@@ -80,10 +86,16 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     if (user.role === 'Pending') return null;
     if (user.role !== 'Admin') {
       const allowedPages = user.allowedPages || [];
-      const isPathAllowed = allowedPages.some(page => {
+      let isPathAllowed = allowedPages.some(page => {
         if (page === '/') return pathname === '/';
         return pathname.startsWith(page);
       });
+      
+      const selfManagedPages = ['/register-design', '/form-app'];
+      if (selfManagedPages.some(page => pathname.startsWith(page))) {
+        isPathAllowed = true;
+      }
+
       const isDashboard = pathname === '/';
       if (!isPathAllowed && !isPublicPath && !isDashboard) return null;
     }
