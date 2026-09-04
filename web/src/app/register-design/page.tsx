@@ -781,7 +781,7 @@ export default function RegisterDesignPage() {
     if (field === "status" && value !== "FREE") {
       let maxNo = 0;
       data.forEach(d => {
-        if (d.status === value) {
+        if (d.typeDesign === currentRow?.typeDesign) {
           const num = parseInt(d.designNo || "0", 10);
           if (!isNaN(num) && num > maxNo) {
             maxNo = num;
