@@ -265,6 +265,7 @@ export default function SidebarNav() {
     { id: 'mutations', label: 'Mutasi & Disposal', icon: History, href: '/mutations', hide: isUserRole, count: waitingCount },
     { id: 'inventory_report', label: 'Laporan Stok', icon: FileText, href: '/inventory/report', hide: isUserRole },
     { id: 'logs', label: 'Log Aktivitas', icon: ListTodo, href: '/logs', hide: isUserRole },
+    { id: 'register_design', label: 'Register Design', icon: FileText, href: '/register-design', hide: !(isAdmin || user?.permissions?.canAccessRegisterDesign) },
     { id: 'form_app', label: 'Form APP (DAR)', icon: FileText, href: '/form-app', hide: !(isAdmin || (user && formAppUsers.includes(user.uid))) },
   ], [isUserRole, hasNewAnnouncement, helpdeskCount, inventoryRequestCount, waitingCount, isAdmin, user, formAppUsers]);
 

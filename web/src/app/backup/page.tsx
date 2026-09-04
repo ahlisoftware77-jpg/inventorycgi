@@ -51,7 +51,7 @@ export default function BackupPage() {
   const handleBackup = async () => {
     setIsLoadingBackup(true);
     try {
-      const collectionsToBackup = ['assets', 'users', 'inventory', 'inventory_requests', 'helpdesk_tickets', 'inventory_transactions', 'data_fix_asset_accounting', 'it_assets', 'settings', 'announcements', 'maintenance_schedules'];
+      const collectionsToBackup = ['assets', 'users', 'inventory', 'inventory_requests', 'helpdesk_tickets', 'inventory_transactions', 'data_fix_asset_accounting', 'it_assets', 'settings', 'announcements', 'maintenance_schedules', 'register_design', 'form_dar', 'form_app'];
       const backupData: { [key: string]: any[] } = {};
 
       for (const collectionName of collectionsToBackup) {

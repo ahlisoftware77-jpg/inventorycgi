@@ -101,7 +101,11 @@ export default function SettingsPage() {
   const [appVersion, setAppVersion] = useState('1.0');
   const [companyName, setCompanyName] = useState('PT. CHINA GLAZE INDONESIA');
   const [publicFooter, setPublicFooter] = useState('© 2026 PT. China Glaze Indonesia. Seluruh hak cipta dilindungi undang-undang.');
-  const [geminiApiKey, setGeminiApiKey] = useState('');
+  const [geminiApiKey,
+        googleDriveServiceAccount,
+        googleDriveFolderId, setGeminiApiKey] = useState('');
+  const [googleDriveServiceAccount, setGoogleDriveServiceAccount] = useState('');
+  const [googleDriveFolderId, setGoogleDriveFolderId] = useState('');
   
   const [departments, setDepartments] = useState<string[]>([]);
   const [categories, setCategories] = useState<CategoryObject[]>([]);
@@ -296,6 +300,8 @@ export default function SettingsPage() {
         assetConditions,
         formAppUsers,
         geminiApiKey,
+        googleDriveServiceAccount,
+        googleDriveFolderId,
         mainMenuOrder: mainMenuOrder.map(m => m.id),
         systemMenuOrder: systemMenuOrder.map(m => m.id),
       }, { merge: true });
@@ -487,11 +493,12 @@ export default function SettingsPage() {
 
         
         <Tabs defaultValue="umum" className="w-full space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 h-auto p-2 bg-slate-100 dark:bg-slate-800/50 rounded-2xl gap-2">
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 h-auto p-2 bg-slate-100 dark:bg-slate-800/50 rounded-2xl gap-2">
             <TabsTrigger value="umum" className="rounded-xl py-3 text-xs font-black uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">Umum</TabsTrigger>
             <TabsTrigger value="aset" className="rounded-xl py-3 text-xs font-black uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">Aset & Kategori</TabsTrigger>
             <TabsTrigger value="organisasi" className="rounded-xl py-3 text-xs font-black uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">Organisasi</TabsTrigger>
             <TabsTrigger value="integrasi" className="rounded-xl py-3 text-xs font-black uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">Integrasi AI</TabsTrigger>
+            <TabsTrigger value="googledrive" className="rounded-xl py-3 text-xs font-black uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm">Google Drive</TabsTrigger>
           </TabsList>
 
           <TabsContent value="umum" className="space-y-10 mt-6">
@@ -1375,6 +1382,43 @@ export default function SettingsPage() {
         </Card>
 
         
+          </TabsContent>
+
+          <TabsContent value="googledrive" className="space-y-10 mt-6">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 shadow-xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
+              <div className="relative z-10 space-y-6">
+                <div>
+                  <h3 className="text-xl font-black text-slate-800 dark:text-white flex items-center gap-2">
+                    Google Drive Integrations
+                  </h3>
+                  <p className="text-sm text-slate-500 font-medium">Pengaturan penyimpanan file terpusat menggunakan Google Service Account.</p>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-widest text-slate-400">Folder ID</Label>
+                    <Input 
+                      placeholder="Contoh: 1bA2c3D4e5F6g7H8i9J0kL..." 
+                      value={googleDriveFolderId} 
+                      onChange={(e) => setGoogleDriveFolderId(e.target.value)} 
+                      className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none shadow-inner font-bold text-slate-900 dark:text-white"
+                    />
+                    <p className="text-[10px] text-slate-400">Folder ID adalah kumpulan acak huruf di URL Google Drive (contoh: https://drive.google.com/drive/folders/<span className="text-emerald-500 font-bold">1bA...</span>)</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-widest text-slate-400">Service Account JSON (Kredensial Robot)</Label>
+                    <textarea 
+                      placeholder='{"type": "service_account", "project_id": "...", "private_key": "..."}' 
+                      value={googleDriveServiceAccount} 
+                      onChange={(e) => setGoogleDriveServiceAccount(e.target.value)} 
+                      className="w-full h-40 p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border-none shadow-inner font-mono text-xs text-slate-900 dark:text-white resize-y outline-none focus:ring-2 focus:ring-primary/50"
+                    />
+                    <p className="text-[10px] text-slate-400">Buka file .json yang diunduh dari Google Cloud Console dengan Notepad, *Copy* seluruh isinya, lalu *Paste* ke kotak di atas. Jangan lupa *Share* folder Drive Bapak ke email `client_email` yang ada di dalam JSON tersebut!</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
 

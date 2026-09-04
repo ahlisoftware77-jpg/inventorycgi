@@ -69,6 +69,7 @@ const actionPermissions: { key: keyof UserPermissions; label: string }[] = [
   { key: 'canAccessAllAssetsInMaintenance', label: 'Akses Semua Aset (Seluruh Perusahaan) di Maintenance' },
   { key: 'canAccessPartialAssetsInMaintenance', label: 'Akses Sebagian Aset (Pilih Unit Lain) di Maintenance' },
   { key: 'canViewTimeline', label: 'Bisa Lihat Timeline Aktivitas Dashboard' },
+  { key: 'canAccessRegisterDesign', label: 'Bisa Akses Register Design' },
 ];
 
 export default function PermissionsDialog({ user, isOpen, onOpenChange }: PermissionsDialogProps) {

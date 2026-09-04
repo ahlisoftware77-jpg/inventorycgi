@@ -21,6 +21,7 @@ export interface UserPermissions {
   canAccessAllAssetsInMaintenance?: boolean;
   canAccessPartialAssetsInMaintenance?: boolean;
   canViewTimeline?: boolean;
+  canAccessRegisterDesign?: boolean;
 }
 
 export interface User extends FirebaseUser {

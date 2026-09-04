@@ -7,17 +7,27 @@ import { useSearchParams } from 'next/navigation';
 function PreviewContent() {
     const searchParams = useSearchParams();
     const id = searchParams.get('id');
+    const darNoParam = searchParams.get('darNo');
     const [report, setReport] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchReport = async () => {
-            if (!id) return;
+            if (!id && !darNoParam) return;
             try {
-                const docRef = doc(db, 'form_dar', id as string);
-                const snap = await getDoc(docRef);
-                if (snap.exists()) {
-                    setReport(snap.data());
+                if (id) {
+                    const docRef = doc(db, 'form_dar', id as string);
+                    const snap = await getDoc(docRef);
+                    if (snap.exists()) {
+                        setReport(snap.data());
+                    }
+                } else if (darNoParam) {
+                    const { collection, query, where, getDocs } = await import('firebase/firestore');
+                    const qDar = query(collection(db, "form_dar"), where("darNo", "==", darNoParam));
+                    const snapDar = await getDocs(qDar);
+                    if (!snapDar.empty) {
+                        setReport(snapDar.docs[0].data());
+                    }
                 }
             } catch (e) {
                 console.error(e);
@@ -25,7 +35,7 @@ function PreviewContent() {
             setLoading(false);
         };
         fetchReport();
-    }, [id]);
+    }, [id, darNoParam]);
 
     if (loading) return <div className="flex items-center justify-center h-screen bg-slate-100">Memuat preview...</div>;
     if (!report) return <div className="flex items-center justify-center h-screen bg-slate-100">Form tidak ditemukan</div>;
@@ -40,12 +50,27 @@ function PreviewContent() {
     } = report;
 
     return (
-        <div className="min-h-screen bg-slate-200 flex justify-center py-10 w-full overflow-x-hidden">
+        <div className="min-h-screen bg-slate-200 flex sm:justify-center py-6 sm:py-10 w-full overflow-auto">
             <style dangerouslySetInnerHTML={{__html: `
+                @font-face {
+                    font-family: 'CGIFont';
+                    src: url('/cgi.otf') format('opentype');
+                    font-weight: normal;
+                    font-style: normal;
+                }
                 body { margin: 0; padding: 0; background: #e2e8f0; }
-                .print-section { transform-origin: top center; transform: scale(0.95); }
-                @media (max-width: 768px) { .print-section { transform: scale(0.75); } }
-                @media (max-width: 480px) { .print-section { transform: scale(0.55); } }
+                .print-section { transform-origin: top left; transform: scale(1); margin: 0 auto; }
+                @media (max-width: 840px) { 
+                    .print-section { 
+                        transform: scale(0.7); 
+                        margin: 0;
+                    } 
+                }
+                @media (max-width: 480px) { 
+                    .print-section { 
+                        transform: scale(0.5); 
+                    } 
+                }
             `}} />
             
             <div className="print-section bg-white shadow-2xl text-black w-[210mm] min-h-[297mm] text-[11px] leading-tight font-serif shrink-0" style={{ padding: "0" }}>
@@ -54,7 +79,7 @@ function PreviewContent() {
                 
                 {/* HEADER LOGO & TITLE */}
                 <div className="text-center mb-4">
-                    <div className="font-bold text-xl mb-1 tracking-widest text-[#0033A0] flex justify-center items-center gap-2">
+                    <div className="font-bold text-xl mb-1 tracking-widest text-[#0033A0] flex justify-center items-center gap-2" style={{ fontFamily: "'CGIFont', serif" }}>
                         <img src="/icon-512x512.png" alt="Logo" className="w-8 h-8 object-contain" />
                         PT CHINA GLAZE INDONESIA
                     </div>
@@ -108,7 +133,7 @@ function PreviewContent() {
 
                     {/* ROW 5 */}
                     <div className="flex border-b-[2px] border-black h-7 items-center px-2 font-bold">
-                        Design/Item number 設計號 : <span className="ml-2 font-normal">{designNo}</span>
+                        Design/Item number 設計號 : <span className="ml-2 font-normal"></span>
                     </div>
 
                     {/* MATRIX ITEMS */}
@@ -182,7 +207,7 @@ function PreviewContent() {
                                         if (t.includes("Faces")) isChecked = sizeChecks.includes("Faces");
                                         if (t.includes("Cut 1:1")) isChecked = sizeChecks.includes("Cut 1:1");
                                         if (t.includes("jpg file")) isChecked = sizeChecks.includes("jpg file");
-                                        if (t.includes("cm x")) isChecked = sizeChecks.includes("Custom");
+                                        if (t.includes("cm x")) isChecked = sizeChecks.includes("Custom") || sizeChecks.includes("Custom cm");
                                         
                                         return (
                                             <div key={t} className="flex items-center gap-1">

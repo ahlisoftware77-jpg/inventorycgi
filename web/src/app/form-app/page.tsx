@@ -9,9 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {  Printer, Download, Save, Info, FileText, Pencil, Trash, Lock, Unlock, User, History, Share2, Loader2, X, Search, Check, Trash2, FileSpreadsheet, Upload, AlertTriangle , Plus } from "lucide-react";
+import {  Printer, Download, Save, Info, FileText, Pencil, Trash, Lock, Unlock, User, History, Share2, Loader2, X, Search, Check, Trash2, FileSpreadsheet, Upload, AlertTriangle , Plus, ChevronUp, ChevronDown } from "lucide-react";
 import SignatureCanvas from 'react-signature-canvas';
 import Image from 'next/image';
+import { useSearchParams } from "next/navigation";
 import * as XLSX from 'xlsx';
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -24,9 +25,70 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 
-export default function FormAppPage() {
+export function FormAppContent({ isPublic = false }: { isPublic?: boolean }) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+  const publicId = searchParams.get('id');
+  const paramDarNo = searchParams.get('darNo');
+  const [isSharing, setIsSharing] = useState(false);
+
+  useEffect(() => {
+    if (publicId && !editId) {
+      const loadPublicReport = async () => {
+        try {
+          const docRef = doc(db, 'form_dar', publicId);
+          const snap = await getDoc(docRef);
+          if (snap.exists()) {
+            loadReport({ id: snap.id, ...snap.data() });
+          }
+        } catch (e) {
+          console.error("Error loading public report", e);
+        }
+      };
+      loadPublicReport();
+    }
+  }, [publicId]);
+
+  useEffect(() => {
+    if (paramDarNo) {
+      setDarNo(paramDarNo);
+    }
+  }, [paramDarNo]);
+
+  const handleSharePublicLink = async (idToShare?: string) => {
+    setIsSharing(true);
+    const targetId = idToShare || editId;
+    if (!targetId) {
+        toast({ title: "Gagal", description: "Tidak ada form yang dipilih untuk dibagikan.", variant: "destructive" });
+        setIsSharing(false);
+        return;
+    }
+    const publicUrl = `${window.location.origin}/public/form-dar?id=${targetId}`;
+    try {
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: 'Form DAR - ' + customer,
+            url: publicUrl,
+          });
+          setIsSharing(false);
+          return;
+        } catch (shareError: any) {
+          if (shareError.name === 'AbortError') {
+            setIsSharing(false);
+            return;
+          }
+        }
+      }
+      await navigator.clipboard.writeText(publicUrl);
+      toast({ title: "Berhasil", description: "Link berhasil disalin ke clipboard!" });
+    } catch (e) {
+      toast({ title: "Gagal", description: "Gagal menyalin link.", variant: "destructive" });
+    }
+    setIsSharing(false);
+  };
+
   const [hasAccess, setHasAccess] = useState(false);
   const [loading, setLoading] = useState(true);
   const printRef = useRef<HTMLDivElement>(null);
@@ -35,6 +97,8 @@ export default function FormAppPage() {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [historyData, setHistoryData] = useState<any[]>([]);
   const [historySearch, setHistorySearch] = useState("");
+  const [historySortConfig, setHistorySortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
+
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -54,6 +118,9 @@ export default function FormAppPage() {
   const [technician, setTechnician] = useState("");
   const [purpose, setPurpose] = useState<string[]>([]); // Customer, Internal, etc
   const [designNo, setDesignNo] = useState("");
+  const [typeDesign, setTypeDesign] = useState("");
+  const [designSource, setDesignSource] = useState("");
+  const [status, setStatus] = useState("FREE");
   
   // 32 Items
   const [numColumns, setNumColumns] = useState<8 | 16 | 24 | 32>(32);
@@ -122,6 +189,11 @@ export default function FormAppPage() {
 
   useEffect(() => {
     async function checkAccess() {
+      if (isPublic) {
+        setHasAccess(true);
+        setLoading(false);
+        return;
+      }
       if (!user) return;
       if (user.role === "Admin") {
         setHasAccess(true);
@@ -225,7 +297,93 @@ export default function FormAppPage() {
       try {
         const q = query(collection(db, "form_dar"), where("darNo", "==", darNo));
         const snap = await getDocs(q);
-        setDarExists(!snap.empty);
+        
+        if (!snap.empty) {
+          setDarExists(true);
+        } else {
+          setDarExists(false);
+          // Check register_design collection for grouped items
+          const rq = query(collection(db, "register_design"), where("darNo", "==", darNo));
+          const rSnap = await getDocs(rq);
+          if (!rSnap.empty) {
+            // Found items in register design but form DAR not yet created
+            const groupedItems = rSnap.docs.map(d => d.data());
+            const first = groupedItems[0];
+            
+            // Populate basic fields
+            if (first.customer) setCustomer(first.customer);
+            if (first.designer) setDesigner(first.designer);
+            if (first.technician) setTechnician(first.technician);
+            if (first.typeDesign) setTypeDesign(first.typeDesign);
+            if (first.designSource) setDesignSource(first.designSource);
+            if (first.designNo) setDesignNo(first.designNo);
+            if (first.requiredDate) setRequiredDate(first.requiredDate);
+            if (first.closingDate) setClosingDate(first.closingDate);
+            if (first.generalNote) setGeneralNote(first.generalNote);
+            if (first.status) setStatus(first.status);
+            if (first.type) setType(first.type.split(',').map((s:string)=>s.trim()).filter(Boolean));
+            if (first.sendBy) setSendBy(first.sendBy.split(',').map((s:string)=>s.trim()).filter(Boolean));
+            if (first.benefit) setPurpose(first.benefit.split(',').map((s:string)=>s.trim()).filter(Boolean));
+            
+            // Populate basic custom text inputs
+            if (first.sizeFaces) setSizeFaces(first.sizeFaces);
+            if (first.sizeCm1) setSizeCm1(first.sizeCm1);
+            if (first.sizeCm2) setSizeCm2(first.sizeCm2);
+            if (first.glazeResidue) setGlazeResidue(first.glazeResidue);
+            if (first.surfaceTemp) setSurfaceTemp(first.surfaceTemp);
+            if (first.inkOther) setInkOther(first.inkOther);
+            
+            // Populate checkbox/array fields if they exist in string form (comma separated)
+            if (first.sizeChecks) setSizeChecks(first.sizeChecks.split(',').map((s:string)=>s.trim()).filter(Boolean));
+            if (first.glazeChecks) setGlazeChecks(first.glazeChecks.split(',').map((s:string)=>s.trim()).filter(Boolean));
+            if (first.surfaceChecks) setSurfaceChecks(first.surfaceChecks.split(',').map((s:string)=>s.trim()).filter(Boolean));
+            if (first.inkChecks) setInkChecks(first.inkChecks.split(',').map((s:string)=>s.trim()).filter(Boolean));
+            
+            // Populate GU/PTV Arrays
+            setGuPtv([
+              first.guPtv || "", first.guPtv2 || "", first.guPtv3 || "",
+              first.guPtv4 || "", first.guPtv5 || "", first.guPtv6 || ""
+            ]);
+            const gchecks = [false, false, false, false, false, false];
+            if (first.guPtvChecks === "Checkbox") {
+                if (first.guPtv) gchecks[0] = true;
+                if (first.guPtv2) gchecks[1] = true;
+                if (first.guPtv3) gchecks[2] = true;
+                if (first.guPtv4) gchecks[3] = true;
+                if (first.guPtv5) gchecks[4] = true;
+                if (first.guPtv6) gchecks[5] = true;
+            }
+            setGuPtvChecks(gchecks);
+            
+            const parseGrid = (str: any, defaultLen: number) => {
+                try {
+                    const p = JSON.parse(str || "[]");
+                    if (Array.isArray(p) && p.length > 0) return p;
+                    return Array.from({ length: defaultLen }, () => ({ c1: "", c2: "" }));
+                } catch(e) {
+                    return Array.from({ length: defaultLen }, () => ({ c1: "", c2: "" }));
+                }
+            };
+
+            setNote2Rows(parseGrid(first.note2, 3));
+            setFeedbackRows(parseGrid(first.feedbackDetails, 4));
+            setLastDesignSupp(parseGrid(first.lastDesignSupp, 6));
+            
+            if (first.lastTimeReq) setLastTimeReq(first.lastTimeReq);
+            if (first.feedback) setFeedback(first.feedback);
+            
+            // Extract item names into the 32 slots array
+            const newItems = Array(32).fill("");
+            groupedItems.forEach((item, index) => {
+              if (index < 32 && item.itemName) {
+                newItems[index] = item.itemName;
+              }
+            });
+            setItems(newItems);
+            
+            toast({ title: "Desain Ditemukan!", description: `Berhasil menarik ${groupedItems.length} desain dari Register Design untuk Nomor DAR ini.` });
+          }
+        }
       } catch (e) {
         console.error("Error checking DAR:", e);
       }
@@ -262,6 +420,11 @@ export default function FormAppPage() {
       toast({ title: "Gagal", description: "Nomor DAR harus diisi", variant: "destructive" });
       return;
     }
+    
+    // Prevent React synthetic event objects from being spread into Firestore payload
+    const isEvent = overrides && (overrides.nativeEvent || overrides.preventDefault);
+    const validOverrides = isEvent ? {} : (overrides || {});
+    
     try {
       // Extract current signatures directly from canvas refs to ensure latest data
       const currentSignatures = {
@@ -272,7 +435,7 @@ export default function FormAppPage() {
       setSignatures(currentSignatures);
       
       const payload = {
-        darNo, customer, entryDate, designer, technician, purpose, designNo, items,
+        darNo, customer, entryDate, designer, technician, purpose, designNo, typeDesign, designSource, status, items,
         requiredDate, closingDate, type, sizeChecks, sizeFaces, sizeCm1, sizeCm2,
         glazeChecks, glazeResidue, surfaceChecks, surfaceTemp, guPtv, guPtvChecks, inkChecks, inkOther, sendBy,
         benefit, lastTimeReq, feedback, feedbackRows, lastDesignSupp, note2Rows, generalNote,
@@ -280,7 +443,7 @@ export default function FormAppPage() {
         createdBy: user?.uid || "unknown",
         updatedBy: user?.displayName || user?.email || user?.uid || "unknown",
         updatedAt: new Date(),
-        ...(overrides || {})
+        ...validOverrides
       };
       
       const cleanPayload = Object.fromEntries(
@@ -307,15 +470,15 @@ export default function FormAppPage() {
       }
 
       localStorage.removeItem("formDarDraft"); // Bersihkan draft setelah sukses simpan
-      setHistoryData([]); // Reset history to refetch next time
+      fetchHistory(true); // Refetch automatically to update datalists
     } catch (e) {
       console.error("Save error:", e);
       toast({ title: "Gagal", description: "Gagal menyimpan form DAR", variant: "destructive" });
     }
   };
 
-  const fetchHistory = async () => {
-    if (historyData.length > 0) return;
+  const fetchHistory = async (force: boolean = false) => {
+    if (!force && historyData.length > 0) return;
     setLoadingHistory(true);
     try {
       const q = query(collection(db, "form_dar"), orderBy("createdAt", "desc"));
@@ -330,10 +493,40 @@ export default function FormAppPage() {
   };
 
   useEffect(() => {
-    if (isHistoryOpen) {
-      fetchHistory();
+    fetchHistory();
+  }, []); // Fetch history immediately so autocomplete datalists are populated
+
+  const handleSortHistory = (key: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (historySortConfig && historySortConfig.key === key && historySortConfig.direction === 'asc') {
+      direction = 'desc';
     }
-  }, [isHistoryOpen]);
+    setHistorySortConfig({ key, direction });
+  };
+
+  const sortedHistoryData = React.useMemo(() => {
+    let sortableItems = [...historyData];
+    if (historySortConfig !== null) {
+      sortableItems.sort((a, b) => {
+        let aVal = a[historySortConfig.key] || "";
+        let bVal = b[historySortConfig.key] || "";
+        
+        if (historySortConfig.key === "createdAt") {
+            aVal = a.createdAt?.seconds || 0;
+            bVal = b.createdAt?.seconds || 0;
+        }
+
+        if (aVal < bVal) {
+          return historySortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aVal > bVal) {
+          return historySortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return sortableItems;
+  }, [historyData, historySortConfig]);
 
   const loadReport = (report: any) => {
     setEditId(report.id || null);
@@ -344,6 +537,9 @@ export default function FormAppPage() {
     setTechnician(report.technician || "");
     setPurpose(report.purpose || []);
     setDesignNo(report.designNo || "");
+    setTypeDesign(report.typeDesign || "");
+    setDesignSource(report.designSource || "");
+    setStatus(report.status || "FREE");
     
     setItems(report.items || Array(32).fill(""));
     setNumColumns(report.numColumns || 32);
@@ -389,6 +585,9 @@ export default function FormAppPage() {
     setTechnician("");
     setPurpose([]);
     setDesignNo("");
+    setTypeDesign("");
+    setDesignSource("");
+    setStatus("FREE");
     
     setItems(Array(32).fill(""));
     setNumColumns(32);
@@ -438,24 +637,104 @@ export default function FormAppPage() {
     setConfirmDeleteId(null);
   };
 
+  const getTypeDesignColor = (val: string) => {
+    switch(val) {
+      case 'CG': return 'bg-sky-200 text-sky-900 border-sky-300';
+      case 'CGI': return 'bg-yellow-200 text-yellow-900 border-yellow-300';
+      case 'CGI-A': return 'bg-orange-200 text-orange-900 border-orange-300';
+      case 'ST': return 'bg-emerald-200 text-emerald-900 border-emerald-300';
+      case 'CGL': return 'bg-slate-200 text-slate-900 border-slate-300';
+      case 'CO': return 'bg-purple-200 text-purple-900 border-purple-300';
+      default: return 'bg-white text-slate-900 border-slate-200';
+    }
+  };
+
+  const getStatusColor = (val: string) => {
+    switch(val) {
+      case 'IN LOCK': return 'bg-rose-500 text-white border-rose-600';
+      case 'IN USE': return 'bg-emerald-500 text-white border-emerald-600';
+      case 'FREE': return 'bg-blue-500 text-white border-blue-600';
+      case 'ARCHIVE': return 'bg-sky-400 text-white border-sky-500';
+      default: return 'bg-white text-slate-900 border-slate-200';
+    }
+  };
+
+  const handleUpdateHistoryField = async (id: string, field: string, value: string) => {
+    try {
+      await updateDoc(doc(db, "form_dar", id), { [field]: value });
+      setHistoryData(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item));
+    } catch (e) {
+      toast({ title: "Gagal", description: "Gagal memperbarui data", variant: "destructive" });
+    }
+  };
+
   const handleExportExcel = () => {
     if (historyData.length === 0) return;
     
-    const exportData = historyData.map(r => ({
-      "No. DAR": r.darNo,
-      "Customer": r.customer,
-      "Entry Date": r.entryDate,
-      "Designer": r.designer,
-      "Technician": r.technician,
-      "Design No": r.designNo,
-      "Required Date": r.requiredDate,
-      "Closing Date": r.closingDate,
-      "Purpose": (r.purpose || []).join(", "),
-      "Item 1": r.items?.[0] || "",
-      "Item 2": r.items?.[1] || "",
-      "Benefit": r.benefit,
-      "General Note": r.generalNote
-    }));
+    const exportData = historyData.map(r => {
+      const row: any = {
+        "No. DAR": r.darNo || "",
+        "Customer": r.customer || "",
+        "Entry Date": r.entryDate || "",
+        "Designer": r.designer || "",
+        "Technician": r.technician || "",
+        "Design No": r.designNo || "",
+        "Required Date": r.requiredDate || "",
+        "Closing Date": r.closingDate || "",
+        "Purpose": (r.purpose || []).join(", "),
+        "Tipe Desain": r.typeDesign || "",
+        "Sumber Desain": r.designSource || "",
+        "Status": r.status || "FREE",
+      };
+
+      for (let i = 0; i < 32; i++) {
+        row[`Item ${i + 1}`] = r.items?.[i] || "";
+      }
+
+      row["Type"] = (r.type || []).join(", ");
+      row["Size Checks"] = (r.sizeChecks || []).join(", ");
+      row["Size Faces"] = r.sizeFaces || "";
+      row["Size Cm 1"] = r.sizeCm1 || "";
+      row["Size Cm 2"] = r.sizeCm2 || "";
+      
+      row["Glaze Checks"] = (r.glazeChecks || []).join(", ");
+      row["Glaze Residue"] = r.glazeResidue || "";
+
+      row["Surface Checks"] = (r.surfaceChecks || []).join(", ");
+      row["Surface Temp"] = r.surfaceTemp || "";
+
+      for (let i = 0; i < 6; i++) {
+        row[`GU PTV ${i + 1}`] = r.guPtv?.[i] || "";
+        row[`GU PTV Check ${i + 1}`] = r.guPtvChecks?.[i] ? "Yes" : "No";
+      }
+
+      row["Ink Checks"] = (r.inkChecks || []).join(", ");
+      row["Ink Other"] = r.inkOther || "";
+      row["Send By"] = (r.sendBy || []).join(", ");
+
+      row["Benefit"] = r.benefit || "";
+      row["Last Time Request"] = r.lastTimeReq || "";
+      row["Feedback"] = r.feedback || "";
+
+      for (let i = 0; i < 4; i++) {
+        row[`Feedback Row ${i + 1} Col 1`] = r.feedbackRows?.[i]?.c1 || "";
+        row[`Feedback Row ${i + 1} Col 2`] = r.feedbackRows?.[i]?.c2 || "";
+      }
+
+      for (let i = 0; i < 3; i++) {
+        row[`Note 2 Row ${i + 1} Col 1`] = r.note2Rows?.[i]?.c1 || "";
+        row[`Note 2 Row ${i + 1} Col 2`] = r.note2Rows?.[i]?.c2 || "";
+      }
+
+      for (let i = 0; i < 6; i++) {
+        row[`Last Design Supp ${i + 1} Col 1`] = r.lastDesignSupp?.[i]?.c1 || "";
+        row[`Last Design Supp ${i + 1} Col 2`] = r.lastDesignSupp?.[i]?.c2 || "";
+      }
+
+      row["General Note"] = r.generalNote || "";
+      
+      return row;
+    });
     
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
@@ -478,56 +757,177 @@ export default function FormAppPage() {
         
         let skipped = 0;
         let imported = 0;
-        const skippedList: string[] = [];
+        let updated = 0;
         
-        // Refresh to check duplicates
+        // Get existing documents to check for merge
         const q = query(collection(db, "form_dar"));
         const snap = await getDocs(q);
-        const existingDarNos = new Set(snap.docs.map(doc => doc.data().darNo));
+        const existingMap = new Map();
+        snap.docs.forEach(doc => {
+           existingMap.set(String(doc.data().darNo), { id: doc.id, data: doc.data() });
+        });
         
         for (const row of data as any[]) {
-          const rowDarNo = row["No. DAR"] || row["No DAR"] || row["darNo"];
+          const rowDarNo = String(row["No. DAR"] || row["No DAR"] || row["darNo"] || "");
           if (!rowDarNo) continue;
           
-          if (existingDarNos.has(String(rowDarNo))) {
-            skipped++;
-            skippedList.push(String(rowDarNo));
-            continue;
+          const getVal = (key: string) => row[key] ? String(row[key]) : "";
+
+          const newItems = Array(32).fill("");
+          for (let i = 0; i < 32; i++) {
+            newItems[i] = getVal(`Item ${i + 1}`);
           }
           
-          const payload = {
-            darNo: String(rowDarNo),
-            customer: row["Customer"] || "",
-            entryDate: row["Entry Date"] || "",
-            designer: row["Designer"] || "",
-            technician: row["Technician"] || "",
-            designNo: row["Design No"] || "",
-            requiredDate: row["Required Date"] || "",
-            closingDate: row["Closing Date"] || "",
-            benefit: row["Benefit"] || "",
-            generalNote: row["General Note"] || "",
-            purpose: typeof row["Purpose"] === 'string' ? row["Purpose"].split(", ") : [],
-            items: Array(32).fill(""),
-            createdBy: user?.uid || "import",
-            createdAt: new Date()
+          const newGuPtv = Array(6).fill("");
+          const newGuPtvChecks = Array(6).fill(false);
+          for (let i = 0; i < 6; i++) {
+            newGuPtv[i] = getVal(`GU PTV ${i + 1}`);
+            newGuPtvChecks[i] = getVal(`GU PTV Check ${i + 1}`).toLowerCase() === "yes";
+          }
+
+          const newFeedbackRows = Array(4).fill(null).map((_, i) => ({
+            c1: getVal(`Feedback Row ${i + 1} Col 1`),
+            c2: getVal(`Feedback Row ${i + 1} Col 2`)
+          }));
+
+          const newNote2Rows = Array(3).fill(null).map((_, i) => ({
+            c1: getVal(`Note 2 Row ${i + 1} Col 1`),
+            c2: getVal(`Note 2 Row ${i + 1} Col 2`)
+          }));
+
+          const newLastDesignSupp = Array(6).fill(null).map((_, i) => ({
+            c1: getVal(`Last Design Supp ${i + 1} Col 1`),
+            c2: getVal(`Last Design Supp ${i + 1} Col 2`)
+          }));
+
+          const ext = {
+            customer: getVal("Customer"),
+            entryDate: getVal("Entry Date"),
+            designer: getVal("Designer"),
+            technician: getVal("Technician"),
+            designNo: getVal("Design No"),
+            requiredDate: getVal("Required Date"),
+            closingDate: getVal("Closing Date"),
+            purpose: getVal("Purpose") ? getVal("Purpose").split(", ") : [],
+            type: getVal("Type") ? getVal("Type").split(", ") : [],
+            sizeChecks: getVal("Size Checks") ? getVal("Size Checks").split(", ") : [],
+            sizeFaces: getVal("Size Faces"),
+            sizeCm1: getVal("Size Cm 1"),
+            sizeCm2: getVal("Size Cm 2"),
+            glazeChecks: getVal("Glaze Checks") ? getVal("Glaze Checks").split(", ") : [],
+            glazeResidue: getVal("Glaze Residue"),
+            surfaceChecks: getVal("Surface Checks") ? getVal("Surface Checks").split(", ") : [],
+            surfaceTemp: getVal("Surface Temp"),
+            guPtv: newGuPtv,
+            guPtvChecks: newGuPtvChecks,
+            inkChecks: getVal("Ink Checks") ? getVal("Ink Checks").split(", ") : [],
+            inkOther: getVal("Ink Other"),
+            sendBy: getVal("Send By") ? getVal("Send By").split(", ") : [],
+            benefit: getVal("Benefit"),
+            lastTimeReq: getVal("Last Time Request"),
+            feedback: getVal("Feedback"),
+            generalNote: getVal("General Note"),
+            items: newItems,
+            feedbackRows: newFeedbackRows,
+            note2Rows: newNote2Rows,
+            lastDesignSupp: newLastDesignSupp
           };
-          
-          if (row["Item 1"]) payload.items[0] = String(row["Item 1"]);
-          if (row["Item 2"]) payload.items[1] = String(row["Item 2"]);
-          
-          await addDoc(collection(db, "form_dar"), payload);
-          imported++;
+
+          if (existingMap.has(rowDarNo)) {
+            const existing = existingMap.get(rowDarNo);
+            let hasUpdates = false;
+            const updatePayload: any = {};
+            
+            // Simple strings
+            const stringFields = ["customer", "entryDate", "designer", "technician", "designNo", "requiredDate", "closingDate", "sizeFaces", "sizeCm1", "sizeCm2", "glazeResidue", "surfaceTemp", "inkOther", "benefit", "lastTimeReq", "feedback", "generalNote"];
+            stringFields.forEach(field => {
+                const extVal = ext[field as keyof typeof ext] as string;
+                if (extVal && extVal !== existing.data[field]) {
+                    updatePayload[field] = extVal;
+                    hasUpdates = true;
+                }
+            });
+
+            // String arrays
+            const arrayFields = ["purpose", "type", "sizeChecks", "glazeChecks", "surfaceChecks", "inkChecks", "sendBy"];
+            arrayFields.forEach(field => {
+                const arr = ext[field as keyof typeof ext] as string[];
+                if (arr.length > 0 && JSON.stringify(arr) !== JSON.stringify(existing.data[field])) {
+                    updatePayload[field] = arr;
+                    hasUpdates = true;
+                }
+            });
+
+            // Items array
+            let existingItems = existing.data.items || Array(32).fill("");
+            let itemsUpdated = false;
+            for (let i = 0; i < 32; i++) {
+                if (ext.items[i] && ext.items[i] !== existingItems[i]) {
+                    existingItems[i] = ext.items[i];
+                    itemsUpdated = true;
+                }
+            }
+            if (itemsUpdated) {
+                updatePayload.items = existingItems;
+                hasUpdates = true;
+            }
+
+            // GU PTV arrays
+            let existingGu = existing.data.guPtv || Array(6).fill("");
+            let guUpdated = false;
+            for (let i = 0; i < 6; i++) {
+                if (ext.guPtv[i] && ext.guPtv[i] !== existingGu[i]) {
+                    existingGu[i] = ext.guPtv[i];
+                    guUpdated = true;
+                }
+            }
+            if (guUpdated) {
+                updatePayload.guPtv = existingGu;
+                updatePayload.guPtvChecks = ext.guPtvChecks;
+                hasUpdates = true;
+            }
+
+            // Object arrays
+            const complexMerge = (existingArr: any[], extArr: any[], len: number) => {
+                let existingC = existingArr && Array.isArray(existingArr) && existingArr.length === len ? [...existingArr] : Array(len).fill(null).map(() => ({c1: "", c2: ""}));
+                let isUpd = false;
+                for (let i = 0; i < len; i++) {
+                    if (extArr[i].c1 && extArr[i].c1 !== existingC[i]?.c1) { existingC[i].c1 = extArr[i].c1; isUpd = true; }
+                    if (extArr[i].c2 && extArr[i].c2 !== existingC[i]?.c2) { existingC[i].c2 = extArr[i].c2; isUpd = true; }
+                }
+                return { isUpd, result: existingC };
+            };
+
+            const fbRes = complexMerge(existing.data.feedbackRows, ext.feedbackRows, 4);
+            if (fbRes.isUpd) { updatePayload.feedbackRows = fbRes.result; hasUpdates = true; }
+
+            const note2Res = complexMerge(existing.data.note2Rows, ext.note2Rows, 3);
+            if (note2Res.isUpd) { updatePayload.note2Rows = note2Res.result; hasUpdates = true; }
+
+            const suppRes = complexMerge(existing.data.lastDesignSupp, ext.lastDesignSupp, 6);
+            if (suppRes.isUpd) { updatePayload.lastDesignSupp = suppRes.result; hasUpdates = true; }
+
+            if (hasUpdates) {
+                updatePayload.updatedAt = new Date();
+                await updateDoc(doc(db, "form_dar", existing.id), updatePayload);
+                updated++;
+            } else {
+                skipped++;
+            }
+          } else {
+            await addDoc(collection(db, "form_dar"), {
+                darNo: rowDarNo,
+                ...ext,
+                createdBy: user?.uid || "import",
+                createdAt: new Date()
+            });
+            imported++;
+          }
         }
         
-        if (skipped > 0) {
-            console.log("Skipped existing DAR Nos:", skippedList);
-            toast({ title: "Import Selesai", description: `${imported} data di-import. ${skipped} data di-skip karena duplikat.` });
-        } else {
-            toast({ title: "Berhasil", description: `${imported} data berhasil di-import!` });
-        }
+        toast({ title: "Import Selesai", description: `${imported} data baru ditambahkan. ${updated} data diperbarui. ${skipped} data dilewati (tidak ada yang baru).` });
         
-        setHistoryData([]); // reset so it reloads
-        fetchHistory();
+        fetchHistory(true);
         
       } catch (err) {
         console.error(err);
@@ -596,6 +996,91 @@ export default function FormAppPage() {
     );
   };
 
+  const signatureCard = (
+          <Card className="rounded-2xl border shadow-sm w-full max-w-[210mm] print:hidden">
+            <CardHeader className="bg-slate-900 text-white rounded-t-xl p-4 flex flex-row items-center justify-between">
+              <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2"><Pencil className="h-4 w-4" /> Tanda Tangan</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 space-y-6">
+              {[
+                { id: 'manager', label: 'Manager 經理', ref: sigManager },
+                { id: 'sectionHead', label: 'Section Head 課長', ref: sigSectionHead },
+                { id: 'designer', label: 'Designer/Technician 設計師/技術員', ref: sigDesigner },
+              ].map((sig) => (
+                <div key={sig.id} className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2 text-left">
+                      {lockedSignatures[sig.id as keyof typeof lockedSignatures] ? <Lock className="h-3 w-3 text-amber-500" /> : <User className="h-3 w-3" />}
+                      {sig.label}
+                    </Label>
+                    <div className="flex items-center gap-1">
+                      {!lockedSignatures[sig.id as keyof typeof lockedSignatures] && (
+                        <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-50 rounded-full border border-slate-100">
+                          {['#000000', '#0000ff', '#ff0000'].map(hex => (
+                            <button key={hex} type="button" onClick={() => setPenColors(p => ({ ...p, [sig.id]: hex }))} className={cn("w-3 h-3 rounded-full", hex === penColors[sig.id as keyof typeof penColors] ? "ring-2 ring-primary" : "")} style={{ backgroundColor: hex }} />
+                          ))}
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1">
+                        {!lockedSignatures[sig.id as keyof typeof lockedSignatures] && (
+                          <button 
+                            type="button" 
+                            className="h-6 w-6 text-rose-500 flex items-center justify-center hover:bg-rose-50 rounded" 
+                            onClick={() => { 
+                                const ref = getRefByRole(sig.id);
+                                if (ref.current) ref.current.clear(); 
+                                setSignatures(prev => ({ ...prev, [sig.id]: '' })); 
+                            }}
+                          >
+                            <Trash className="h-3 w-3" />
+                          </button>
+                        )}
+                        <button type="button" className={cn("h-6 w-6 rounded-full flex items-center justify-center hover:bg-slate-50", lockedSignatures[sig.id as keyof typeof lockedSignatures] ? "text-amber-600" : "text-slate-400")} onClick={() => toggleLock(sig.id as 'manager' | 'sectionHead' | 'designer')}>
+                          {lockedSignatures[sig.id as keyof typeof lockedSignatures] ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className={cn("border-2 border-dashed rounded-xl bg-slate-50 h-32 overflow-hidden shadow-inner relative", lockedSignatures[sig.id as keyof typeof lockedSignatures] && "border-amber-200")}>
+                    {signatures[sig.id as keyof typeof signatures] && (getRefByRole(sig.id).current?.isEmpty() || lockedSignatures[sig.id as keyof typeof lockedSignatures]) && (
+                      <div className="absolute inset-0 flex items-center justify-center p-4 z-20">
+                          <Image src={signatures[sig.id as keyof typeof signatures]} alt="Sig" width={150} height={60} className="object-contain" />
+                      </div>
+                    )}
+                    <div className={cn("w-full h-full relative z-10", lockedSignatures[sig.id as keyof typeof lockedSignatures] && "pointer-events-none")}>
+                      <SignatureCanvas ref={getRefByRole(sig.id)} onEnd={updateSignaturesState} penColor={penColors[sig.id as keyof typeof penColors]} canvasProps={{ className: 'w-full h-full' }} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+  );
+
+  const defaultTypeDesign = ["CG", "CGI", "CGI-A", "ST", "CGL", "CO"];
+  const dynamicTypeDesignOptions = Array.from(new Set([
+    ...defaultTypeDesign,
+    ...historyData.map(r => r.typeDesign).filter(Boolean)
+  ])).sort();
+
+  const defaultDesignSource = ["MidJourney", "Shutterstock", "Create"];
+  const dynamicDesignSourceOptions = Array.from(new Set([
+    ...defaultDesignSource,
+    ...historyData.map(r => r.designSource).filter(Boolean)
+  ])).sort();
+
+  const defaultDesigner = ["D1 Riki", "D2 Diaz", "D3 Rian", "D4 Darmawan"];
+  const dynamicDesignerOptions = Array.from(new Set([
+    ...defaultDesigner,
+    ...historyData.map(r => r.designer).filter(Boolean)
+  ])).sort();
+
+  const defaultTechnician = ["T1 Darta", "T2 Kardani", "T3 Rafli", "T4 Cepi"];
+  const dynamicTechnicianOptions = Array.from(new Set([
+    ...defaultTechnician,
+    ...historyData.map(r => r.technician).filter(Boolean)
+  ])).sort();
+
   return (
     <DashboardLayout>
       <div className="flex items-center gap-3 px-1 text-left mb-6 print:hidden">
@@ -610,11 +1095,14 @@ export default function FormAppPage() {
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 pb-20 items-start">
         {/* LEFT COLUMN - INPUTS */}
-        <div className="xl:col-span-4 space-y-6 print:hidden max-h-[85vh] overflow-y-auto pr-2 custom-scrollbar">
+        <div className={`xl:col-span-4 space-y-6 print:hidden max-h-[85vh] overflow-y-auto pr-2 custom-scrollbar ${isPublic ? 'hidden' : ''}`}>
           
           <div className="flex flex-col gap-2 sticky top-0 bg-slate-50 dark:bg-slate-950 z-10 py-2 border-b">
             <div className="flex gap-2">
               <Button onClick={resetForm} variant="outline" className="flex-1 border-blue-600 text-blue-600 hover:bg-blue-50 px-1"><Plus className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">Buat Baru</span></Button>
+              <Button onClick={() => handleSharePublicLink()} disabled={isSharing || !editId} variant="outline" className="flex-1 border-purple-200 text-purple-700 hover:bg-purple-50 px-1">
+                {isSharing ? <Loader2 className="w-4 h-4 sm:mr-2 animate-spin" /> : <Share2 className="w-4 h-4 sm:mr-2" />} <span className="hidden sm:inline">Bagikan</span>
+              </Button>
               <Button onClick={handlePrint} className="flex-1 bg-slate-800 hover:bg-slate-900 text-white px-1"><Printer className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">Print</span></Button>
               <Button onClick={handleSave} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white px-1"><Save className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">Simpan</span></Button>
             </div>
@@ -661,9 +1149,9 @@ export default function FormAppPage() {
               <div><Label className="text-xs font-bold">Customer (Klien)</Label><Input value={customer} onChange={e => setCustomer(e.target.value)} /></div>
               <div className="grid grid-cols-2 gap-2">
                 <div><Label className="text-xs font-bold">Entry Date</Label><Input type="date" value={entryDate} onChange={e => setEntryDate(e.target.value)} /></div>
-                <div><Label className="text-xs font-bold">Designer</Label><Input value={designer} onChange={e => setDesigner(e.target.value)} /></div>
+                <div><Label className="text-xs font-bold">Designer</Label><input list="designerOptions" className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" value={designer} onChange={e => setDesigner(e.target.value)} placeholder="Pilih / Ketik Designer..." /></div>
               </div>
-              <div><Label className="text-xs font-bold">Technician</Label><Input value={technician} onChange={e => setTechnician(e.target.value)} /></div>
+              <div><Label className="text-xs font-bold">Technician</Label><input list="technicianOptions" className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" value={technician} onChange={e => setTechnician(e.target.value)} placeholder="Pilih / Ketik Technician..." /></div>
               <div>
                 <Label className="text-xs font-bold mb-2 block">Tujuan</Label>
                 <div className="flex flex-wrap gap-3">
@@ -672,7 +1160,32 @@ export default function FormAppPage() {
                   ))}
                 </div>
               </div>
-              <div><Label className="text-xs font-bold">Design / Item Number</Label><Input value={designNo} onChange={e => setDesignNo(e.target.value)} /></div>
+              
+              <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t">
+                <div>
+                  <Label className="text-xs font-bold text-slate-500">Status <span className="font-normal">(Internal Riwayat)</span></Label>
+                  <select 
+                    value={status} 
+                    onChange={e => setStatus(e.target.value)} 
+                    className={`flex h-10 w-full rounded-md border px-3 py-2 text-xs font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-colors ${getStatusColor(status)}`}
+                  >
+                    <option value="" className="bg-white text-slate-900">Pilih Status...</option>
+                    <option value="IN LOCK" className="bg-rose-500 text-white">IN LOCK</option>
+                    <option value="IN USE" className="bg-emerald-500 text-white">IN USE</option>
+                    <option value="FREE" className="bg-blue-500 text-white">FREE</option>
+                    <option value="ARCHIVE" className="bg-sky-400 text-white">ARCHIVE</option>
+                  </select>
+                </div>
+                <div>
+                  <Label className="text-xs font-bold text-slate-500">Tipe Desain <span className="font-normal">(Internal)</span></Label>
+                  <input list="typeDesainOptions" value={typeDesign} onChange={e => setTypeDesign(e.target.value)} className={`flex h-10 w-full rounded-md border px-3 py-2 text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-colors ${getTypeDesignColor(typeDesign)}`} placeholder="Pilih / Ketik..." />
+                </div>
+                <div>
+                  <Label className="text-xs font-bold text-slate-500">Sumber Desain <span className="font-normal">(Internal)</span></Label>
+                  <input list="sumberDesainOptions" value={designSource} onChange={e => setDesignSource(e.target.value)} className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" placeholder="Pilih / Ketik..." />
+                </div>
+              </div>
+
             </CardContent>
           </Card>
           </TabsContent>
@@ -889,34 +1402,56 @@ export default function FormAppPage() {
           </TabsContent>
           </Tabs>
         </div>
-
+        
         {/* RIGHT COLUMN - PREVIEW (A4) */}
-        <div className="xl:col-span-8 flex justify-center pb-20 print:p-0 print:m-0 print:block overflow-hidden w-full relative h-[600px] sm:h-[900px] xl:h-auto">
-            <style dangerouslySetInnerHTML={{__html: `
-                @media print {
-                    body * { visibility: hidden; }
-                    .print-section, .print-section * { visibility: visible; }
-                    .print-section { 
-                        position: fixed !important; 
-                        left: 0 !important; 
-                        top: 0 !important; 
-                        width: 210mm !important; 
-                        height: 297mm !important; 
-                        margin: 0 !important; 
-                        padding: 5mm 10mm !important; 
-                        background: white !important;
-                    }
-                    @page { size: A4 portrait; margin: 0; }
-                }
-            `}} />
+        <div className={`${isPublic ? 'xl:col-span-12' : 'xl:col-span-8'} flex flex-col items-center gap-6 pb-20 print:p-0 print:m-0 print:block w-full`}>
+            {isPublic && (
+                <div className="w-full max-w-[210mm] flex justify-between items-center p-4 bg-white rounded-2xl shadow-sm border border-slate-200 mt-2">
+                    <h2 className="font-bold text-slate-800 flex items-center gap-2"><FileText className="w-5 h-5 text-blue-600" /> Form DAR #{darNo}</h2>
+                    <Button onClick={handleSave} disabled={isSharing} className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-sm">
+                        {isSharing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />} Simpan Tanda Tangan
+                    </Button>
+                </div>
+            )}
             
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 scale-[0.45] sm:scale-[0.75] md:scale-[0.9] xl:scale-100 origin-top xl:relative xl:left-auto xl:transform-none print:relative print:scale-100 print:left-auto print:transform-none w-[210mm]">
-              {/* PAPER */}
-              <div ref={printRef} className="print-section bg-white border shadow-lg text-black w-full min-h-[297mm] print:border-none print:shadow-none print:max-w-none print:w-[210mm] print:h-[297mm] text-[11px] leading-tight font-serif mx-auto" style={{ padding: "20px 40px" }}>
+            {isPublic && (
+                <div className="w-full flex justify-center">
+                    {signatureCard}
+                </div>
+            )}
+
+            <div className="overflow-visible w-full relative h-[550px] sm:h-[880px] md:h-[1050px] xl:h-auto flex justify-center pb-10">
+                <style dangerouslySetInnerHTML={{__html: `
+                    @font-face {
+                        font-family: 'CGIFont';
+                        src: url('/cgi.otf') format('opentype');
+                        font-weight: normal;
+                        font-style: normal;
+                    }
+                    @media print {
+                        body * { visibility: hidden; }
+                        .print-section, .print-section * { visibility: visible; }
+                        .print-section { 
+                            position: fixed !important; 
+                            left: 0 !important; 
+                            top: 0 !important; 
+                            width: 210mm !important; 
+                            height: 297mm !important; 
+                            margin: 0 !important; 
+                            padding: 5mm 10mm !important; 
+                            background: white !important;
+                        }
+                        @page { size: A4 portrait; margin: 0; }
+                    }
+                `}} />
                 
-                {/* HEADER LOGO & TITLE */}
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 scale-[0.45] sm:scale-[0.75] md:scale-[0.9] xl:scale-100 origin-top xl:relative xl:left-auto xl:transform-none print:relative print:scale-100 print:left-auto print:transform-none w-[210mm]">
+                  {/* PAPER */}
+                  <div ref={printRef} className="print-section bg-white border shadow-lg text-black w-full min-h-[297mm] print:border-none print:shadow-none print:max-w-none print:w-[210mm] print:h-[297mm] text-[11px] leading-tight font-serif mx-auto" style={{ padding: "20px 40px" }}>
+                    
+                    {/* HEADER LOGO & TITLE */}
                 <div className="text-center mb-4">
-                    <div className="font-bold text-xl mb-1 tracking-widest text-[#0033A0] flex justify-center items-center gap-2">
+                    <div className="font-bold text-xl mb-1 tracking-widest text-[#0033A0] flex justify-center items-center gap-2" style={{ fontFamily: "'CGIFont', serif" }}>
                         <img src="/icon-512x512.png" alt="Logo" className="w-8 h-8 object-contain" />
                         PT CHINA GLAZE INDONESIA
                     </div>
@@ -970,7 +1505,7 @@ export default function FormAppPage() {
 
                     {/* ROW 5 */}
                     <div className="flex border-b-[2px] border-black h-7 items-center px-2 font-bold">
-                        Design/Item number 設計號 : <span className="ml-2 font-normal">{designNo}</span>
+                        Design/Item number 設計號 : <span className="ml-2 font-normal"></span>
                     </div>
 
                     {/* MATRIX ITEMS */}
@@ -1044,7 +1579,7 @@ export default function FormAppPage() {
                                         if (t.includes("Faces")) isChecked = sizeChecks.includes("Faces");
                                         if (t.includes("Cut 1:1")) isChecked = sizeChecks.includes("Cut 1:1");
                                         if (t.includes("jpg file")) isChecked = sizeChecks.includes("jpg file");
-                                        if (t.includes("cm x")) isChecked = sizeChecks.includes("Custom");
+                                        if (t.includes("cm x")) isChecked = sizeChecks.includes("Custom cm") || sizeChecks.includes("Custom");
                                         
                                         return (
                                             <div key={t} className="flex items-center gap-1">
@@ -1073,7 +1608,7 @@ export default function FormAppPage() {
                                     ))}
                                     <div className="flex items-center gap-1">
                                         <span className="border border-black w-2.5 h-2.5 inline-flex items-center justify-center text-[8px] font-bold">
-                                            {glazeChecks.includes("Residue") ? "✓" : ""}
+                                            {glazeChecks.includes("Residue") || glazeChecks.includes("Residue (Input)") ? "✓" : ""}
                                         </span> Residue <span className="border-b border-black min-w-[50px] inline-block text-center">{glazeResidue}</span>
                                     </div>
                                 </div>
@@ -1092,7 +1627,7 @@ export default function FormAppPage() {
                                     ))}
                                     <div className="flex items-center gap-1">
                                         <span className="border border-black w-2.5 h-2.5 inline-flex items-center justify-center text-[8px] font-bold">
-                                            {surfaceChecks.includes("Temp") ? "✓" : ""}
+                                            {surfaceChecks.includes("Temp") || surfaceChecks.includes("Temp (Input)") ? "✓" : ""}
                                         </span> Temp <span className="border-b border-black min-w-[50px] inline-block text-center">{surfaceTemp}</span>
                                     </div>
                                 </div>
@@ -1126,7 +1661,7 @@ export default function FormAppPage() {
                                     ))}
                                     <div className="flex items-center gap-1">
                                         <span className="border border-black w-2.5 h-2.5 inline-flex items-center justify-center text-[8px] font-bold">
-                                            {inkChecks.includes("Other") ? "✓" : ""}
+                                            {inkChecks.includes("Checkbox") || inkChecks.includes("Checkbox (Input)") ? "✓" : ""}
                                         </span> <span className="border-b border-black min-w-[50px] inline-block text-center">{inkOther}</span>
                                     </div>
                                 </div>
@@ -1272,98 +1807,257 @@ export default function FormAppPage() {
                             <div className="h-6 flex items-center justify-center font-bold text-[11px]">Person in charge 責任人</div>
                         </div>
                     </div>
+                    </div>
                 </div>
             </div>
             </div>
         </div>
-
       </div>
       
       
       {/* HISTORY DIALOG */}
       <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
-        <DialogContent className="sm:max-w-[95vw] h-[90vh] flex flex-col p-0 border-none rounded-[2rem] shadow-2xl overflow-hidden bg-white text-black">
-            <div className="p-8 bg-slate-900 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <DialogContent className="max-w-[95vw] w-full h-[90vh] flex flex-col p-0 border-none rounded-2xl sm:rounded-[2rem] shadow-2xl overflow-hidden bg-white text-black">
+            <div className="p-4 sm:p-8 bg-slate-900 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                    <div className="p-3 bg-blue-600/20 rounded-2xl text-left"><History className="h-6 w-6 text-blue-400" /></div>
+                    <div className="p-2 sm:p-3 bg-blue-600/20 rounded-xl sm:rounded-2xl text-left"><History className="h-5 w-5 sm:h-6 sm:w-6 text-blue-400" /></div>
                     <div className="text-left">
-                        <DialogTitle className="text-xl font-black uppercase tracking-tight text-left">Riwayat Form DAR</DialogTitle>
+                        <DialogTitle className="text-lg sm:text-xl font-black uppercase tracking-tight text-left">Riwayat Form DAR</DialogTitle>
                         <DialogDescription className="text-white/40 text-[9px] font-black uppercase tracking-widest text-left">Internal Document Control</DialogDescription>
                     </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
                     <input type="file" ref={fileInputRef} onChange={handleImportExcel} accept=".xlsx, .xls" className="hidden" />
-                    <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="text-black bg-white hover:bg-slate-100 rounded-xl">
-                        <Upload className="h-4 w-4 mr-2" /> Import
+                    <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="flex-1 sm:flex-none text-black bg-white hover:bg-slate-100 rounded-xl px-2 sm:px-4">
+                        <Upload className="h-4 w-4 mr-1 sm:mr-2" /> <span className="hidden sm:inline">Import</span>
                     </Button>
-                    <Button onClick={handleExportExcel} className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl">
-                        <FileSpreadsheet className="h-4 w-4 mr-2" /> Export
+                    <Button onClick={handleExportExcel} className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl px-2 sm:px-4">
+                        <FileSpreadsheet className="h-4 w-4 mr-1 sm:mr-2" /> <span className="hidden sm:inline">Export</span>
                     </Button>
-                    <DialogClose asChild><Button variant="ghost" size="icon" className="text-white/40 hover:text-white"><X className="h-6 w-6" /></Button></DialogClose>
+                    <DialogClose asChild><Button variant="ghost" size="icon" className="text-white/40 hover:text-white"><X className="h-5 w-5 sm:h-6 sm:w-6" /></Button></DialogClose>
                 </div>
             </div>
             
-            <div className={`p-6 border-b flex items-center gap-4 transition-colors ${historySearch ? 'bg-blue-50/50' : 'bg-slate-50'}`}>
+            <div className={`p-4 sm:p-6 border-b flex items-center gap-4 transition-colors ${historySearch ? 'bg-blue-50/50' : 'bg-slate-50'}`}>
                 <div className="relative flex-1 group">
-                    <Search className={`absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors ${historySearch ? 'text-blue-500' : 'text-slate-300 group-focus-within:text-blue-400'}`} />
+                    <Search className={`absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors ${historySearch ? 'text-blue-500' : 'text-slate-300 group-focus-within:text-blue-400'}`} />
                     <Input 
-                        placeholder="Cari No DAR, Customer, Designer, atau Item..." 
+                        placeholder="Cari No DAR, Customer..." 
                         value={historySearch} 
                         onChange={(e) => setHistorySearch(e.target.value)} 
-                        className={`pl-11 h-12 rounded-xl transition-all focus-visible:ring-blue-500 ${historySearch ? 'bg-white border-blue-400 ring-2 ring-blue-500/20 shadow-md' : 'bg-white shadow-sm border-slate-200 hover:border-slate-300'}`} 
+                        className={`pl-9 sm:pl-11 h-10 sm:h-12 text-xs sm:text-sm rounded-xl transition-all focus-visible:ring-blue-500 ${historySearch ? 'bg-white border-blue-400 ring-2 ring-blue-500/20 shadow-md' : 'bg-white shadow-sm border-slate-200 hover:border-slate-300'}`} 
                     />
                 </div>
             </div>
             
-            <ScrollArea className="flex-1 w-full">
-                <div className="p-6 flex flex-col gap-4 w-full">
+            <ScrollArea className="flex-1 w-full max-w-full relative min-w-0">
+                <div className="p-2 sm:p-6 flex flex-col gap-4 w-full max-w-full min-w-0">
                     {loadingHistory ? (
                         <div className="space-y-2">
                             {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12 w-full rounded-lg" />)}
                         </div>
                     ) : (
-                        <div className="border rounded-xl overflow-x-auto bg-white shadow-sm">
-                            <table className="w-full text-left text-xs whitespace-nowrap">
+                        <>
+                            {/* MOBILE LIST */}
+                            <div className="flex sm:hidden flex-col gap-3 min-w-0">
+                                {sortedHistoryData.filter(r => {
+                                    const searchLower = historySearch.toLowerCase();
+                                    return (r.darNo || '').toLowerCase().includes(searchLower) || 
+                                        (r.customer || '').toLowerCase().includes(searchLower) || 
+                                        (r.designer || '').toLowerCase().includes(searchLower) ||
+                                        (r.items && Array.isArray(r.items) && r.items.some((item: string) => (item || '').toLowerCase().includes(searchLower)));
+                                }).map(report => (
+                                    <div key={report.id} className="bg-white border rounded-xl p-4 flex flex-col gap-3 shadow-sm relative">
+                                        <div className="flex justify-between items-start">
+                                            <div className="flex flex-col min-w-0">
+                                                <span className="font-black text-blue-700 text-sm truncate">{highlightMatch(report.darNo || '', historySearch)}</span>
+                                                <span className="text-slate-500 text-[10px]">
+                                                    {report.createdAt?.seconds ? new Date(report.createdAt.seconds * 1000).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' }) : report.entryDate}
+                                                </span>
+                                            </div>
+                                            <div className="flex gap-1.5 shrink-0 ml-2">
+                                                {confirmDeleteId === report.id ? (
+                                                    <>
+                                                        <Button variant="outline" size="icon" onClick={() => setConfirmDeleteId(null)} className="h-7 w-7 text-slate-400 rounded-lg" disabled={isDeleting}><X className="h-4 w-4" /></Button>
+                                                        <Button onClick={() => handleDeleteReport(report.id)} className="h-7 w-7 bg-rose-600 text-white rounded-lg" disabled={isDeleting}>
+                                                            {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                                                        </Button>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Button onClick={() => setPreviewReportId(report.id)} className="h-7 text-[10px] bg-blue-600 hover:bg-blue-700 text-white px-3 rounded-lg font-bold">Preview</Button>
+                                                        <Button variant="outline" size="icon" onClick={() => handleSharePublicLink(report.id)} className="h-7 w-7 text-purple-600 hover:bg-purple-50 rounded-lg">
+                                                            <Share2 className="h-3.5 w-3.5" />
+                                                        </Button>
+                                                        <Button onClick={() => loadReport(report)} className="h-7 text-[10px] bg-slate-900 hover:bg-black text-white px-3 rounded-lg font-bold">Muat</Button>
+                                                        {user?.role === 'Admin' && (
+                                                            <Button variant="outline" size="icon" onClick={() => setConfirmDeleteId(report.id)} className="h-7 w-7 text-rose-600 hover:bg-rose-50 rounded-lg">
+                                                                <Trash2 className="h-3.5 w-3.5" />
+                                                            </Button>
+                                                        )}
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2 text-xs">
+                                            <div className="flex flex-col min-w-0">
+                                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Customer</span>
+                                                <span className="font-semibold truncate">{highlightMatch(report.customer || '-', historySearch)}</span>
+                                            </div>
+                                            <div className="flex flex-col min-w-0">
+                                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Designer</span>
+                                                <span className="truncate">{highlightMatch(report.designer || '-', historySearch)}</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Items</span>
+                                            {report.items && Array.isArray(report.items) && report.items.filter(Boolean).length > 0 ? (
+                                                <div className="flex flex-wrap gap-1">
+                                                    {report.items.filter(Boolean).slice(0, 6).map((item: string, idx: number) => (
+                                                        <Badge key={idx} variant="secondary" className="text-[9px] font-medium bg-slate-100 text-slate-600 rounded px-1.5 py-0 truncate max-w-full">
+                                                            {highlightMatch(item, historySearch)}
+                                                        </Badge>
+                                                    ))}
+                                                    {report.items.filter(Boolean).length > 6 && <span className="text-[9px] text-slate-400 bg-slate-50 px-1 rounded shrink-0">+{report.items.filter(Boolean).length - 6}</span>}
+                                                </div>
+                                            ) : <span className="text-slate-300 text-[10px]">-</span>}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* DESKTOP TABLE */}
+                            <div className="hidden sm:block border rounded-xl overflow-x-auto overflow-y-hidden bg-white shadow-sm w-full max-w-full min-w-0">
+                                <table className="w-full min-w-max text-left text-[10px] sm:text-xs whitespace-nowrap">
                                 <thead className="bg-slate-100 border-b text-slate-600 font-bold uppercase tracking-wider text-[10px]">
                                     <tr>
-                                        <th className="p-3 pl-4">No. DAR</th>
-                                        <th className="p-3">Waktu</th>
-                                        <th className="p-3">Customer</th>
-                                        <th className="p-3">Designer</th>
-                                        <th className="p-3">Design No</th>
+                                        <th className="p-3 pl-4 cursor-pointer hover:bg-slate-200 transition-colors select-none" onClick={() => handleSortHistory("darNo")}>
+                                            <div className="flex items-center gap-1">
+                                                No. DAR
+                                                {historySortConfig?.key === "darNo" ? (
+                                                    historySortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+                                                ) : <div className="w-3" />}
+                                            </div>
+                                        </th>
+                                        <th className="p-3 cursor-pointer hover:bg-slate-200 transition-colors select-none" onClick={() => handleSortHistory("createdAt")}>
+                                            <div className="flex items-center gap-1">
+                                                Waktu
+                                                {historySortConfig?.key === "createdAt" ? (
+                                                    historySortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+                                                ) : <div className="w-3" />}
+                                            </div>
+                                        </th>
+                                        <th className="p-3 cursor-pointer hover:bg-slate-200 transition-colors select-none" onClick={() => handleSortHistory("customer")}>
+                                            <div className="flex items-center gap-1">
+                                                Customer
+                                                {historySortConfig?.key === "customer" ? (
+                                                    historySortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+                                                ) : <div className="w-3" />}
+                                            </div>
+                                        </th>
+                                        <th className="p-3 cursor-pointer hover:bg-slate-200 transition-colors select-none" onClick={() => handleSortHistory("designer")}>
+                                            <div className="flex items-center gap-1">
+                                                Designer
+                                                {historySortConfig?.key === "designer" ? (
+                                                    historySortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+                                                ) : <div className="w-3" />}
+                                            </div>
+                                        </th>
+                                        <th className="p-3 cursor-pointer hover:bg-slate-200 transition-colors select-none" onClick={() => handleSortHistory("designNo")}>
+                                            <div className="flex items-center gap-1">
+                                                Design No
+                                                {historySortConfig?.key === "designNo" ? (
+                                                    historySortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+                                                ) : <div className="w-3" />}
+                                            </div>
+                                        </th>
                                         <th className="p-3">Items</th>
-                                        <th className="p-3 text-right pr-4">Aksi</th>
+                                        <th className="p-3 cursor-pointer hover:bg-slate-200 transition-colors select-none" onClick={() => handleSortHistory("status")}>
+                                            <div className="flex items-center gap-1">
+                                                Status
+                                                {historySortConfig?.key === "status" ? (
+                                                    historySortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+                                                ) : <div className="w-3" />}
+                                            </div>
+                                        </th>
+                                        <th className="p-3 cursor-pointer hover:bg-slate-200 transition-colors select-none" onClick={() => handleSortHistory("typeDesign")}>
+                                            <div className="flex items-center gap-1">
+                                                Tipe Desain
+                                                {historySortConfig?.key === "typeDesign" ? (
+                                                    historySortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+                                                ) : <div className="w-3" />}
+                                            </div>
+                                        </th>
+                                        <th className="p-3 cursor-pointer hover:bg-slate-200 transition-colors select-none" onClick={() => handleSortHistory("designSource")}>
+                                            <div className="flex items-center gap-1">
+                                                Sumber Desain
+                                                {historySortConfig?.key === "designSource" ? (
+                                                    historySortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+                                                ) : <div className="w-3" />}
+                                            </div>
+                                        </th>
+                                        <th className="p-3 text-right pr-4 sticky right-0 bg-slate-100 shadow-[-4px_0_12px_rgba(0,0,0,0.03)] z-10">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {historyData.filter(r => {
+                                    {sortedHistoryData.filter(r => {
                                         const searchLower = historySearch.toLowerCase();
                                         return (r.darNo || '').toLowerCase().includes(searchLower) || 
                                             (r.customer || '').toLowerCase().includes(searchLower) || 
                                             (r.designer || '').toLowerCase().includes(searchLower) ||
                                             (r.items && Array.isArray(r.items) && r.items.some((item: string) => (item || '').toLowerCase().includes(searchLower)));
                                     }).map(report => (
-                                        <tr key={report.id} className="border-b last:border-0 hover:bg-slate-50 transition-colors">
+                                        <tr key={report.id} className="border-b last:border-0 hover:bg-slate-50 transition-colors group">
                                             <td className="p-3 pl-4 font-bold text-blue-700">{highlightMatch(report.darNo || '', historySearch)}</td>
                                             <td className="p-3 text-slate-500">
                                                 {report.createdAt?.seconds ? new Date(report.createdAt.seconds * 1000).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' }) : report.entryDate}
                                                 {report.updatedAt?.seconds && <span className="ml-1.5 px-1 py-0.5 bg-amber-50 text-amber-600 rounded text-[9px]" title={`Diupdate oleh: ${report.updatedBy || 'Sistem'}`}>Upd</span>}
                                             </td>
-                                            <td className="p-3 font-semibold text-slate-900">{highlightMatch(report.customer || '-', historySearch)}</td>
-                                            <td className="p-3">{highlightMatch(report.designer || '-', historySearch)}</td>
-                                            <td className="p-3">{highlightMatch(report.designNo || '-', historySearch)}</td>
-                                            <td className="p-3">
+                                            <td className="p-3 font-semibold text-slate-900 max-w-[150px] truncate">{highlightMatch(report.customer || '-', historySearch)}</td>
+                                            <td className="p-3 max-w-[120px] truncate">{highlightMatch(report.designer || '-', historySearch)}</td>
+                                            <td className="p-3 max-w-[120px] truncate">{highlightMatch(report.designNo || '-', historySearch)}</td>
+                                            <td className="p-3 whitespace-normal min-w-[150px] max-w-[250px]">
                                                 {report.items && Array.isArray(report.items) && report.items.filter(Boolean).length > 0 ? (
                                                     <div className="flex flex-wrap gap-1">
                                                         {report.items.filter(Boolean).map((item: string, idx: number) => (
-                                                            <Badge key={idx} variant="secondary" className="text-[9px] font-medium bg-slate-100 text-slate-600 rounded">
+                                                            <Badge key={idx} variant="secondary" className="text-[9px] font-medium bg-slate-100 text-slate-600 rounded truncate max-w-full">
                                                                 {highlightMatch(item, historySearch)}
                                                             </Badge>
                                                         ))}
                                                     </div>
                                                 ) : <span className="text-slate-300">-</span>}
                                             </td>
-                                            <td className="p-2 pr-4 text-right">
+                                            <td className="p-3">
+                                                <select 
+                                                    value={report.status || "FREE"} 
+                                                    onChange={e => handleUpdateHistoryField(report.id, 'status', e.target.value)} 
+                                                    className={`flex h-8 w-20 rounded border px-2 text-[9px] font-bold outline-none transition-colors cursor-pointer ${getStatusColor(report.status || "FREE")}`}
+                                                >
+                                                    <option value="IN LOCK" className="bg-rose-500 text-white">IN LOCK</option>
+                                                    <option value="IN USE" className="bg-emerald-500 text-white">IN USE</option>
+                                                    <option value="FREE" className="bg-blue-500 text-white">FREE</option>
+                                                    <option value="ARCHIVE" className="bg-sky-400 text-white">ARCHIVE</option>
+                                                </select>
+                                            </td>
+                                            <td className="p-3">
+                                                <input 
+                                                    list="typeDesainOptions" 
+                                                    value={report.typeDesign || ""} 
+                                                    onChange={(e) => handleUpdateHistoryField(report.id, 'typeDesign', e.target.value)} 
+                                                    className={`border p-1 rounded text-[10px] font-bold w-24 focus:ring-2 focus:ring-blue-500 outline-none transition-colors ${getTypeDesignColor(report.typeDesign || "")}`} 
+                                                    placeholder="Tipe..." 
+                                                />
+                                            </td>
+                                            <td className="p-3">
+                                                <input 
+                                                    list="sumberDesainOptions" 
+                                                    value={report.designSource || ""} 
+                                                    onChange={(e) => handleUpdateHistoryField(report.id, 'designSource', e.target.value)} 
+                                                    className="border p-1 rounded text-[10px] w-28 bg-white focus:ring-2 focus:ring-blue-500 outline-none" 
+                                                    placeholder="Sumber..." 
+                                                />
+                                            </td>
+                                            <td className="p-2 pr-4 text-right sticky right-0 bg-white group-hover:bg-slate-50 shadow-[-4px_0_12px_rgba(0,0,0,0.03)] z-10">
                                                 <div className="flex items-center justify-end gap-1.5">
                                                 {confirmDeleteId === report.id ? (
                                                     <>
@@ -1375,6 +2069,9 @@ export default function FormAppPage() {
                                                 ) : (
                                                     <>
                                                         <Button onClick={() => setPreviewReportId(report.id)} className="h-7 text-[10px] bg-blue-600 hover:bg-blue-700 text-white px-3 rounded-lg font-bold">Preview</Button>
+                                                        <Button variant="outline" size="icon" onClick={() => handleSharePublicLink(report.id)} className="h-7 w-7 text-purple-600 hover:bg-purple-50 rounded-lg">
+                                                            <Share2 className="h-3.5 w-3.5" />
+                                                        </Button>
                                                         <Button onClick={() => loadReport(report)} className="h-7 text-[10px] bg-slate-900 hover:bg-black text-white px-3 rounded-lg font-bold">Muat</Button>
                                                         {user?.role === 'Admin' && (
                                                             <Button variant="outline" size="icon" onClick={() => setConfirmDeleteId(report.id)} className="h-7 w-7 text-rose-600 hover:bg-rose-50 rounded-lg">
@@ -1389,7 +2086,8 @@ export default function FormAppPage() {
                                     ))}
                                 </tbody>
                             </table>
-                        </div>
+                            </div>
+                        </>
                     )}
                     {!loadingHistory && historyData.length === 0 && (
                         <div className="py-20 text-center flex flex-col items-center gap-3 opacity-20 text-black">
@@ -1410,10 +2108,27 @@ export default function FormAppPage() {
             <DialogClose asChild><Button variant="ghost" size="icon"><X className="h-5 w-5" /></Button></DialogClose>
           </div>
           <div className="flex-1 w-full bg-slate-200 relative overflow-hidden">
-             {previewReportId && <iframe src={`/form-app/preview/${previewReportId}`} className="w-full h-full border-none absolute inset-0" />}
+            {previewReportId && <iframe src={`/form-app/preview?id=${previewReportId}`} className="w-full h-full border-none absolute inset-0" />}
           </div>
         </DialogContent>
       </Dialog>
+
+      <datalist id="typeDesainOptions">
+          {dynamicTypeDesignOptions.map(opt => <option key={opt} value={opt} />)}
+      </datalist>
+      <datalist id="sumberDesainOptions">
+          {dynamicDesignSourceOptions.map(opt => <option key={opt} value={opt} />)}
+      </datalist>
+      <datalist id="designerOptions">
+          {dynamicDesignerOptions.map(opt => <option key={opt} value={opt} />)}
+      </datalist>
+      <datalist id="technicianOptions">
+          {dynamicTechnicianOptions.map(opt => <option key={opt} value={opt} />)}
+      </datalist>
     </DashboardLayout>
   );
+}
+
+export default function FormAppPage() {
+  return <FormAppContent />;
 }
