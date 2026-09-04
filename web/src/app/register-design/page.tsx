@@ -24,6 +24,7 @@ export interface RegisterDesignItem {
   technician: string;
   status: string;
   designImage?: string;
+  designImageName?: string;
   typeDesign: string;
   designSource: string;
   designNo: string;
@@ -105,6 +106,42 @@ const CellImageUpload = ({
     return '/api/upload-drive';
   };
 
+  
+  const handleDeleteImage = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!row.designImage) return;
+    
+    if (!confirm('Apakah Anda yakin ingin menghapus gambar ini dari sistem dan Google Drive?')) return;
+    
+    setIsUploading(true);
+    try {
+      const apiUrl = typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
+        ? 'https://inventorycgi.vercel.app/api/delete-drive' 
+        : '/api/delete-drive';
+        
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ fileId: row.designImage }),
+      });
+      
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Gagal menghapus file dari Google Drive');
+      }
+      
+      handleUpdateCell(row.id, 'designImage', '');
+      handleUpdateCell(row.id, 'designImageName', '');
+      toast({ title: 'Terhapus', description: 'Gambar berhasil dihapus dari Google Drive.' });
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Gagal Menghapus', description: err.message });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -124,6 +161,7 @@ const CellImageUpload = ({
       if (!res.ok) throw new Error(data.error || 'Upload failed');
       
       handleUpdateCell(row.id, 'designImage', data.fileId);
+      handleUpdateCell(row.id, 'designImageName', file.name);
       toast({ title: 'Upload Berhasil', description: 'Gambar berhasil disimpan ke Google Drive.' });
     } catch (err: any) {
       toast({ variant: 'destructive', title: 'Upload Gagal', description: err.message });
@@ -134,20 +172,43 @@ const CellImageUpload = ({
   };
 
   if (row.designImage) {
-    const imgUrl = `https://drive.google.com/uc?id=${row.designImage}`;
+    const imgUrl = `https://drive.google.com/thumbnail?id=${row.designImage}&sz=s1000`;
+    const viewUrl = `https://drive.google.com/file/d/${row.designImage}/view`;
     return (
       <div className="relative group flex items-center justify-center w-full h-full">
-        <a href={imgUrl} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline flex items-center gap-1">
+        <a href={viewUrl} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline flex items-center gap-1">
           <Eye className="w-3 h-3" />
           <span className="text-[10px]">Lihat</span>
         </a>
         
         {/* Hover Preview Box */}
-        <div className="absolute hidden group-hover:block top-full left-1/2 -translate-x-1/2 mt-2 z-50 bg-white p-2 rounded-xl shadow-2xl border border-slate-200">
+        <div className="absolute hidden group-hover:block top-full left-1/2 -translate-x-1/2 mt-2 z-50 bg-white p-3 rounded-xl shadow-2xl border border-slate-200">
+          {row.designImageName && (
+            <div className="text-xs font-bold text-slate-900 bg-slate-200 py-1.5 px-3 mb-2 w-full max-w-[256px] text-center rounded-md border border-slate-300 shadow-sm whitespace-normal break-words leading-tight">
+              {row.designImageName}
+            </div>
+          )}
           <div className="relative w-48 h-48 sm:w-64 sm:h-64 rounded-lg overflow-hidden flex items-center justify-center bg-slate-100">
              <img src={imgUrl} alt="Preview" className="w-full h-full object-contain" />
           </div>
-          <button onClick={(e) => { e.preventDefault(); handleUpdateCell(row.id, 'designImage', ''); }} className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 -mt-2 -mr-2 shadow-sm hover:bg-red-600">
+
+          <div className="mt-3 text-[10px] sm:text-xs bg-slate-50 p-2 rounded-lg border border-slate-200 shadow-inner w-full space-y-1.5 text-slate-700 font-medium">
+            <div className="flex justify-between items-center gap-2">
+              <span className="font-bold text-slate-500 uppercase tracking-wider text-[8px] sm:text-[9px]">Desainer</span> 
+              <span className="truncate max-w-[120px] sm:max-w-[150px]">{row.designer || '-'}</span>
+            </div>
+            <div className="flex justify-between items-center gap-2 border-t border-slate-100 pt-1.5">
+              <span className="font-bold text-slate-500 uppercase tracking-wider text-[8px] sm:text-[9px]">Teknisi</span> 
+              <span className="truncate max-w-[120px] sm:max-w-[150px]">{row.technician || '-'}</span>
+            </div>
+            <div className="flex justify-between items-start gap-2 border-t border-slate-100 pt-1.5">
+              <span className="font-bold text-slate-500 uppercase tracking-wider text-[8px] sm:text-[9px] mt-0.5">Spesifikasi</span> 
+              <span className="text-right whitespace-normal break-words leading-tight max-w-[120px] sm:max-w-[160px]">
+                {[row.typeDesign, row.sizeChecks, row.surfaceChecks].filter(Boolean).join(' | ') || '-'}
+              </span>
+            </div>
+          </div>
+          <button onClick={handleDeleteImage} disabled={isUploading} className={`absolute top-0 right-0 text-white rounded-full p-1 -mt-2 -mr-2 shadow-sm ${isUploading ? 'bg-slate-400 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600'}`}>
              <X className="w-3 h-3" />
           </button>
         </div>
@@ -1180,6 +1241,9 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
+                <th className="p-2 border-r bg-slate-50 text-center select-none w-20">
+                  <div className="flex items-center justify-center gap-1"><Eye className="w-3 h-3 text-slate-400" /> Gambar</div>
+                </th>
                 <th className="p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("status")}>
                   <div className="flex items-center gap-1">
                     Status
@@ -1337,9 +1401,9 @@ export default function RegisterDesignPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={23} className="p-8 text-center text-slate-500 font-bold">Memuat data...</td></tr>
+                <tr><td colSpan={24} className="p-8 text-center text-slate-500 font-bold">Memuat data...</td></tr>
               ) : filteredData.length === 0 ? (
-                <tr><td colSpan={23} className="p-8 text-center text-slate-500 font-bold">Tidak ada data desain.</td></tr>
+                <tr><td colSpan={24} className="p-8 text-center text-slate-500 font-bold">Tidak ada data desain.</td></tr>
               ) : (
                 sortedAndFilteredData.map((row, idx) => (
                   <tr key={row.id} className="border-b border-slate-200 hover:bg-blue-50/50 group transition-colors">
@@ -1355,6 +1419,7 @@ export default function RegisterDesignPage() {
                     <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="designer" list="desOptions" width="w-28" /></td>
                     <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="technician" list="techOptions" width="w-28" /></td>
                     <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="benefit" options={baseTujuanOptions} width="w-32" /></td>
+                    <td className="p-1 border-r bg-slate-50/50"><CellImageUpload handleUpdateCell={handleUpdateCell} row={row} /></td>
                     <td className="p-1 border-r">
                       <CellSelect handleUpdateCell={handleUpdateCell} row={row} field="status" options={["IN LOCK", "IN USE", "FREE", "ARCHIVE"]} colorFn={getStatusColor} width="w-24" />
                     </td>

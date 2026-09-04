@@ -24,32 +24,30 @@ export async function POST(request: Request) {
     }
 
     // Ambil setting dari Firestore
-    const settingsDoc = await getDoc(doc(db, "settings", "general"));
+const settingsDoc = await getDoc(doc(db, "settings", "general"));
     if (!settingsDoc.exists()) {
       return NextResponse.json({ error: "Settings not found" }, { status: 500, headers: corsHeaders });
     }
     const settingsData = settingsDoc.data();
-    const serviceAccountJson = settingsData.googleDriveServiceAccount;
+    const clientId = settingsData.googleClientId;
+    const clientSecret = settingsData.googleClientSecret;
+    const refreshToken = settingsData.googleRefreshToken;
     const folderId = settingsData.googleDriveFolderId;
 
-    if (!serviceAccountJson || !folderId) {
-      return NextResponse.json({ error: "Google Drive Service Account or Folder ID not configured in Settings" }, { status: 500, headers: corsHeaders });
+    if (!clientId || !clientSecret || !refreshToken || !folderId) {
+      return NextResponse.json({ error: "Google Drive OAuth Credentials (Client ID, Secret, Refresh Token) or Folder ID not configured" }, { status: 500, headers: corsHeaders });
     }
 
-    let credentials;
-    try {
-      credentials = JSON.parse(serviceAccountJson);
-    } catch (e) {
-      return NextResponse.json({ error: "Invalid Service Account JSON format" }, { status: 500, headers: corsHeaders });
-    }
+    const oauth2Client = new google.auth.OAuth2(
+      clientId,
+      clientSecret
+    );
 
-    // Otentikasi Google Drive
-    const auth = new google.auth.GoogleAuth({
-      credentials,
-      scopes: ['https://www.googleapis.com/auth/drive.file', 'https://www.googleapis.com/auth/drive'],
+    oauth2Client.setCredentials({
+      refresh_token: refreshToken
     });
 
-    const drive = google.drive({ version: 'v3', auth });
+    const drive = google.drive({ version: 'v3', auth: oauth2Client });
 
     // Ubah File (Blob) menjadi buffer stream
     const arrayBuffer = await file.arrayBuffer();
