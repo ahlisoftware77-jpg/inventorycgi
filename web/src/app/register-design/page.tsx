@@ -56,6 +56,7 @@ export interface RegisterDesignItem {
   lastDesignSupp: string;
   note2: string;
   generalNote: string;
+  benefitText?: string;
   createdAt?: any;
   updatedAt?: any;
 }
@@ -713,6 +714,19 @@ export default function RegisterDesignPage() {
       const newSel = new Set(selectedIds);
       newSel.delete(id);
       setSelectedIds(newSel);
+
+      if (currentRow.darNo) {
+        const qDar = query(collection(db, "form_dar"), where("darNo", "==", currentRow.darNo));
+        const snapDar = await getDocs(qDar);
+        if (!snapDar.empty) {
+          const updatedItemsArr = data
+            .filter(d => d.darNo === currentRow.darNo && d.id !== id)
+            .map(d => d.itemName)
+            .filter(Boolean);
+            
+          await updateDoc(doc(db, "form_dar", snapDar.docs[0].id), { items: updatedItemsArr });
+        }
+      }
       
       logAction('DELETE_DESIGN_ROW', `Menghapus baris desain (Design No: ${currentRow.designNo || '-'}, Item: ${currentRow.itemName || '-'})`);
       toast({ title: "Baris dihapus" });
@@ -764,7 +778,21 @@ export default function RegisterDesignPage() {
       updatePayload.designNo = generatedDesignNo;
     }
 
-    const infoAndNoteFields = ["benefit", "generalNote", "note2", "lastTimeReq", "feedback", "feedbackDetails", "lastDesignSupp"];
+    if (field === "status" && value !== "FREE") {
+      let maxNo = 0;
+      data.forEach(d => {
+        if (d.status === value) {
+          const num = parseInt(d.designNo || "0", 10);
+          if (!isNaN(num) && num > maxNo) {
+            maxNo = num;
+          }
+        }
+      });
+      generatedDesignNo = (maxNo + 1).toString();
+      updatePayload.designNo = generatedDesignNo;
+    }
+
+    const infoAndNoteFields = ["benefit", "generalNote", "note2", "lastTimeReq", "benefitText", "feedbackDetails", "lastDesignSupp", "requiredDate", "closingDate"];
     const shouldSync = currentRow?.darNo && infoAndNoteFields.includes(field);
 
     // Update local state immediately
@@ -795,7 +823,7 @@ export default function RegisterDesignPage() {
         const qDar = query(collection(db, "form_dar"), where("darNo", "==", currentRow.darNo));
         const snapDar = await getDocs(qDar);
         if (!snapDar.empty) {
-          const formField = field === 'benefit' ? 'purpose' : field === 'feedbackDetails' ? 'feedbackRows' : field === 'note2' ? 'note2Rows' : field;
+          const formField = field === 'benefit' ? 'purpose' : field === 'feedbackDetails' ? 'feedbackRows' : field === 'note2' ? 'note2Rows' : field === 'benefitText' ? 'benefit' : field;
           
           let parsedValue: any = value;
           if (['feedbackDetails', 'note2', 'lastDesignSupp'].includes(field)) {
@@ -809,6 +837,20 @@ export default function RegisterDesignPage() {
             [formField]: parsedValue,
             updatedAt: serverTimestamp()
           }));
+        }
+      }
+
+      if (field === 'itemName' && currentRow?.darNo) {
+        const qDar = query(collection(db, "form_dar"), where("darNo", "==", currentRow.darNo));
+        const snapDar = await getDocs(qDar);
+        if (!snapDar.empty) {
+          // Rebuild the items array from local data (incorporating the current change)
+          const updatedItemsArr = data
+            .filter(d => d.darNo === currentRow.darNo)
+            .map(d => d.id === id ? value : d.itemName)
+            .filter(Boolean);
+            
+          promises.push(updateDoc(doc(db, "form_dar", snapDar.docs[0].id), { items: updatedItemsArr }));
         }
       }
       
@@ -829,14 +871,16 @@ export default function RegisterDesignPage() {
   const handleOpenGroupDialog = () => {
     let maxNum = 0;
     const currentYearStr = new Date().getFullYear().toString().slice(-2);
-    const prefix = `DAR-${currentYearStr}-`;
+    const prefix = `${currentYearStr}-`;
     
     data.forEach(d => {
-      if (d.darNo && d.darNo.startsWith(prefix)) {
-        const numPart = d.darNo.replace(prefix, "");
-        const num = parseInt(numPart, 10);
-        if (!isNaN(num) && num > maxNum) {
-          maxNum = num;
+      if (d.darNo && d.darNo.includes(prefix)) {
+        const numPart = d.darNo.split(prefix)[1];
+        if (numPart) {
+          const num = parseInt(numPart, 10);
+          if (!isNaN(num) && num > maxNum) {
+            maxNum = num;
+          }
         }
       }
     });
@@ -856,7 +900,9 @@ export default function RegisterDesignPage() {
       return;
     }
 
-    const selectedItems = data.filter(d => selectedIds.has(d.id));
+    const selectedItems = sortedAndFilteredData.filter(d => selectedIds.has(d.id));
+    const existingDarItems = data.filter(d => d.darNo === targetDarNo && !selectedIds.has(d.id));
+    const itemsToValidate = [...selectedItems, ...existingDarItems];
     
     // VALIDATION: Check if specifications are identical
     const specFields: (keyof RegisterDesignItem)[] = [
@@ -883,8 +929,8 @@ export default function RegisterDesignPage() {
     let isIdentical = true;
     let diffField = "";
     
-    const firstItem = selectedItems[0];
-    for (const item of selectedItems) {
+    const firstItem = itemsToValidate[0];
+    for (const item of itemsToValidate) {
       for (const field of specFields) {
         let val1 = (item[field] as string) || "";
         let val2 = (firstItem[field] as string) || "";
@@ -1427,10 +1473,10 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="p-2 border-r bg-slate-50 text-emerald-800 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("feedback")}>
+                <th className="p-2 border-r bg-slate-50 text-emerald-800 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("benefitText")}>
                   <div className="flex items-center gap-1">
-                    Feedback (Gen)
-                    {sortConfig?.key === "feedback" ? (
+                    Benefit
+                    {sortConfig?.key === "benefitText" ? (
                       sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
@@ -1518,7 +1564,7 @@ export default function RegisterDesignPage() {
                     <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="sendBy" options={baseSendByOptions} width="w-24" /></td>
                     <td className="p-1 border-r"><CellGridInput handleUpdateCell={handleUpdateCell} row={row} field="note2" title="Note 2" rowsCount={3} /></td>
                     <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="lastTimeReq" width="w-28" type="date" /></td>
-                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="feedback" width="w-40" /></td>
+                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="benefitText" width="w-40" /></td>
                     <td className="p-1 border-r"><CellGridInput handleUpdateCell={handleUpdateCell} row={row} field="feedbackDetails" title="Feedback" rowsCount={4} /></td>
                     <td className="p-1 border-r"><CellGridInput handleUpdateCell={handleUpdateCell} row={row} field="lastDesignSupp" title="Support" rowsCount={6} /></td>
                     <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="requiredDate" width="w-28" type="date" /></td>
