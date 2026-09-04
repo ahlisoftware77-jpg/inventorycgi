@@ -778,10 +778,10 @@ export default function RegisterDesignPage() {
       updatePayload.designNo = generatedDesignNo;
     }
 
-    if (field === "status" && value !== "FREE") {
+    if (field === "typeDesign" && value.trim() !== "") {
       let maxNo = 0;
       data.forEach(d => {
-        if (d.typeDesign === currentRow?.typeDesign) {
+        if (d.typeDesign === value && d.id !== id) {
           const num = parseInt(d.designNo || "0", 10);
           if (!isNaN(num) && num > maxNo) {
             maxNo = num;
@@ -1074,6 +1074,26 @@ export default function RegisterDesignPage() {
       case 'ST': return 'bg-emerald-200 text-emerald-900 border-emerald-300';
       case 'CGL': return 'bg-slate-200 text-slate-900 border-slate-300';
       case 'CO': return 'bg-purple-200 text-purple-900 border-purple-300';
+      default: return 'bg-white text-slate-900 border-slate-200';
+    }
+  };
+
+  const getDesignerColor = (val: string) => {
+    switch(val) {
+      case 'D1 Riki': return 'bg-blue-700 text-blue-50 border-blue-800 font-medium';
+      case 'D2 Diaz': return 'bg-[#156e47] text-emerald-50 border-emerald-900 font-medium'; // Dark green
+      case 'D3 Rian': return 'bg-[#7a3b00] text-amber-50 border-amber-950 font-medium'; // Dark brown
+      case 'D4 Darmawan': return 'bg-[#b30000] text-red-50 border-red-900 font-medium'; // Dark red
+      default: return 'bg-white text-slate-900 border-slate-200';
+    }
+  };
+
+  const getTechnicianColor = (val: string) => {
+    switch(val) {
+      case 'T1 Darta': return 'bg-[#cce5ff] text-blue-900 border-[#b8daff] font-medium'; // Light blue
+      case 'T2 Kardani': return 'bg-[#d4edda] text-emerald-900 border-[#c3e6cb] font-medium'; // Light green
+      case 'T3 Rafli': return 'bg-[#ffe8cc] text-orange-900 border-[#ffdfb3] font-medium'; // Light orange
+      case 'T4 Cepi': return 'bg-[#fff3cd] text-yellow-900 border-[#ffeeba] font-medium'; // Light yellow
       default: return 'bg-white text-slate-900 border-slate-200';
     }
   };
@@ -1541,8 +1561,8 @@ export default function RegisterDesignPage() {
                     <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="entryDate" width="w-28" type="date" /></td>
                     <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="itemName" width="w-40" /></td>
                     <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="customer" list="custOptions" width="w-32" /></td>
-                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="designer" list="desOptions" width="w-28" /></td>
-                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="technician" list="techOptions" width="w-28" /></td>
+                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="designer" list="desOptions" colorFn={getDesignerColor} width="w-28" /></td>
+                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="technician" list="techOptions" colorFn={getTechnicianColor} width="w-28" /></td>
                     <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="benefit" options={baseTujuanOptions} width="w-32" /></td>
                     <td className="p-1 border-r bg-slate-50/50"><CellImageUpload handleUpdateCell={handleUpdateCell} row={row} /></td>
                     <td className="p-1 border-r">
