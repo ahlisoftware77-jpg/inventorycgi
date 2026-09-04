@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase/config';
 import { collection, getDocs, doc, setDoc, deleteDoc, updateDoc, query, orderBy, serverTimestamp, where, addDoc } from 'firebase/firestore';
-import { Trash2, Plus, Save, Layers, CheckSquare, Search, ChevronDown, Check, Eye, X, Pencil, Share2, ChevronUp, BarChart2, Download, Upload, FileSpreadsheet } from 'lucide-react';
+import { Trash2, Plus, Save, Layers, CheckSquare, Search, ChevronDown, Check, Eye, X, Pencil, Share2, ChevronUp, BarChart2, Download, Upload, FileSpreadsheet, Lock, Unlock } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
@@ -59,34 +59,82 @@ export interface RegisterDesignItem {
   benefitText?: string;
   createdAt?: any;
   updatedAt?: any;
+  createdBy?: string;
+  isLocked?: boolean;
 }
 
 
   // Advanced Spec Dropdown with inline inputs
   
-const handleCellKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
-  if (e.key === 'Enter') {
+// Handle navigation between table cells using arrow keys
+export const handleCellNavigation = (
+  e: React.KeyboardEvent<HTMLElement>, 
+  enterEditMode?: () => void, 
+  clearText?: () => void
+) => {
+  const target = e.currentTarget as HTMLElement;
+  const currentTd = target.closest('td');
+  const currentTr = target.closest('tr');
+  if (!currentTd || !currentTr) return;
+  
+  const tdIndex = Array.from(currentTr.children).indexOf(currentTd);
+
+  // F2 or Enter to Edit
+  if (e.key === 'F2' || e.key === 'Enter') {
     e.preventDefault();
-    const target = e.target as HTMLElement;
-    const currentTd = target.closest('td');
-    const currentTr = target.closest('tr');
-    
-    if (currentTd && currentTr) {
-      const tdIndex = Array.from(currentTr.children).indexOf(currentTd);
-      const targetTr = e.shiftKey ? currentTr.previousElementSibling : currentTr.nextElementSibling;
-      
-      if (targetTr) {
-        const targetTd = targetTr.children[tdIndex];
-        if (targetTd) {
-          const focusable = targetTd.querySelector('input:not([type="hidden"]), select, textarea, button, [tabindex="0"]') as HTMLElement;
-          if (focusable) {
-            focusable.focus();
-          }
-        }
-      }
+    if (enterEditMode) enterEditMode();
+    return;
+  }
+  
+  // Delete or Backspace to Clear
+  if (e.key === 'Delete' || e.key === 'Backspace') {
+    e.preventDefault();
+    if (clearText) clearText();
+    return;
+  }
+  
+  let focusTarget: HTMLElement | null = null;
+
+  if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    const prevTr = currentTr.previousElementSibling;
+    if (prevTr) {
+      const targetTd = prevTr.children[tdIndex];
+      focusTarget = targetTd?.querySelector('[tabindex="0"]') as HTMLElement;
+    }
+  } else if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    const nextTr = currentTr.nextElementSibling;
+    if (nextTr) {
+      const targetTd = nextTr.children[tdIndex];
+      focusTarget = targetTd?.querySelector('[tabindex="0"]') as HTMLElement;
+    }
+  } else if (e.key === 'ArrowLeft') {
+    e.preventDefault();
+    let prevTd = currentTd.previousElementSibling;
+    while(prevTd && !prevTd.querySelector('[tabindex="0"]')) {
+       prevTd = prevTd.previousElementSibling;
+    }
+    if (prevTd) {
+      focusTarget = prevTd.querySelector('[tabindex="0"]') as HTMLElement;
+    }
+  } else if (e.key === 'ArrowRight') {
+    e.preventDefault();
+    let nextTd = currentTd.nextElementSibling;
+    while(nextTd && !nextTd.querySelector('[tabindex="0"]')) {
+       nextTd = nextTd.nextElementSibling;
+    }
+    if (nextTd) {
+      focusTarget = nextTd.querySelector('[tabindex="0"]') as HTMLElement;
     }
   }
+
+  if (focusTarget) {
+    focusTarget.focus();
+  }
 };
+
+const handleCellKeyDown = handleCellNavigation; // Keep old name for compatibility where used directly
 
 
 const CellImageUpload = ({ 
@@ -99,6 +147,22 @@ const CellImageUpload = ({
   const [isUploading, setIsUploading] = useState(false);
   const [localPreviewUrl, setLocalPreviewUrl] = useState<string | null>(null);
   const { toast } = useToast();
+  const [isHiddenByEscape, setIsHiddenByEscape] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsHiddenByEscape(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const handleMouseLeave = () => {
+    setIsHiddenByEscape(false);
+  };
+
   
 
   const getUploadApiUrl = () => {
@@ -207,14 +271,14 @@ const CellImageUpload = ({
     const imgUrl = localPreviewUrl || `https://drive.google.com/thumbnail?id=${row.designImage}&sz=s1000`;
     const viewUrl = `https://drive.google.com/file/d/${row.designImage}/view`;
     return (
-      <div className="relative group flex items-center justify-center w-full h-full">
+      <div className="relative group flex items-center justify-center w-full h-full" onMouseLeave={handleMouseLeave}>
         <a href={viewUrl} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline flex items-center gap-1">
           <Eye className="w-3 h-3" />
           <span className="text-[10px]">Lihat</span>
         </a>
         
         {/* Hover Preview Box */}
-        <div className="absolute hidden group-hover:block top-full left-1/2 -translate-x-1/2 mt-2 z-50 bg-white p-3 rounded-xl shadow-2xl border border-slate-200">
+        <div className={`absolute ${isHiddenByEscape ? "hidden" : "hidden group-hover:block"} top-full left-1/2 -translate-x-1/2 mt-2 z-50 bg-white p-3 rounded-xl shadow-2xl border border-slate-200`}>
           {row.designImageName && (
             <div className="text-xs font-bold text-slate-900 bg-slate-200 py-1.5 px-3 mb-2 w-full max-w-[256px] text-center rounded-md border border-slate-300 shadow-sm whitespace-normal break-words leading-tight">
               {row.designImageName}
@@ -320,10 +384,14 @@ const CellMultiSelect = ({
 
     const displayVal = getSummary();
 
+    if (row.isLocked) {
+      return <div tabIndex={0} onKeyDown={(e) => handleCellNavigation(e)} className={`focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-600 focus:bg-blue-100 w-full px-1.5 py-1 text-[11px] truncate text-slate-500 bg-slate-50/50 ${width}`} title={displayVal}>{displayVal || "-"}</div>;
+    }
+
     return (
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
-          <div tabIndex={0} onKeyDown={handleCellKeyDown} className={`border border-transparent hover:border-slate-300 focus:border-blue-500 rounded p-1 text-[11px] outline-none cursor-pointer flex justify-between items-center bg-transparent truncate ${width}`} title={displayVal}>
+          <div onDoubleClick={() => setIsOpen(true)} onClick={(e) => e.preventDefault()} tabIndex={0} onKeyDown={(e) => handleCellNavigation(e, () => setIsOpen(true), () => { if(!row.isLocked) handleUpdateCell(row.id, field, ""); })} className={`focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-600 focus:bg-blue-100 border border-transparent hover:border-slate-300 rounded p-1 text-[11px] cursor-pointer flex justify-between items-center bg-transparent truncate ${width}`} title={displayVal}>
             <span className="truncate">{displayVal || "--"}</span>
             <ChevronDown className="w-3 h-3 text-slate-400 shrink-0 ml-1" />
           </div>
@@ -332,7 +400,7 @@ const CellMultiSelect = ({
           <div className="flex flex-col gap-1 max-h-64 overflow-y-auto">
             {options.map(opt => (
               <label key={opt} className="flex items-center gap-2 p-1 hover:bg-slate-50 rounded cursor-pointer text-xs">
-                <input type="checkbox" checked={selected.includes(opt)} onChange={() => toggleOption(opt)} className="w-3 h-3 cursor-pointer" />
+                <input type="checkbox" checked={selected.includes(opt)} onChange={() => toggleOption(opt)} className="w-3 h-3 cursor-pointer accent-red-600" />
                 <span className="text-slate-700">{opt}</span>
               </label>
             ))}
@@ -341,7 +409,7 @@ const CellMultiSelect = ({
               return (
                 <div key={co.label} className="flex flex-col gap-1 p-1 hover:bg-slate-50 rounded">
                   <label className="flex items-center gap-2 cursor-pointer text-xs">
-                    <input type="checkbox" checked={isChecked} onChange={() => toggleOption(co.label)} className="w-3 h-3 cursor-pointer" />
+                    <input type="checkbox" checked={isChecked} onChange={() => toggleOption(co.label)} className="w-3 h-3 cursor-pointer accent-red-600" />
                     <span className="text-slate-700">{co.label}</span>
                   </label>
                   {isChecked && (
@@ -366,20 +434,120 @@ const CellMultiSelect = ({
     );
   };
 
-  const CellInput = ({ row, field, list, width = "w-32", type = "text", colorFn, handleUpdateCell }: { row: RegisterDesignItem, field: keyof RegisterDesignItem, list?: string, width?: string, type?: string, colorFn?: (v: string) => string, handleUpdateCell: (id: string, field: keyof RegisterDesignItem, val: string) => void }) => {
+  const CellInput = ({ row, field, list, options, width = "w-32", type = "text", colorFn, handleUpdateCell }: { row: RegisterDesignItem, field: keyof RegisterDesignItem, list?: string, options?: string[], width?: string, type?: string, colorFn?: (v: string) => string, handleUpdateCell: (id: string, field: keyof RegisterDesignItem, val: string) => void }) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
     const val = row[field] as string || "";
+
+    if (row.isLocked) {
+      return <div tabIndex={0} onKeyDown={(e) => handleCellNavigation(e)} className={`focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-600 focus:bg-blue-100 w-full px-1.5 py-1 text-[11px] truncate text-slate-500 bg-slate-50/50 ${width}`} title={val}>{val || "-"}</div>;
+    }
+
+    if (!isEditing) {
+      return <div tabIndex={0} onDoubleClick={() => setIsEditing(true)} onKeyDown={(e) => handleCellNavigation(e, () => setIsEditing(true), () => { if(!row.isLocked) handleUpdateCell(row.id, field, ""); })} className={`w-full px-1.5 py-1 text-[11px] truncate cursor-pointer hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-600 focus:bg-blue-100 ${colorFn ? colorFn(val) : ''} ${width}`} title={val}>{type === 'date' && val ? val : val || "-"}</div>;
+    }
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (options && options.length > 0) {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          setHighlightedIndex(prev => (prev < options.length - 1 ? prev + 1 : prev));
+          return;
+        }
+        if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          setHighlightedIndex(prev => (prev > 0 ? prev - 1 : prev));
+          return;
+        }
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          if (highlightedIndex >= 0 && highlightedIndex < options.length) {
+            handleUpdateCell(row.id, field, options[highlightedIndex]);
+          }
+          setIsEditing(false);
+          return;
+        }
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          setIsEditing(false);
+          return;
+        }
+      }
+      
+      if (e.key === 'Enter') {
+        setIsEditing(false);
+      }
+      handleCellKeyDown(e);
+    };
+
     return (
-      <input type={type} list={list} value={val} onChange={(e) => handleUpdateCell(row.id, field, e.target.value)} onKeyDown={handleCellKeyDown} className={`w-full border border-transparent hover:border-slate-300 focus:border-blue-500 rounded p-1 text-[11px] outline-none ${colorFn ? colorFn(val) : 'bg-transparent'} ${width} ${type === 'date' ? 'uppercase' : ''}`} placeholder="-" />
+      <div className={`relative w-full ${width}`}>
+        <input 
+          autoFocus 
+          onBlur={() => setTimeout(() => setIsEditing(false), 200)} 
+          type={type} 
+          list={list} 
+          value={val} 
+          onChange={(e) => {
+            handleUpdateCell(row.id, field, e.target.value);
+            setHighlightedIndex(-1);
+          }} 
+          onKeyDown={handleKeyDown} 
+          className={`w-full border border-blue-500 rounded p-1 text-[11px] outline-none bg-white pr-6 ${type === 'date' ? 'uppercase' : ''}`} 
+          placeholder="-" 
+        />
+        {val && (
+          <button onMouseDown={(e) => { e.preventDefault(); handleUpdateCell(row.id, field, ""); }} className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 hover:bg-slate-100 rounded text-slate-400 hover:text-red-500 transition-colors z-10" title="Hapus">
+            <X className="w-3 h-3" />
+          </button>
+        )}
+        
+        {options && options.length > 0 && (
+          <div className="absolute left-0 top-full mt-1 w-max min-w-[120px] max-w-[200px] max-h-48 overflow-y-auto bg-white border border-slate-200 rounded-md shadow-lg z-[9999] py-1">
+            {options.map((opt, idx) => (
+              <div 
+                key={opt}
+                onMouseDown={(e) => { 
+                  e.preventDefault(); 
+                  handleUpdateCell(row.id, field, opt); 
+                  setIsEditing(false); 
+                }}
+                className={`px-3 py-1.5 text-[11px] cursor-pointer truncate transition-colors ${idx === highlightedIndex ? 'bg-blue-600 text-white font-medium' : 'text-slate-700 hover:bg-blue-50'}`}
+                title={opt}
+              >
+                {opt}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     );
   };
 
   const CellSelect = ({ row, field, options, width = "w-32", colorFn, handleUpdateCell }: { row: RegisterDesignItem, field: keyof RegisterDesignItem, options: string[], width?: string, colorFn?: (v: string) => string, handleUpdateCell: (id: string, field: keyof RegisterDesignItem, val: string) => void }) => {
+    const [isEditing, setIsEditing] = useState(false);
     const val = row[field] as string || "";
+
+    if (row.isLocked) {
+      return <div tabIndex={0} onKeyDown={(e) => handleCellNavigation(e)} className={`focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-600 focus:bg-blue-100 w-full px-1.5 py-1 text-[11px] truncate text-slate-500 bg-slate-50/50 ${width}`} title={val}>{val || "-"}</div>;
+    }
+
+    if (!isEditing) {
+      return <div tabIndex={0} onDoubleClick={() => setIsEditing(true)} onKeyDown={(e) => handleCellNavigation(e, () => setIsEditing(true), () => { if(!row.isLocked) handleUpdateCell(row.id, field, ""); })} className={`w-full px-1.5 py-1 text-[11px] truncate cursor-pointer hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-600 focus:bg-blue-100 ${colorFn ? colorFn(val) : ''} ${width}`} title={val}>{val || "-"}</div>;
+    }
+
     return (
-      <select value={val} onChange={(e) => handleUpdateCell(row.id, field, e.target.value)} onKeyDown={handleCellKeyDown} className={`w-full border border-transparent hover:border-slate-300 focus:border-blue-500 rounded p-1 text-[11px] outline-none cursor-pointer ${colorFn ? colorFn(val) : 'bg-transparent'} ${width}`}>
-        <option value="">-</option>
-        {options.map(o => <option key={o} value={o}>{o}</option>)}
-      </select>
+      <div className={`relative w-full ${width}`}>
+        <select autoFocus onBlur={() => setIsEditing(false)} value={val} onChange={(e) => { handleUpdateCell(row.id, field, e.target.value); setIsEditing(false); }} onKeyDown={(e) => { if(e.key === 'Enter') setIsEditing(false); handleCellKeyDown(e); }} className={`w-full border border-blue-500 rounded p-1 text-[11px] outline-none cursor-pointer bg-white pr-6`}>
+          <option value="">-</option>
+          {options.map(o => <option key={o} value={o}>{o}</option>)}
+        </select>
+        {val && (
+          <button onMouseDown={(e) => { e.preventDefault(); handleUpdateCell(row.id, field, ""); }} className="absolute right-5 top-1/2 -translate-y-1/2 p-0.5 hover:bg-slate-100 rounded text-slate-400 hover:text-red-500 transition-colors z-10" title="Hapus">
+            <X className="w-3 h-3" />
+          </button>
+        )}
+      </div>
     );
   };
 
@@ -413,10 +581,16 @@ const CellGridInput = ({ row, field, title, rowsCount, handleUpdateCell }: { row
     handleUpdateCell(row.id, field, JSON.stringify(newRows));
   };
 
+  const [isOpen, setIsOpen] = useState(false);
+
+  if (row.isLocked) {
+    return <div tabIndex={0} onKeyDown={(e) => handleCellNavigation(e)} className="focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-600 focus:bg-blue-100 w-24 px-1.5 py-1 text-[11px] truncate text-slate-500 bg-slate-50/50">{title}</div>;
+  }
+
   return (
-    <Popover>
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="sm" className="w-24 justify-between text-[10px] h-6 px-2 border border-transparent hover:border-blue-200">
+        <Button tabIndex={0} onKeyDown={(e) => handleCellNavigation(e, () => setIsOpen(true), () => { if(!row.isLocked) handleUpdateCell(row.id, field, ""); })} onDoubleClick={() => setIsOpen(true)} onClick={(e) => e.preventDefault()} variant="ghost" size="sm" className="focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-600 focus:bg-blue-100 w-24 justify-between text-[10px] h-6 px-2 border border-transparent hover:border-blue-200">
            {title} <ChevronDown className="w-3 h-3 ml-1" />
         </Button>
       </PopoverTrigger>
@@ -665,7 +839,9 @@ export default function RegisterDesignPage() {
       surfaceTemp: "", guPtv: "", inkChecks: "", inkOther: "", sendBy: "", benefit: "", lastTimeReq: "",
       feedback: "", feedbackDetails: "", lastDesignSupp: "", note2: "", generalNote: "",
       createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+      updatedAt: serverTimestamp(),
+      createdBy: user?.name || user?.email || 'System',
+      isLocked: false
     };
     try {
       const newRef = doc(collection(db, "register_design"));
@@ -677,7 +853,7 @@ export default function RegisterDesignPage() {
       console.error(e);
       toast({ title: "Gagal menambah baris", variant: "destructive" });
     }
-  }, [toast]);
+  }, [toast, user]);
 
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
@@ -776,6 +952,15 @@ export default function RegisterDesignPage() {
       });
       generatedDesignNo = (maxNo + 1).toString();
       updatePayload.designNo = generatedDesignNo;
+    }
+
+    if (field === "typeDesign" && currentRow?.typeDesign && currentRow.typeDesign !== value && currentRow?.designNo) {
+      toast({
+        title: "Perubahan Ditolak",
+        description: "Tipe desain tidak bisa diubah karena sudah memiliki nomor urut. Silakan hapus baris ini dan buat baris baru.",
+        variant: "destructive"
+      });
+      return;
     }
 
     if (field === "typeDesign" && value.trim() !== "") {
@@ -1102,7 +1287,10 @@ export default function RegisterDesignPage() {
     !search || 
     (d.itemName || "").toLowerCase().includes(search.toLowerCase()) || 
     (d.customer || "").toLowerCase().includes(search.toLowerCase()) ||
-    (d.darNo || "").toLowerCase().includes(search.toLowerCase())
+    (d.darNo || "").toLowerCase().includes(search.toLowerCase()) ||
+    (d.designNo || "").toLowerCase().includes(search.toLowerCase()) ||
+    (d.status || "").toLowerCase().includes(search.toLowerCase()) ||
+    (d.typeDesign || "").toLowerCase().includes(search.toLowerCase())
   );
 
   const handleSort = (key: string) => {
@@ -1153,10 +1341,49 @@ export default function RegisterDesignPage() {
       toast({ title: "Data kosong", variant: "destructive" });
       return;
     }
-    const ws = XLSX.utils.json_to_sheet(data.map(d => {
-      const { id, darNo, createdAt, updatedAt, ...rest } = d;
-      return { DAR_No: darNo, ...rest };
-    }));
+    // Set column order explicitly to match the web view and template
+    const ws = XLSX.utils.json_to_sheet(data.map(d => ({
+      DAR_No: d.darNo || "",
+      entryDate: d.entryDate || "",
+      itemName: d.itemName || "",
+      customer: d.customer || "",
+      designer: d.designer || "",
+      technician: d.technician || "",
+      typeDesign: d.typeDesign || "",
+      designSource: d.designSource || "",
+      designNo: d.designNo || "",
+      type: d.type || "",
+      sizeChecks: d.sizeChecks || "",
+      sizeFaces: d.sizeFaces || "",
+      sizeCm1: d.sizeCm1 || "",
+      sizeCm2: d.sizeCm2 || "",
+      glazeChecks: d.glazeChecks || "",
+      glazeResidue: d.glazeResidue || "",
+      surfaceChecks: d.surfaceChecks || "",
+      surfaceTemp: d.surfaceTemp || "",
+      inkChecks: d.inkChecks || "",
+      inkOther: d.inkOther || "",
+      guPtvChecks: d.guPtvChecks || "",
+      guPtv: d.guPtv || "",
+      guPtv2: d.guPtv2 || "",
+      guPtv3: d.guPtv3 || "",
+      guPtv4: d.guPtv4 || "",
+      guPtv5: d.guPtv5 || "",
+      guPtv6: d.guPtv6 || "",
+      note2: d.note2 || "",
+      sendBy: d.sendBy || "",
+      benefit: d.benefit || "",
+      benefitText: d.benefitText || "",
+      lastTimeReq: d.lastTimeReq || "",
+      feedback: d.feedback || "",
+      feedbackDetails: d.feedbackDetails || "",
+      lastDesignSupp: d.lastDesignSupp || "",
+      requiredDate: d.requiredDate || "",
+      closingDate: d.closingDate || "",
+      generalNote: d.generalNote || "",
+      createdBy: d.createdBy || "",
+      status: d.status || "",
+    })));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Register Design");
     XLSX.writeFile(wb, `Register_Design_${new Date().toISOString().split('T')[0]}.xlsx`);
@@ -1168,8 +1395,8 @@ export default function RegisterDesignPage() {
       typeDesign: "New", designSource: "CGI", designNo: "", type: "", sizeChecks: "", sizeFaces: "",
       sizeCm1: "", sizeCm2: "", glazeChecks: "", glazeResidue: "", surfaceChecks: "", surfaceTemp: "",
       inkChecks: "", inkOther: "", guPtvChecks: "", guPtv: "", guPtv2: "", guPtv3: "", guPtv4: "", guPtv5: "", guPtv6: "",
-      note2: "", sendBy: "", benefit: "", lastTimeReq: "", feedback: "", feedbackDetails: "",
-      lastDesignSupp: "", requiredDate: "", closingDate: "", generalNote: "", status: "FREE"
+      note2: "", sendBy: "", benefit: "", benefitText: "", lastTimeReq: "", feedback: "", feedbackDetails: "",
+      lastDesignSupp: "", requiredDate: "", closingDate: "", generalNote: "", createdBy: "", status: "FREE"
     }];
     const ws = XLSX.utils.json_to_sheet(templateData);
     const wb = XLSX.utils.book_new();
@@ -1220,6 +1447,7 @@ export default function RegisterDesignPage() {
             note2: rest.note2 || "",
             sendBy: rest.sendBy || "",
             benefit: rest.benefit || "",
+            benefitText: rest.benefitText || "",
             lastTimeReq: rest.lastTimeReq || "",
             feedback: rest.feedback || "",
             feedbackDetails: rest.feedbackDetails || "",
@@ -1227,6 +1455,7 @@ export default function RegisterDesignPage() {
             requiredDate: rest.requiredDate || "",
             closingDate: rest.closingDate || "",
             generalNote: rest.generalNote || "",
+            createdBy: rest.createdBy || "",
             status: rest.status || "FREE",
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
@@ -1266,12 +1495,15 @@ export default function RegisterDesignPage() {
               <Input 
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder="Cari Item/Customer/DAR..."
+                placeholder="Cari Item/Customer/Status/Tipe..."
                 className="pl-9 h-9 w-full sm:w-64 text-sm"
               />
             </div>
+            <div className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1.5 rounded-full whitespace-nowrap">
+              {filteredData.length} Baris
+            </div>
             
-            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto mt-2 xl:mt-0">
               <Button variant="outline" size="sm" onClick={handleOpenGroupDialog} disabled={selectedIds.size === 0} className="font-bold border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 flex-1 sm:flex-none">
                 <CheckSquare className="w-4 h-4 mr-2 hidden sm:inline" />
                 Group to DAR ({selectedIds.size})
@@ -1325,7 +1557,7 @@ export default function RegisterDesignPage() {
                 <th className="p-2 border-r text-center sticky left-0 bg-slate-100 z-20">
                   <input 
                     type="checkbox" 
-                    className="w-4 h-4 cursor-pointer mx-auto block" 
+                    className="w-4 h-4 cursor-pointer accent-red-600 mx-auto block" 
                     checked={filteredData.length > 0 && filteredData.every(d => selectedIds.has(d.id))}
                     onChange={toggleSelectAll}
                   />
@@ -1340,8 +1572,16 @@ export default function RegisterDesignPage() {
                 </th>
                 <th className="p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("entryDate")}>
                   <div className="flex items-center gap-1">
-                    Waktu
+                    Tgl Input
                     {sortConfig?.key === "entryDate" ? (
+                      sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+                    ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
+                  </div>
+                </th>
+                <th className="p-2 border-r bg-slate-50 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("createdBy")}>
+                  <div className="flex items-center gap-1 text-slate-500">
+                    Dibuat Oleh
+                    {sortConfig?.key === "createdBy" ? (
                       sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
@@ -1421,6 +1661,22 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
+                <th className="p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("requiredDate")}>
+                  <div className="flex items-center gap-1">
+                    Req Date
+                    {sortConfig?.key === "requiredDate" ? (
+                      sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+                    ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
+                  </div>
+                </th>
+                <th className="p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("closingDate")}>
+                  <div className="flex items-center gap-1">
+                    Closing Date
+                    {sortConfig?.key === "closingDate" ? (
+                      sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+                    ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
+                  </div>
+                </th>
                 <th className="p-2 border-r bg-slate-50 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("type")}>
                   <div className="flex items-center gap-1">
                     Type (W/F/D)
@@ -1477,10 +1733,18 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="p-2 border-r bg-slate-50 text-emerald-800 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("note2")}>
+                <th className="p-2 border-r bg-slate-50 text-emerald-800 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("benefitText")}>
                   <div className="flex items-center gap-1">
-                    Note 2
-                    {sortConfig?.key === "note2" ? (
+                    Benefit
+                    {sortConfig?.key === "benefitText" ? (
+                      sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+                    ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
+                  </div>
+                </th>
+                <th className="p-2 border-r bg-slate-50 text-emerald-800 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("generalNote")}>
+                  <div className="flex items-center gap-1">
+                    Note 1
+                    {sortConfig?.key === "generalNote" ? (
                       sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
@@ -1489,14 +1753,6 @@ export default function RegisterDesignPage() {
                   <div className="flex items-center gap-1">
                     Last Time Req
                     {sortConfig?.key === "lastTimeReq" ? (
-                      sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
-                    ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
-                  </div>
-                </th>
-                <th className="p-2 border-r bg-slate-50 text-emerald-800 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("benefitText")}>
-                  <div className="flex items-center gap-1">
-                    Benefit
-                    {sortConfig?.key === "benefitText" ? (
                       sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
@@ -1517,26 +1773,10 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("requiredDate")}>
+                <th className="p-2 border-r bg-slate-50 text-emerald-800 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("note2")}>
                   <div className="flex items-center gap-1">
-                    Req Date
-                    {sortConfig?.key === "requiredDate" ? (
-                      sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
-                    ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
-                  </div>
-                </th>
-                <th className="p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("closingDate")}>
-                  <div className="flex items-center gap-1">
-                    Closing Date
-                    {sortConfig?.key === "closingDate" ? (
-                      sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
-                    ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
-                  </div>
-                </th>
-                <th className="p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("generalNote")}>
-                  <div className="flex items-center gap-1">
-                    General Note
-                    {sortConfig?.key === "generalNote" ? (
+                    Note 2
+                    {sortConfig?.key === "note2" ? (
                       sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
@@ -1552,27 +1792,30 @@ export default function RegisterDesignPage() {
               ) : (
                 sortedAndFilteredData.map((row, idx) => (
                   <tr key={row.id} className="border-b border-slate-200 hover:bg-blue-50/50 group transition-colors">
-                    <td className="p-1 border-r text-center sticky left-0 bg-white group-hover:bg-blue-50/50 z-10">
-                      <input type="checkbox" checked={selectedIds.has(row.id)} onChange={() => toggleSelect(row.id)} className="w-4 h-4 cursor-pointer" />
+                    <td className="p-1 border-r text-center sticky left-0 bg-white group-hover:bg-blue-50 z-10">
+                      <input type="checkbox" checked={selectedIds.has(row.id)} onChange={() => toggleSelect(row.id)} className="w-4 h-4 cursor-pointer accent-red-600" />
                     </td>
                     <td className="p-1 border-r font-black text-blue-700 bg-blue-50/30">
                       <CellInput handleUpdateCell={handleUpdateCell} row={row} field="darNo" width="w-24" />
                     </td>
                     <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="entryDate" width="w-28" type="date" /></td>
+                    <td className="p-1 border-r text-[10px] text-slate-500 bg-slate-50/50 text-center">{row.createdBy || '-'}</td>
                     <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="itemName" width="w-40" /></td>
-                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="customer" list="custOptions" width="w-32" /></td>
-                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="designer" list="desOptions" colorFn={getDesignerColor} width="w-28" /></td>
-                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="technician" list="techOptions" colorFn={getTechnicianColor} width="w-28" /></td>
+                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="customer" options={customerOptions} width="w-32" /></td>
+                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="designer" options={designerOptions} colorFn={getDesignerColor} width="w-28" /></td>
+                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="technician" options={technicianOptions} colorFn={getTechnicianColor} width="w-28" /></td>
                     <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="benefit" options={baseTujuanOptions} width="w-32" /></td>
                     <td className="p-1 border-r bg-slate-50/50"><CellImageUpload handleUpdateCell={handleUpdateCell} row={row} /></td>
                     <td className="p-1 border-r">
                       <CellSelect handleUpdateCell={handleUpdateCell} row={row} field="status" options={["IN LOCK", "IN USE", "FREE", "ARCHIVE"]} colorFn={getStatusColor} width="w-24" />
                     </td>
                     <td className="p-1 border-r">
-                      <CellInput handleUpdateCell={handleUpdateCell} row={row} field="typeDesign" list="typeOptions" colorFn={getTypeDesignColor} width="w-20" />
+                      <CellInput handleUpdateCell={handleUpdateCell} row={row} field="typeDesign" options={typeDesignOptions} colorFn={getTypeDesignColor} width="w-20" />
                     </td>
-                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="designSource" list="srcOptions" width="w-24" /></td>
+                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="designSource" options={designSourceOptions} width="w-24" /></td>
                     <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="designNo" width="w-24" /></td>
+                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="requiredDate" width="w-28" type="date" /></td>
+                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="closingDate" width="w-28" type="date" /></td>
                     <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="type" options={baseTypeOptions} width="w-24" /></td>
                     <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="sizeChecks" options={baseSizeOptions} customOptions={sizeCustomOptions} width="w-32" /></td>
                     <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="glazeChecks" options={baseGlazeOptions} customOptions={glazeCustomOptions} width="w-32" /></td>
@@ -1582,15 +1825,13 @@ export default function RegisterDesignPage() {
                     </td>
                     <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="inkChecks" options={baseInkOptions} customOptions={inkCustomOptions} width="w-32" /></td>
                     <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="sendBy" options={baseSendByOptions} width="w-24" /></td>
-                    <td className="p-1 border-r"><CellGridInput handleUpdateCell={handleUpdateCell} row={row} field="note2" title="Note 2" rowsCount={3} /></td>
-                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="lastTimeReq" width="w-28" type="date" /></td>
                     <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="benefitText" width="w-40" /></td>
+                    <td className="p-1 border-r bg-slate-50/50"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="generalNote" width="w-48" /></td>
+                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="lastTimeReq" width="w-28" type="date" /></td>
                     <td className="p-1 border-r"><CellGridInput handleUpdateCell={handleUpdateCell} row={row} field="feedbackDetails" title="Feedback" rowsCount={4} /></td>
                     <td className="p-1 border-r"><CellGridInput handleUpdateCell={handleUpdateCell} row={row} field="lastDesignSupp" title="Support" rowsCount={6} /></td>
-                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="requiredDate" width="w-28" type="date" /></td>
-                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="closingDate" width="w-28" type="date" /></td>
-                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="generalNote" width="w-48" /></td>
-                    <td className="p-1 text-center sticky right-0 bg-white group-hover:bg-blue-50/50 z-10 shadow-[-4px_0_12px_rgba(0,0,0,0.02)]">
+                    <td className="p-1 border-r"><CellGridInput handleUpdateCell={handleUpdateCell} row={row} field="note2" title="Note 2" rowsCount={3} /></td>
+                    <td className="p-1 text-center sticky right-0 bg-white group-hover:bg-blue-50 z-10 shadow-[-4px_0_12px_rgba(0,0,0,0.02)]">
                       <div className="flex items-center justify-center gap-1">
                         {row.darNo && (
                           <>
@@ -1619,11 +1860,11 @@ export default function RegisterDesignPage() {
       </div>
 
       {/* Datalists */}
-      <datalist id="desOptions">{designerOptions.map(o => <option key={o} value={o} />)}</datalist>
-      <datalist id="techOptions">{technicianOptions.map(o => <option key={o} value={o} />)}</datalist>
-      <datalist id="typeOptions">{typeDesignOptions.map(o => <option key={o} value={o} />)}</datalist>
-      <datalist id="srcOptions">{designSourceOptions.map(o => <option key={o} value={o} />)}</datalist>
-      <datalist id="custOptions">{customerOptions.map(o => <option key={o} value={o} />)}</datalist>
+      
+      
+      
+      
+      
 
       <Dialog open={isGroupDialogOpen} onOpenChange={setIsGroupDialogOpen}>
         <DialogContent className="max-w-md">

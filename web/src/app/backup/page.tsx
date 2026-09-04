@@ -120,23 +120,32 @@ export default function BackupPage() {
              return value;
           });
           
+          // Hapus data lama dengan batasan 500 operasi per batch
           for (const collectionName in backupData) {
             const querySnapshot = await getDocs(collection(db, collectionName));
-            const deleteBatch = writeBatch(db);
-            querySnapshot.docs.forEach(doc => deleteBatch.delete(doc.ref));
-            await deleteBatch.commit();
+            const docs = querySnapshot.docs;
+            for (let i = 0; i < docs.length; i += 500) {
+              const deleteBatch = writeBatch(db);
+              const chunk = docs.slice(i, i + 500);
+              chunk.forEach(doc => deleteBatch.delete(doc.ref));
+              await deleteBatch.commit();
+            }
           }
 
-          const restoreBatch = writeBatch(db);
+          // Restore data baru dengan batasan 500 operasi per batch
           for (const collectionName in backupData) {
             const collectionData = backupData[collectionName];
-            collectionData.forEach((item: any) => {
-              const { _id, ...data } = item;
-              const docRef = doc(db, collectionName, _id);
-              restoreBatch.set(docRef, data);
-            });
+            for (let i = 0; i < collectionData.length; i += 500) {
+              const restoreBatch = writeBatch(db);
+              const chunk = collectionData.slice(i, i + 500);
+              chunk.forEach((item: any) => {
+                const { _id, ...data } = item;
+                const docRef = doc(db, collectionName, _id);
+                restoreBatch.set(docRef, data);
+              });
+              await restoreBatch.commit();
+            }
           }
-          await restoreBatch.commit();
 
           toast({
             title: 'Restore Berhasil',

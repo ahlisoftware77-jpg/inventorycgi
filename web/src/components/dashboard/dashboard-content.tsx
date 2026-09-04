@@ -12,6 +12,7 @@ import AssetDistributionChart from './asset-distribution-chart';
 import AssetStatusChart from './asset-status-chart';
 import DisposalActivityChart from './disposal-activity-chart';
 import MutationActivityChart from './mutation-activity-chart';
+import DesignTypeChart from './design-type-chart';
 import RecentActivity from './recent-activity';
 import AnalogClock from './analog-clock';
 import QuickActions from './quick-actions';

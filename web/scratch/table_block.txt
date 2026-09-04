@@ -1,0 +1,210 @@
+                    {sortConfig?.key === "designSource" ? (
+                      sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+                    ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
+                  </div>
+                </th>
+                <th className="p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("designNo")}>
+                  <div className="flex items-center gap-1">
+                    Design No
+                    {sortConfig?.key === "designNo" ? (
+                      sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+                    ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
+                  </div>
+                </th>
+                <th className="p-2 border-r bg-slate-50 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("type")}>
+                  <div className="flex items-center gap-1">
+                    Type (W/F/D)
+                    {sortConfig?.key === "type" ? (
+                      sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+                    ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
+                  </div>
+                </th>
+                <th className="p-2 border-r bg-slate-50 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("sizeChecks")}>
+                  <div className="flex items-center gap-1">
+                    Size
+                    {sortConfig?.key === "sizeChecks" ? (
+                      sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+                    ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
+                  </div>
+                </th>
+                <th className="p-2 border-r bg-slate-50 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("glazeChecks")}>
+                  <div className="flex items-center gap-1">
+                    Glaze
+                    {sortConfig?.key === "glazeChecks" ? (
+                      sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+                    ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
+                  </div>
+                </th>
+                <th className="p-2 border-r bg-slate-50 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("surfaceChecks")}>
+                  <div className="flex items-center gap-1">
+                    Surface
+                    {sortConfig?.key === "surfaceChecks" ? (
+                      sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+                    ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
+                  </div>
+                </th>
+                <th className="p-2 border-r bg-slate-50 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("guPtv")}>
+                  <div className="flex items-center gap-1">
+                    GU/PTV
+                    {sortConfig?.key === "guPtv" ? (
+                      sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+                    ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
+                  </div>
+                </th>
+                <th className="p-2 border-r bg-slate-50 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("inkChecks")}>
+                  <div className="flex items-center gap-1">
+                    Ink
+                    {sortConfig?.key === "inkChecks" ? (
+                      sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+                    ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
+                  </div>
+                </th>
+                <th className="p-2 border-r bg-slate-50 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("sendBy")}>
+                  <div className="flex items-center gap-1">
+                    Send By
+                    {sortConfig?.key === "sendBy" ? (
+                      sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+                    ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
+                  </div>
+                </th>
+                <th className="p-2 border-r bg-slate-50 text-emerald-800 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("note2")}>
+                  <div className="flex items-center gap-1">
+                    Note 2
+                    {sortConfig?.key === "note2" ? (
+                      sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+                    ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
+                  </div>
+                </th>
+                <th className="p-2 border-r bg-slate-50 text-emerald-800 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("lastTimeReq")}>
+                  <div className="flex items-center gap-1">
+                    Last Time Req
+                    {sortConfig?.key === "lastTimeReq" ? (
+                      sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+                    ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
+                  </div>
+                </th>
+                <th className="p-2 border-r bg-slate-50 text-emerald-800 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("benefitText")}>
+                  <div className="flex items-center gap-1">
+                    Benefit
+                    {sortConfig?.key === "benefitText" ? (
+                      sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+                    ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
+                  </div>
+                </th>
+                <th className="p-2 border-r bg-slate-50 text-emerald-800 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("generalNote")}>
+                  <div className="flex items-center gap-1">
+                    Note 1
+                    {sortConfig?.key === "generalNote" ? (
+                      sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+                    ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
+                  </div>
+                </th>
+                <th className="p-2 border-r bg-slate-50 text-emerald-800 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("feedbackDetails")}>
+                  <div className="flex items-center gap-1">
+                    Feedback (Rows)
+                    {sortConfig?.key === "feedbackDetails" ? (
+                      sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+                    ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
+                  </div>
+                </th>
+                <th className="p-2 border-r bg-slate-50 text-emerald-800 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("lastDesignSupp")}>
+                  <div className="flex items-center gap-1">
+                    Last Design Supp
+                    {sortConfig?.key === "lastDesignSupp" ? (
+                      sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+                    ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
+                  </div>
+                </th>
+                <th className="p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("requiredDate")}>
+                  <div className="flex items-center gap-1">
+                    Req Date
+                    {sortConfig?.key === "requiredDate" ? (
+                      sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+                    ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
+                  </div>
+                </th>
+                <th className="p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("closingDate")}>
+                  <div className="flex items-center gap-1">
+                    Closing Date
+                    {sortConfig?.key === "closingDate" ? (
+                      sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+                    ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
+                  </div>
+                </th>
+                <th className="p-2 text-center sticky right-0 bg-slate-100 z-20 shadow-[-4px_0_12px_rgba(0,0,0,0.05)]">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={24} className="p-8 text-center text-slate-500 font-bold">Memuat data...</td></tr>
+              ) : filteredData.length === 0 ? (
+                <tr><td colSpan={24} className="p-8 text-center text-slate-500 font-bold">Tidak ada data desain.</td></tr>
+              ) : (
+                sortedAndFilteredData.map((row, idx) => (
+                  <tr key={row.id} className="border-b border-slate-200 hover:bg-blue-50/50 group transition-colors">
+                    <td className="p-1 border-r text-center sticky left-0 bg-white group-hover:bg-blue-50/50 z-10">
+                      <input type="checkbox" checked={selectedIds.has(row.id)} onChange={() => toggleSelect(row.id)} className="w-4 h-4 cursor-pointer" />
+                    </td>
+                    <td className="p-1 border-r font-black text-blue-700 bg-blue-50/30">
+                      <CellInput handleUpdateCell={handleUpdateCell} row={row} field="darNo" width="w-24" />
+                    </td>
+                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="entryDate" width="w-28" type="date" /></td>
+                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="itemName" width="w-40" /></td>
+                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="customer" list="custOptions" width="w-32" /></td>
+                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="designer" list="desOptions" colorFn={getDesignerColor} width="w-28" /></td>
+                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="technician" list="techOptions" colorFn={getTechnicianColor} width="w-28" /></td>
+                    <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="benefit" options={baseTujuanOptions} width="w-32" /></td>
+                    <td className="p-1 border-r bg-slate-50/50"><CellImageUpload handleUpdateCell={handleUpdateCell} row={row} /></td>
+                    <td className="p-1 border-r">
+                      <CellSelect handleUpdateCell={handleUpdateCell} row={row} field="status" options={["IN LOCK", "IN USE", "FREE", "ARCHIVE"]} colorFn={getStatusColor} width="w-24" />
+                    </td>
+                    <td className="p-1 border-r">
+                      <CellInput handleUpdateCell={handleUpdateCell} row={row} field="typeDesign" list="typeOptions" colorFn={getTypeDesignColor} width="w-20" />
+                    </td>
+                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="designSource" list="srcOptions" width="w-24" /></td>
+                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="designNo" width="w-24" /></td>
+                    <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="type" options={baseTypeOptions} width="w-24" /></td>
+                    <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="sizeChecks" options={baseSizeOptions} customOptions={sizeCustomOptions} width="w-32" /></td>
+                    <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="glazeChecks" options={baseGlazeOptions} customOptions={glazeCustomOptions} width="w-32" /></td>
+                    <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="surfaceChecks" options={baseSurfaceOptions} customOptions={surfaceCustomOptions} width="w-32" /></td>
+                    <td className="p-1 border-r bg-slate-50/50">
+                       <CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="guPtvChecks" options={baseGuPtvOptions} customOptions={guPtvCustomOptions} width="w-32" />
+                    </td>
+                    <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="inkChecks" options={baseInkOptions} customOptions={inkCustomOptions} width="w-32" /></td>
+                    <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="sendBy" options={baseSendByOptions} width="w-24" /></td>
+                    <td className="p-1 border-r"><CellGridInput handleUpdateCell={handleUpdateCell} row={row} field="note2" title="Note 2" rowsCount={3} /></td>
+                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="lastTimeReq" width="w-28" type="date" /></td>
+                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="benefitText" width="w-40" /></td>
+                    <td className="p-1 border-r bg-slate-50/50"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="generalNote" width="w-48" /></td>
+                    <td className="p-1 border-r"><CellGridInput handleUpdateCell={handleUpdateCell} row={row} field="feedbackDetails" title="Feedback" rowsCount={4} /></td>
+                    <td className="p-1 border-r"><CellGridInput handleUpdateCell={handleUpdateCell} row={row} field="lastDesignSupp" title="Support" rowsCount={6} /></td>
+                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="requiredDate" width="w-28" type="date" /></td>
+                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="closingDate" width="w-28" type="date" /></td>
+                    <td className="p-1 text-center sticky right-0 bg-white group-hover:bg-blue-50/50 z-10 shadow-[-4px_0_12px_rgba(0,0,0,0.02)]">
+                      <div className="flex items-center justify-center gap-1">
+                        {row.darNo && (
+                          <>
+                            <Button variant="ghost" size="icon" onClick={() => handleOpenSign(row.darNo)} className="h-6 w-6 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50" title="Isi Tanda Tangan">
+                              <Pencil className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => setPreviewDarNo(row.darNo)} className="h-6 w-6 text-slate-400 hover:text-blue-600 hover:bg-blue-50" title="Preview Form DAR">
+                              <Eye className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => handleSharePublicLink(row.darNo)} className="h-6 w-6 text-slate-400 hover:text-purple-600 hover:bg-purple-50" title="Bagikan Link Public Form DAR" disabled={isSharing}>
+                              <Share2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </>
+                        )}
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteRow(row.id)} className="h-6 w-6 text-slate-400 hover:text-red-600 hover:bg-red-50" title="Hapus Baris">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+

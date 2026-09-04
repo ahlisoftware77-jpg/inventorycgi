@@ -125,7 +125,7 @@ function PreviewContent() {
                         {["Customer", "Internal", "Showroom", "Support R&D", "Exhibition"].map(p => (
                             <div key={p} className="flex items-center gap-1">
                                 <span className="border border-black w-3 h-3 inline-flex items-center justify-center text-[10px] font-bold">
-                                    {purpose.includes(p) ? "✓" : ""}
+                                    {purpose.includes(p) ? <span className="text-red-600 font-bold">✓</span> : ""}
                                 </span> {p}
                             </div>
                         ))}
@@ -189,7 +189,7 @@ function PreviewContent() {
                                         return (
                                             <div key={t} className="flex items-center gap-1">
                                                 <span className="border border-black w-2.5 h-2.5 inline-flex items-center justify-center text-[8px] font-bold">
-                                                    {isChecked ? "✓" : ""}
+                                                    {isChecked ? <span className="text-red-600 font-bold">✓</span> : ""}
                                                 </span> {t}
                                             </div>
                                         )
@@ -212,7 +212,7 @@ function PreviewContent() {
                                         return (
                                             <div key={t} className="flex items-center gap-1">
                                                 <span className="border border-black w-2.5 h-2.5 inline-flex items-center justify-center text-[8px] font-bold">
-                                                    {isChecked ? "✓" : ""}
+                                                    {isChecked ? <span className="text-red-600 font-bold">✓</span> : ""}
                                                 </span> 
                                                 {t.includes("Faces") ? <span>Faces <span className="border-b border-black min-w-[30px] inline-block text-center">{sizeFaces}</span></span> :
                                                  t.includes("cm x") ? <span><span className="border-b border-black min-w-[20px] inline-block text-center">{sizeCm1}</span> cm x <span className="border-b border-black min-w-[20px] inline-block text-center">{sizeCm2}</span> cm</span> :
@@ -230,13 +230,13 @@ function PreviewContent() {
                                     {["Engobe", "Glaze", "Top", "Monoglaze", "Reactive"].map(t => (
                                         <div key={t} className="flex items-center gap-1">
                                             <span className="border border-black w-2.5 h-2.5 inline-flex items-center justify-center text-[8px] font-bold">
-                                                {glazeChecks.includes(t) ? "✓" : ""}
+                                                {glazeChecks.includes(t) ? <span className="text-red-600 font-bold">✓</span> : ""}
                                             </span> {t}
                                         </div>
                                     ))}
                                     <div className="flex items-center gap-1">
                                         <span className="border border-black w-2.5 h-2.5 inline-flex items-center justify-center text-[8px] font-bold">
-                                            {glazeChecks.includes("Residue") ? "✓" : ""}
+                                            {glazeChecks.includes("Residue") ? <span className="text-red-600 font-bold">✓</span> : ""}
                                         </span> Residue <span className="border-b border-black min-w-[50px] inline-block text-center">{glazeResidue}</span>
                                     </div>
                                 </div>
@@ -249,13 +249,13 @@ function PreviewContent() {
                                     {["Matt", "Glossy", "Satin", "Polished", "Anti Slip"].map(t => (
                                         <div key={t} className="flex items-center gap-1">
                                             <span className="border border-black w-2.5 h-2.5 inline-flex items-center justify-center text-[8px] font-bold">
-                                                {surfaceChecks.includes(t.trim()) ? "✓" : ""}
+                                                {surfaceChecks.includes(t.trim()) ? <span className="text-red-600 font-bold">✓</span> : ""}
                                             </span> {t}
                                         </div>
                                     ))}
                                     <div className="flex items-center gap-1">
                                         <span className="border border-black w-2.5 h-2.5 inline-flex items-center justify-center text-[8px] font-bold">
-                                            {surfaceChecks.includes("Temp") ? "✓" : ""}
+                                            {surfaceChecks.includes("Temp") ? <span className="text-red-600 font-bold">✓</span> : ""}
                                         </span> Temp <span className="border-b border-black min-w-[50px] inline-block text-center">{surfaceTemp}</span>
                                     </div>
                                 </div>
@@ -268,7 +268,7 @@ function PreviewContent() {
                                     {guPtv.map((v, i) => (
                                         <div key={i} className="flex items-center gap-1">
                                             <span className="border border-black w-2.5 h-2.5 inline-flex items-center justify-center text-[8px] font-bold">
-                                                {guPtvChecks[i] ? "✓" : ""}
+                                                {guPtvChecks[i] ? <span className="text-red-600 font-bold">✓</span> : ""}
                                             </span>
                                             <span className="border-b border-black min-w-[30px] inline-block text-center">{v}</span>
                                         </div>
@@ -283,13 +283,13 @@ function PreviewContent() {
                                     {["Impression", "Transparent", "SIngking", "Antislip", "Glue"].map(t => (
                                         <div key={t} className="flex items-center gap-1">
                                             <span className="border border-black w-2.5 h-2.5 inline-flex items-center justify-center text-[8px] font-bold">
-                                                {inkChecks.includes(t) ? "✓" : ""}
+                                                {inkChecks.includes(t) ? <span className="text-red-600 font-bold">✓</span> : ""}
                                             </span> {t}
                                         </div>
                                     ))}
                                     <div className="flex items-center gap-1">
                                         <span className="border border-black w-2.5 h-2.5 inline-flex items-center justify-center text-[8px] font-bold">
-                                            {inkChecks.includes("Other") ? "✓" : ""}
+                                            {inkChecks.includes("Other") ? <span className="text-red-600 font-bold">✓</span> : ""}
                                         </span> <span className="border-b border-black min-w-[50px] inline-block text-center">{inkOther}</span>
                                     </div>
                                 </div>
@@ -302,7 +302,7 @@ function PreviewContent() {
                                     {["USB", "Wetransfer", "CD", "On Glazing Line"].map(t => (
                                         <div key={t} className="flex items-center gap-1">
                                             <span className="border border-black w-2.5 h-2.5 inline-flex items-center justify-center text-[8px] font-bold">
-                                                {sendBy.includes(t) ? "✓" : ""}
+                                                {sendBy.includes(t) ? <span className="text-red-600 font-bold">✓</span> : ""}
                                             </span> {t}
                                         </div>
                                     ))}
