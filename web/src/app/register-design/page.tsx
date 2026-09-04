@@ -25,6 +25,7 @@ export interface RegisterDesignItem {
   status: string;
   designImage?: string;
   designImageName?: string;
+  designImageSize?: string;
   typeDesign: string;
   designSource: string;
   designNo: string;
@@ -146,6 +147,12 @@ const CellImageUpload = ({
 }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [localPreviewUrl, setLocalPreviewUrl] = useState<string | null>(null);
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
   const { toast } = useToast();
   const [isHiddenByEscape, setIsHiddenByEscape] = useState(false);
 
@@ -257,6 +264,7 @@ const CellImageUpload = ({
 
       handleUpdateCell(row.id, 'designImage', fileId);
       handleUpdateCell(row.id, 'designImageName', file.name);
+      handleUpdateCell(row.id, 'designImageSize', formatFileSize(file.size));
       toast({ title: 'Upload Berhasil', description: 'File gambar besar berhasil disimpan langsung ke Google Drive.' });
     } catch (err: any) {
       setLocalPreviewUrl(null);
@@ -308,6 +316,12 @@ const CellImageUpload = ({
                 {[row.typeDesign, row.sizeChecks, row.surfaceChecks].filter(Boolean).join(' | ') || '-'}
               </span>
             </div>
+            {row.designImageSize && (
+              <div className="flex justify-between items-center gap-2 border-t border-slate-100 pt-1.5 pb-0.5">
+                <span className="font-bold text-slate-500 uppercase tracking-wider text-[8px] sm:text-[9px]">Ukuran File</span>
+                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">{row.designImageSize}</span>
+              </div>
+            )}
             <div className="flex justify-between items-center gap-2 border-t border-slate-100 pt-1.5 pb-0.5">
               <span className="font-bold text-slate-500 uppercase tracking-wider text-[8px] sm:text-[9px]">Status</span>
               <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase shadow-sm border ${
