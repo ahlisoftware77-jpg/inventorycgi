@@ -147,22 +147,43 @@ const CellImageUpload = ({
     if (!file) return;
     
     setIsUploading(true);
-    const formData = new FormData();
-    formData.append('file', file);
+    toast({ title: 'Mempersiapkan Upload...', description: 'Membuka jalur langsung ke Google Drive.' });
     
     try {
-      const res = await fetch(getUploadApiUrl(), {
-
+      // 1. Minta tiket resumable upload dari Vercel
+      const initRes = await fetch(getUploadApiUrl(), {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'init', fileName: file.name, mimeType: file.type }),
       });
       
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Upload failed');
-      
-      handleUpdateCell(row.id, 'designImage', data.fileId);
+      const initData = await initRes.json();
+      if (!initRes.ok) throw new Error(initData.error || 'Gagal memulai upload');
+      const uploadUrl = initData.uploadUrl;
+
+      toast({ title: 'Mengunggah File...', description: 'Mengirim file langsung ke Google Drive tanpa batas ukuran.' });
+
+      // 2. Upload file langsung ke URL Google dari browser (Bypass Vercel)
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      });
+
+      if (!uploadRes.ok) throw new Error('Proses unggah ke Google gagal');
+      const uploadedFile = await uploadRes.json();
+      const fileId = uploadedFile.id;
+
+      // 3. Beritahu Vercel untuk mengatur file menjadi publik (anyone with link)
+      await fetch(getUploadApiUrl(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'finish', fileId: fileId }),
+      });
+
+      handleUpdateCell(row.id, 'designImage', fileId);
       handleUpdateCell(row.id, 'designImageName', file.name);
-      toast({ title: 'Upload Berhasil', description: 'Gambar berhasil disimpan ke Google Drive.' });
+      toast({ title: 'Upload Berhasil', description: 'File gambar besar berhasil disimpan langsung ke Google Drive.' });
     } catch (err: any) {
       toast({ variant: 'destructive', title: 'Upload Gagal', description: err.message });
     } finally {
@@ -206,6 +227,16 @@ const CellImageUpload = ({
               <span className="text-right whitespace-normal break-words leading-tight max-w-[120px] sm:max-w-[160px]">
                 {[row.typeDesign, row.sizeChecks, row.surfaceChecks].filter(Boolean).join(' | ') || '-'}
               </span>
+            </div>
+            <div className="flex justify-between items-center gap-2 border-t border-slate-100 pt-1.5 pb-0.5">
+              <span className="font-bold text-slate-500 uppercase tracking-wider text-[8px] sm:text-[9px]">Status</span>
+              <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase shadow-sm border ${
+                row.status === 'IN LOCK' ? 'bg-rose-500 text-white border-rose-600' :
+                row.status === 'IN USE' ? 'bg-emerald-500 text-white border-emerald-600' :
+                row.status === 'FREE' ? 'bg-blue-500 text-white border-blue-600' :
+                row.status === 'ARCHIVE' ? 'bg-sky-400 text-white border-sky-500' :
+                'bg-slate-100 text-slate-600 border-slate-200'
+              }`}>{row.status || '-'}</span>
             </div>
           </div>
           <button onClick={handleDeleteImage} disabled={isUploading} className={`absolute top-0 right-0 text-white rounded-full p-1 -mt-2 -mr-2 shadow-sm ${isUploading ? 'bg-slate-400 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600'}`}>
@@ -596,6 +627,20 @@ export default function RegisterDesignPage() {
     setIsSharing(false);
   };
 
+  const logAction = async (action: string, description: string) => {
+    if (!user) return;
+    try {
+      await addDoc(collection(db, 'system_logs'), {
+        action,
+        description,
+        userName: user.name || user.email || 'System',
+        timestamp: serverTimestamp(),
+      });
+    } catch (e) {
+      console.error("Gagal mencatat log", e);
+    }
+  };
+
   const handleAddRow = useCallback(async () => {
     const newItem: Partial<RegisterDesignItem> = {
       darNo: "", entryDate: new Date().toISOString().split('T')[0], customer: "", itemName: "", designer: "", technician: "",
@@ -610,6 +655,7 @@ export default function RegisterDesignPage() {
       const newRef = doc(collection(db, "register_design"));
       await setDoc(newRef, newItem);
       setData(prev => [{ id: newRef.id, ...newItem } as RegisterDesignItem, ...prev]);
+      logAction('CREATE_DESIGN_ROW', `Membuat baris desain baru (ID: ${newRef.id})`);
       toast({ title: "Baris baru ditambahkan" });
     } catch (e) {
       console.error(e);
@@ -630,12 +676,30 @@ export default function RegisterDesignPage() {
 
   const handleDeleteRow = async (id: string) => {
     if (!confirm("Hapus baris ini secara permanen?")) return;
+    
+    const currentRow = data.find(d => d.id === id);
+    if (!currentRow) return;
+
     try {
+      if (currentRow.designImage) {
+        const apiUrl = typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
+          ? 'https://inventorycgi.vercel.app/api/delete-drive' 
+          : '/api/delete-drive';
+          
+        await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileId: currentRow.designImage }),
+        }).catch(err => console.error("Gagal menghapus gambar di drive:", err));
+      }
+
       await deleteDoc(doc(db, "register_design", id));
       setData(data.filter(d => d.id !== id));
       const newSel = new Set(selectedIds);
       newSel.delete(id);
       setSelectedIds(newSel);
+      
+      logAction('DELETE_DESIGN_ROW', `Menghapus baris desain (Design No: ${currentRow.designNo || '-'}, Item: ${currentRow.itemName || '-'})`);
       toast({ title: "Baris dihapus" });
     } catch (e) {
       console.error(e);

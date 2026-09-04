@@ -16,6 +16,50 @@ export async function OPTIONS() {
 
 export async function POST(request: Request) {
   try {
+    const contentType = request.headers.get('content-type') || '';
+    
+    // RESUMABLE UPLOAD LOGIC (Bypass Vercel 4.5MB limit)
+    if (contentType.includes('application/json')) {
+      const body = await request.json();
+      const { action, fileName, mimeType, fileId } = body;
+      
+      const settingsDoc = await getDoc(doc(db, "settings", "general"));
+      if (!settingsDoc.exists()) throw new Error("Settings not found");
+      const settingsData = settingsDoc.data();
+      
+      const oauth2Client = new google.auth.OAuth2(settingsData.googleClientId, settingsData.googleClientSecret);
+      oauth2Client.setCredentials({ refresh_token: settingsData.googleRefreshToken });
+      
+      if (action === 'init') {
+        const { token } = await oauth2Client.getAccessToken();
+        const metadata = { name: fileName, parents: [settingsData.googleDriveFolderId] };
+        
+        const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + token,
+            'Content-Type': 'application/json',
+            'X-Upload-Content-Type': mimeType
+          },
+          body: JSON.stringify(metadata)
+        });
+        
+        if (!res.ok) throw new Error("Gagal inisiasi upload Google Drive");
+        const uploadUrl = res.headers.get('location');
+        return NextResponse.json({ success: true, uploadUrl }, { headers: corsHeaders });
+      }
+      
+      if (action === 'finish') {
+        const drive = google.drive({ version: 'v3', auth: oauth2Client });
+        await drive.permissions.create({
+          fileId: fileId,
+          requestBody: { role: 'reader', type: 'anyone' },
+        });
+        return NextResponse.json({ success: true }, { headers: corsHeaders });
+      }
+    }
+
+    // LEGACY MULTIPART UPLOAD LOGIC
     const formData = await request.formData();
     const file = formData.get('file') as File;
     

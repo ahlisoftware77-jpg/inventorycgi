@@ -182,6 +182,10 @@ export function FormAppContent({ isPublic = false }: { isPublic?: boolean }) {
   };
 
   const toggleLock = (role: 'manager' | 'sectionHead' | 'designer') => {
+    if (lockedSignatures[role] === true && user?.role !== 'Admin') {
+      toast({ title: 'Akses Ditolak', description: 'Hanya Admin yang dapat membuka kunci tanda tangan yang sudah dikunci.', variant: 'destructive' });
+      return;
+    }
     const newLocks = { ...lockedSignatures, [role]: !lockedSignatures[role] };
     setLockedSignatures(newLocks);
     handleSave({ lockedSignatures: newLocks });
@@ -1406,11 +1410,16 @@ export function FormAppContent({ isPublic = false }: { isPublic?: boolean }) {
         {/* RIGHT COLUMN - PREVIEW (A4) */}
         <div className={`${isPublic ? 'xl:col-span-12' : 'xl:col-span-8'} flex flex-col items-center gap-6 pb-20 print:p-0 print:m-0 print:block w-full`}>
             {isPublic && (
-                <div className="w-full max-w-[210mm] flex justify-between items-center p-4 bg-white rounded-2xl shadow-sm border border-slate-200 mt-2">
+                <div className="w-full max-w-[210mm] flex flex-wrap justify-between items-center p-4 bg-white rounded-2xl shadow-sm border border-slate-200 mt-2 print:hidden gap-4">
                     <h2 className="font-bold text-slate-800 flex items-center gap-2"><FileText className="w-5 h-5 text-blue-600" /> Form DAR #{darNo}</h2>
-                    <Button onClick={handleSave} disabled={isSharing} className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-sm">
-                        {isSharing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />} Simpan Tanda Tangan
-                    </Button>
+                    <div className="flex items-center gap-3">
+                        <Button onClick={handleSave} disabled={isSharing} className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-sm">
+                            {isSharing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />} Simpan
+                        </Button>
+                        <Button onClick={() => window.print()} variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-100 rounded-xl font-bold shadow-sm">
+                            <Printer className="w-4 h-4 mr-2" /> Cetak
+                        </Button>
+                    </div>
                 </div>
             )}
             
