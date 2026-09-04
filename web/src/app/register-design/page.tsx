@@ -1554,7 +1554,7 @@ export default function RegisterDesignPage() {
           <table className="w-max min-w-full text-left text-[11px] border-collapse bg-white">
             <thead className="sticky top-0 z-10 bg-slate-100 shadow-sm border-b-2 border-slate-300 text-slate-700 font-bold uppercase tracking-wider">
               <tr>
-                <th className="p-2 border-r text-center sticky left-0 bg-slate-100 z-20">
+                <th className="w-10 min-w-[40px] max-w-[40px] p-0 border-r text-center sticky left-0 bg-slate-100 z-30">
                   <input 
                     type="checkbox" 
                     className="w-4 h-4 cursor-pointer accent-red-600 mx-auto block" 
@@ -1562,7 +1562,7 @@ export default function RegisterDesignPage() {
                     onChange={toggleSelectAll}
                   />
                 </th>
-                <th className="p-2 border-r bg-blue-50 text-blue-800 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("darNo")}>
+                <th className="p-2 border-r bg-blue-50 text-blue-800 cursor-pointer hover:bg-slate-200 transition-colors select-none group sticky left-10 z-20 shadow-[4px_0_8px_rgba(0,0,0,0.02)]" onClick={() => handleSort("darNo")}>
                   <div className="flex items-center gap-1">
                     DAR No
                     {sortConfig?.key === "darNo" ? (
@@ -1792,10 +1792,10 @@ export default function RegisterDesignPage() {
               ) : (
                 sortedAndFilteredData.map((row, idx) => (
                   <tr key={row.id} className="border-b border-slate-200 hover:bg-blue-50/50 group transition-colors">
-                    <td className="p-1 border-r text-center sticky left-0 bg-white group-hover:bg-blue-50 z-10">
+                    <td className="w-10 min-w-[40px] max-w-[40px] p-0 border-r text-center sticky left-0 bg-white group-hover:bg-blue-50 z-20">
                       <input type="checkbox" checked={selectedIds.has(row.id)} onChange={() => toggleSelect(row.id)} className="w-4 h-4 cursor-pointer accent-red-600" />
                     </td>
-                    <td className="p-1 border-r font-black text-blue-700 bg-blue-50/30">
+                    <td className="p-1 border-r font-black text-blue-700 sticky left-10 bg-[#f4f8ff] group-hover:bg-blue-50 z-10 shadow-[4px_0_8px_rgba(0,0,0,0.02)]">
                       <CellInput handleUpdateCell={handleUpdateCell} row={row} field="darNo" width="w-24" />
                     </td>
                     <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="entryDate" width="w-28" type="date" /></td>
