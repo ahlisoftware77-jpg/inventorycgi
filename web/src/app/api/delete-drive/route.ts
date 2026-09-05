@@ -45,9 +45,17 @@ export async function POST(request: Request) {
     const drive = google.drive({ version: 'v3', auth: oauth2Client });
 
     // Proses Delete
-    await drive.files.delete({
-      fileId: fileId,
-    });
+    try {
+      await drive.files.delete({
+        fileId: fileId,
+      });
+    } catch (err: any) {
+      if (err.code === 404 || err.status === 404) {
+        console.log(`File ${fileId} sudah tidak ada di Google Drive (404). Menganggap sukses.`);
+      } else {
+        throw err;
+      }
+    }
 
     return NextResponse.json({ 
       success: true, 

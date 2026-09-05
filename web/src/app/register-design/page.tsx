@@ -298,8 +298,16 @@ const CellImageUpload = ({
         {/* Hover Preview Box */}
         <div className={`absolute ${isHiddenByEscape ? "hidden" : "hidden group-hover:block"} top-full left-1/2 -translate-x-1/2 mt-2 z-50 bg-white p-3 rounded-xl shadow-2xl border border-slate-200`}>
           {row.designImageName && (
-            <div className="text-xs font-bold text-slate-900 bg-slate-200 py-1.5 px-3 mb-2 w-full max-w-[256px] text-center rounded-md border border-slate-300 shadow-sm whitespace-normal break-words leading-tight">
-              {row.designImageName}
+            <div className="flex items-center justify-between gap-2 text-xs font-bold text-slate-900 bg-slate-200 py-1.5 px-3 mb-2 w-full max-w-[256px] rounded-md border border-slate-300 shadow-sm">
+              <span className="truncate flex-1 text-left">{row.designImageName}</span>
+              <button 
+                onClick={handleDeleteImage} 
+                disabled={isUploading} 
+                title="Hapus Gambar" 
+                className="text-red-500 hover:text-red-700 bg-white hover:bg-red-50 rounded p-1 transition-colors shrink-0"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
             </div>
           )}
           <div className="relative w-48 h-48 sm:w-64 sm:h-64 rounded-lg overflow-hidden flex items-center justify-center bg-slate-100">
@@ -349,7 +357,11 @@ const CellImageUpload = ({
               }`}>{row.status || '-'}</span>
             </div>
           </div>
-          <button onClick={handleDeleteImage} disabled={isUploading} className={`absolute top-0 right-0 text-white rounded-full p-1 -mt-2 -mr-2 shadow-sm ${isUploading ? 'bg-slate-400 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600'}`}>
+          <button 
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsHiddenByEscape(true); }} 
+            className="absolute top-0 right-0 text-white bg-slate-800 hover:bg-slate-900 rounded-full p-1 -mt-2 -mr-2 shadow-sm transition-colors"
+            title="Tutup Preview"
+          >
              <X className="w-3 h-3" />
           </button>
         </div>
@@ -984,10 +996,10 @@ export default function RegisterDesignPage() {
       updatePayload.designNo = generatedDesignNo;
     }
 
-    if (field === "typeDesign" && currentRow?.typeDesign && currentRow.typeDesign !== value && currentRow?.designNo) {
+    if (field === "typeDesign" && currentRow?.typeDesign && currentRow.typeDesign !== value && currentRow?.darNo) {
       toast({
         title: "Perubahan Ditolak",
-        description: "Tipe desain tidak bisa diubah karena sudah memiliki nomor urut. Silakan hapus baris ini dan buat baris baru.",
+        description: "Tipe desain tidak bisa diubah karena item ini sudah memiliki Nomor DAR.",
         variant: "destructive"
       });
       return;

@@ -5,7 +5,7 @@ import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer,
-  AreaChart, Area, PieChart, Pie, Cell
+  AreaChart, Area, PieChart, Pie, Cell, LabelList
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Layers, CheckSquare, Clock, Archive, Calendar, Activity, TrendingUp } from 'lucide-react';
@@ -13,6 +13,52 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#f43f5e', '#8b5cf6', '#0ea5e9'];
+
+const renderCustomizedLabel = (props: any) => {
+  const { cx, cy, midAngle, innerRadius, outerRadius, fill, payload, value } = props;
+  const RADIAN = Math.PI / 180;
+  
+  const sin = Math.sin(-RADIAN * midAngle);
+  const cos = Math.cos(-RADIAN * midAngle);
+  const sx = cx + (outerRadius + 2) * cos;
+  const sy = cy + (outerRadius + 2) * sin;
+  const mx = cx + (outerRadius + 15) * cos;
+  const my = cy + (outerRadius + 15) * sin;
+  const ex = mx + (cos >= 0 ? 1 : -1) * 15;
+  const ey = my;
+  const textAnchor = cos >= 0 ? 'start' : 'end';
+
+  return (
+    <g>
+      <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke={fill} fill="none" strokeWidth={1.5} opacity={0.7} />
+      <circle cx={ex} cy={ey} r={3} fill={fill} stroke="none" opacity={0.9} />
+      <text x={ex + (cos >= 0 ? 1 : -1) * 8} y={ey - 4} textAnchor={textAnchor} fill="#334155" fontSize={10} fontWeight={700} dominantBaseline="central">
+        {payload.name}
+      </text>
+      <text x={ex + (cos >= 0 ? 1 : -1) * 8} y={ey + 8} textAnchor={textAnchor} fill="#64748b" fontSize={9} fontWeight={600} dominantBaseline="central">
+        {value} item
+      </text>
+    </g>
+  );
+};
+
+const CustomAreaTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-slate-900/95 backdrop-blur-md border border-slate-700 p-3.5 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.2)]">
+        <p className="text-slate-400 text-xs font-semibold mb-1.5 uppercase tracking-wider">{`Tahun ${label}`}</p>
+        <div className="flex items-center gap-2.5">
+          <div className="relative flex h-3 w-3">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-gradient-to-tr from-indigo-500 to-cyan-400"></span>
+          </div>
+          <p className="text-white font-bold text-base">{payload[0].value} <span className="text-slate-400 text-xs font-normal">Desain Total</span></p>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
 
 export default function DashboardDesignSummary() {
   const [data, setData] = useState<any[]>([]);
@@ -148,17 +194,42 @@ export default function DashboardDesignSummary() {
     );
   }
 
-  const renderHorizontalBar = (chartData: any[], color: string) => (
-    <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 20, left: -20, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e2e8f0" />
-        <XAxis type="number" hide />
-        <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 11 }} width={120} />
-        <RechartsTooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-        <Bar dataKey="count" name="Total" fill={color} radius={[0, 4, 4, 0]} barSize={16} />
-      </BarChart>
-    </ResponsiveContainer>
-  );
+  const renderHorizontalBar = (chartData: any[], defaultColor: string, colorMap?: Record<string, string>) => {
+    return (
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 30, left: -10, bottom: 5 }}>
+          <defs>
+            {chartData.map((entry, idx) => {
+              const cellColor = colorMap?.[entry.name] || defaultColor;
+              const gradientId = `grad-${cellColor.replace('#', '')}-${idx}`;
+              return (
+                <linearGradient key={`grad-def-${idx}`} id={gradientId} x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor={cellColor} stopOpacity={0.4}/>
+                  <stop offset="100%" stopColor={cellColor} stopOpacity={1}/>
+                </linearGradient>
+              );
+            })}
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e2e8f0" strokeOpacity={0.5} />
+          <XAxis type="number" hide />
+          <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 10, fontWeight: 600 }} width={110} />
+          <RechartsTooltip 
+            cursor={{ fill: 'rgba(241, 245, 249, 0.4)' }} 
+            contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+            itemStyle={{ fontWeight: 'bold' }}
+          />
+          <Bar dataKey="count" name="Total" radius={[0, 6, 6, 0]} barSize={20}>
+            {chartData.map((entry, index) => {
+              const cellColor = colorMap?.[entry.name] || defaultColor;
+              const gradientId = `grad-${cellColor.replace('#', '')}-${index}`;
+              return <Cell key={`cell-${index}`} fill={`url(#${gradientId})`} />;
+            })}
+            <LabelList dataKey="count" position="right" fill="#475569" fontSize={11} fontWeight={800} />
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    );
+  };
 
   return (
     <div className="flex flex-col h-full lg:h-[calc(100vh-72px)] w-full p-4 lg:p-6 bg-slate-50 gap-4 overflow-y-auto lg:overflow-hidden">
@@ -219,18 +290,36 @@ export default function DashboardDesignSummary() {
             </CardHeader>
             <CardContent className="flex-1 min-h-0 px-2 pb-2">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={yearlyData} margin={{ top: 5, right: 10, left: -25, bottom: 0 }}>
+                <AreaChart data={yearlyData} margin={{ top: 15, right: 10, left: -25, bottom: 0 }}>
                   <defs>
-                    <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                    <linearGradient id="colorTotalFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.5}/>
+                      <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.01}/>
                     </linearGradient>
+                    <linearGradient id="colorTotalStroke" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="#8b5cf6" />
+                      <stop offset="50%" stopColor="#3b82f6" />
+                      <stop offset="100%" stopColor="#0ea5e9" />
+                    </linearGradient>
+                    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                      <feGaussianBlur stdDeviation="3" result="blur" />
+                      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                    </filter>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10 }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10 }} />
-                  <RechartsTooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px' }} />
-                  <Area type="monotone" dataKey="Total" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorTotal)" />
+                  <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#e2e8f0" strokeOpacity={0.6} />
+                  <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11, fontWeight: 600 }} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 10, fontWeight: 500 }} />
+                  <RechartsTooltip content={<CustomAreaTooltip />} cursor={{ stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '4 4' }} />
+                  <Area 
+                    type="monotone" 
+                    dataKey="Total" 
+                    stroke="url(#colorTotalStroke)" 
+                    strokeWidth={4} 
+                    fillOpacity={1} 
+                    fill="url(#colorTotalFill)" 
+                    activeDot={{ r: 6, fill: '#0ea5e9', stroke: '#ffffff', strokeWidth: 3, style: { filter: 'drop-shadow(0px 2px 4px rgba(14,165,233,0.6))' } }}
+                    style={{ filter: 'url(#glow)' }}
+                  />
                 </AreaChart>
               </ResponsiveContainer>
             </CardContent>
@@ -278,7 +367,12 @@ export default function DashboardDesignSummary() {
                   {renderHorizontalBar(customerData, '#8b5cf6')}
                 </TabsContent>
                 <TabsContent value="designer" className="h-full mt-0 fade-in duration-300">
-                  {renderHorizontalBar(designerData, '#f43f5e')}
+                  {renderHorizontalBar(designerData, '#f43f5e', {
+                    'D1 Riki': '#1d4ed8',
+                    'D2 Diaz': '#156e47',
+                    'D3 Rian': '#7a3b00',
+                    'D4 Darmawan': '#b30000',
+                  })}
                 </TabsContent>
               </div>
             </Tabs>
@@ -294,13 +388,22 @@ export default function DashboardDesignSummary() {
             <CardContent className="flex-1 min-h-0 relative px-0 pb-2 flex items-center justify-center">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={typeDesignData} innerRadius="50%" outerRadius="80%" paddingAngle={3} dataKey="value" stroke="none">
+                  <Pie 
+                    data={typeDesignData} 
+                    innerRadius="40%" 
+                    outerRadius="55%" 
+                    paddingAngle={3} 
+                    dataKey="value" 
+                    stroke="none"
+                    label={renderCustomizedLabel}
+                    labelLine={false}
+                  >
                     {typeDesignData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
                   <RechartsTooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '11px' }} />
-                  <Legend layout="horizontal" verticalAlign="bottom" align="center" iconType="circle" wrapperStyle={{ fontSize: '10px' }} />
+
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>
