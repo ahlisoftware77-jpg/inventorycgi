@@ -8,7 +8,7 @@ import {
   AreaChart, Area, PieChart, Pie, Cell, LabelList
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Layers, CheckSquare, Clock, Archive, Calendar, Activity, TrendingUp } from 'lucide-react';
+import { Loader2, Layers, CheckSquare, Clock, Archive, Calendar, Activity, TrendingUp, Image as ImageIcon, ExternalLink } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -186,6 +186,13 @@ export default function DashboardDesignSummary() {
        .slice(0, 5);
   }, [data]);
 
+  const galleryItems = useMemo(() => {
+    return [...data]
+      .filter(d => d.designImage)
+      .sort((a, b) => (b.entryDate || "").localeCompare(a.entryDate || ""))
+      .slice(0, 20);
+  }, [data]);
+
   if (loading) {
     return (
       <div className="flex h-[calc(100vh-100px)] w-full items-center justify-center">
@@ -232,7 +239,7 @@ export default function DashboardDesignSummary() {
   };
 
   return (
-    <div className="flex flex-col h-full lg:h-[calc(100vh-72px)] w-full p-4 lg:p-6 bg-slate-50 gap-4 overflow-y-auto lg:overflow-hidden">
+    <div className="flex flex-col min-h-full w-full px-4 lg:px-6 pt-2 pb-6 bg-slate-50 gap-4 overflow-y-auto">
       
       {/* Header */}
       <div className="flex justify-between items-center shrink-0">
@@ -442,6 +449,66 @@ export default function DashboardDesignSummary() {
             </CardContent>
           </Card>
         </div>
+      </div>
+
+      {/* Row 3: Design Gallery */}
+      <div className="shrink-0 mt-4">
+        <Card className="flex flex-col shadow-sm border-slate-200 overflow-hidden bg-white/60 backdrop-blur-sm hover:shadow-md transition-all duration-300">
+          <CardHeader className="pb-3 pt-4 px-4 flex flex-row items-center justify-between border-b border-slate-100">
+            <CardTitle className="text-sm font-bold flex items-center gap-2">
+              <ImageIcon className="w-4 h-4 text-emerald-500" /> Galeri Desain Terbaru
+            </CardTitle>
+            <span className="bg-emerald-100 text-emerald-700 text-[10px] px-2.5 py-0.5 rounded-full font-bold shadow-sm">20 Terakhir</span>
+          </CardHeader>
+          <CardContent className="p-4">
+            {galleryItems.length > 0 ? (
+              <div className="flex overflow-x-auto gap-4 pb-4 pt-1 snap-x styled-scrollbar">
+                {galleryItems.map((item, idx) => (
+                  <div key={idx} className="relative group shrink-0 w-[280px] h-[180px] rounded-xl overflow-hidden shadow-sm border border-slate-200 snap-start bg-slate-100 cursor-pointer">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={`https://drive.google.com/thumbnail?id=${item.designImage}&sz=s600`}
+                      alt={item.itemName || 'Design Preview'}
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      onError={(e) => {
+                         (e.target as HTMLImageElement).src = 'https://placehold.co/400x300/e2e8f0/64748b?text=No+Image';
+                      }}
+                    />
+                    
+                    {/* Gradient Overlay & Content */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/95 via-slate-900/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+                      <p className="text-white font-bold text-sm truncate mb-1.5 drop-shadow-md">{item.itemName || 'Tanpa Nama'}</p>
+                      
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-[10px] bg-blue-500/90 text-white px-2 py-0.5 rounded font-medium shadow-sm">{item.designer || 'Unknown'}</span>
+                        <span className="text-[10px] bg-white/20 text-white px-2 py-0.5 rounded backdrop-blur-md font-medium truncate border border-white/10">{item.typeDesign || 'No Type'}</span>
+                      </div>
+                      
+                      <a 
+                        href={`https://drive.google.com/file/d/${item.designImage}/view`} 
+                        target="_blank" 
+                        rel="noreferrer"
+                        className="inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/25 text-white text-xs font-semibold py-2 px-3 rounded-lg backdrop-blur-sm transition-all duration-300 border border-white/20 w-full shadow-[0_4px_12px_rgb(0,0,0,0.2)]"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" /> Lihat Ukuran Penuh
+                      </a>
+                    </div>
+                    
+                    {/* Badge on top left for non-hover state */}
+                    <div className="absolute top-2 left-2 bg-slate-900/60 backdrop-blur-md border border-white/10 text-white text-[10px] px-2 py-0.5 rounded-md shadow-sm group-hover:opacity-0 transition-opacity">
+                      {item.entryDate}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 text-slate-400 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                <ImageIcon className="w-10 h-10 mb-3 opacity-20" />
+                <p className="text-sm font-medium">Belum ada gambar desain yang diunggah.</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
