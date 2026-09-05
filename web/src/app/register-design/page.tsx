@@ -26,6 +26,7 @@ export interface RegisterDesignItem {
   designImage?: string;
   designImageName?: string;
   designImageSize?: string;
+  version?: string;
   typeDesign: string;
   designSource: string;
   designNo: string;
@@ -322,7 +323,13 @@ const CellImageUpload = ({
             <div className="flex justify-between items-start gap-2 border-t border-slate-100 pt-1.5">
               <span className="font-bold text-slate-500 uppercase tracking-wider text-[8px] sm:text-[9px] mt-0.5">Spesifikasi</span> 
               <span className="text-right whitespace-normal break-words leading-tight max-w-[120px] sm:max-w-[160px]">
-                {[row.typeDesign, row.sizeChecks, row.surfaceChecks].filter(Boolean).join(' | ') || '-'}
+                {[
+                  row.version, 
+                  row.type, 
+                  row.typeDesign, 
+                  row.sizeChecks ? row.sizeChecks.split(',').map(s => s.trim() === 'Custom cm' ? `Custom ${row.sizeCm1 || 0}x${row.sizeCm2 || 0}cm` : s.trim()).join(', ') : '', 
+                  row.surfaceChecks
+                ].filter(Boolean).join(', ') || '-'}
               </span>
             </div>
             {row.designImageSize && (
@@ -496,11 +503,11 @@ const CellMultiSelect = ({
           return;
         }
       }
-      
       if (e.key === 'Enter') {
         setIsEditing(false);
+      } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        handleCellKeyDown(e);
       }
-      handleCellKeyDown(e);
     };
 
     return (
@@ -561,7 +568,7 @@ const CellMultiSelect = ({
 
     return (
       <div className={`relative w-full ${width}`}>
-        <select autoFocus onBlur={() => setIsEditing(false)} value={val} onChange={(e) => { handleUpdateCell(row.id, field, e.target.value); setIsEditing(false); }} onKeyDown={(e) => { if(e.key === 'Enter') setIsEditing(false); handleCellKeyDown(e); }} className={`w-full border border-blue-500 rounded p-1 text-[11px] outline-none cursor-pointer bg-white pr-6`}>
+        <select autoFocus onBlur={() => setIsEditing(false)} value={val} onChange={(e) => { handleUpdateCell(row.id, field, e.target.value); setIsEditing(false); }} onKeyDown={(e) => { if(e.key === 'Enter') setIsEditing(false); else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') handleCellKeyDown(e); }} className={`w-full border border-blue-500 rounded p-1 text-[11px] outline-none cursor-pointer bg-white pr-6`}>
           <option value="">-</option>
           {options.map(o => <option key={o} value={o}>{o}</option>)}
         </select>
@@ -1372,6 +1379,7 @@ export default function RegisterDesignPage() {
       customer: d.customer || "",
       designer: d.designer || "",
       technician: d.technician || "",
+      version: d.version || "",
       typeDesign: d.typeDesign || "",
       designSource: d.designSource || "",
       designNo: d.designNo || "",
@@ -1415,7 +1423,7 @@ export default function RegisterDesignPage() {
   const handleDownloadTemplate = () => {
     const templateData = [{
       DAR_No: "", entryDate: "2024-01-01", itemName: "", customer: "", designer: "", technician: "",
-      typeDesign: "New", designSource: "CGI", designNo: "", type: "", sizeChecks: "", sizeFaces: "",
+      version: "", typeDesign: "New", designSource: "CGI", designNo: "", type: "", sizeChecks: "", sizeFaces: "",
       sizeCm1: "", sizeCm2: "", glazeChecks: "", glazeResidue: "", surfaceChecks: "", surfaceTemp: "",
       inkChecks: "", inkOther: "", guPtvChecks: "", guPtv: "", guPtv2: "", guPtv3: "", guPtv4: "", guPtv5: "", guPtv6: "",
       note2: "", sendBy: "", benefit: "", benefitText: "", lastTimeReq: "", feedback: "", feedbackDetails: "",
@@ -1450,6 +1458,7 @@ export default function RegisterDesignPage() {
             customer: rest.customer || "",
             designer: rest.designer || "",
             technician: rest.technician || "",
+            version: rest.version || "",
             typeDesign: rest.typeDesign || "",
             designSource: rest.designSource || "",
             designNo: rest.designNo || "",
@@ -1652,6 +1661,14 @@ export default function RegisterDesignPage() {
                 <th className="p-2 border-r bg-slate-50 text-center select-none w-20">
                   <div className="flex items-center justify-center gap-1"><Eye className="w-3 h-3 text-slate-400" /> Gambar</div>
                 </th>
+                <th className="p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("version")}>
+                  <div className="flex items-center gap-1">
+                    Versi
+                    {sortConfig?.key === "version" ? (
+                      sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+                    ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
+                  </div>
+                </th>
                 <th className="p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("status")}>
                   <div className="flex items-center gap-1">
                     Status
@@ -1829,6 +1846,9 @@ export default function RegisterDesignPage() {
                     <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="technician" options={technicianOptions} colorFn={getTechnicianColor} width="w-28" /></td>
                     <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="benefit" options={baseTujuanOptions} width="w-32" /></td>
                     <td className="p-1 border-r bg-slate-50/50"><CellImageUpload handleUpdateCell={handleUpdateCell} row={row} /></td>
+                    <td className="p-1 border-r">
+                      <CellInput handleUpdateCell={handleUpdateCell} row={row} field="version" width="w-20" />
+                    </td>
                     <td className="p-1 border-r">
                       <CellSelect handleUpdateCell={handleUpdateCell} row={row} field="status" options={["IN LOCK", "IN USE", "FREE", "ARCHIVE"]} colorFn={getStatusColor} width="w-24" />
                     </td>
