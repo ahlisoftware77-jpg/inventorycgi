@@ -5,7 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import DashboardLayout from '@/components/dashboard/layout';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
-import { db } from '@/lib/firebase/config';
+import { db, auth } from '@/lib/firebase/config';
 import { collection, getDocs, doc, setDoc, deleteDoc, updateDoc, query, orderBy, serverTimestamp, where, addDoc } from 'firebase/firestore';
 import { Trash2, Plus, Save, Layers, CheckSquare, Search, ChevronDown, Check, Eye, X, Pencil, Share2, ChevronUp, BarChart2, Download, Upload, FileSpreadsheet, Lock, Unlock } from 'lucide-react';
 import * as XLSX from 'xlsx';
@@ -192,10 +192,12 @@ const CellImageUpload = ({
         ? 'https://inventorycgi.vercel.app/api/delete-drive' 
         : '/api/delete-drive';
         
+      const token = await auth.currentUser?.getIdToken();
       const res = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ fileId: row.designImage }),
       });
@@ -226,9 +228,13 @@ const CellImageUpload = ({
     
     try {
       // 1. Minta tiket resumable upload dari Vercel
+      const token = await auth.currentUser?.getIdToken();
       const initRes = await fetch(getUploadApiUrl(), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ action: 'init', fileName: file.name, mimeType: file.type }),
       });
       
@@ -253,7 +259,10 @@ const CellImageUpload = ({
       // 3. Beritahu Vercel untuk mengatur file menjadi publik (anyone with link)
       const finishRes = await fetch(getUploadApiUrl(), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ action: 'finish', fileId: fileId }),
       });
       

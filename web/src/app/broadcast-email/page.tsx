@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { doc, getDoc, updateDoc, collection, getDocs } from 'firebase/firestore';
-import { db, storage } from '@/lib/firebase/config';
+import { db, storage , auth} from '@/lib/firebase/config';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Loader2, Mail, Send, CheckCircle2, X, Upload, Download, FileText, Trash2, Eye, ShieldCheck, Activity } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';

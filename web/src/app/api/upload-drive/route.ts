@@ -1,21 +1,19 @@
 import { NextResponse } from 'next/server';
+import { authenticateRequest, getCorsHeaders } from '@/lib/api-security';
 import { google } from 'googleapis';
 import { db } from '@/lib/firebase/config';
 import { doc, getDoc } from 'firebase/firestore';
 import { Readable } from 'stream';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-};
 
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 200, headers: corsHeaders });
+
+export async function OPTIONS(request: Request) {
+  return new NextResponse(null, { status: 200, headers: getCorsHeaders(request) });
 }
 
 export async function POST(request: Request) {
   try {
+    await authenticateRequest(request);
     const contentType = request.headers.get('content-type') || '';
     
     // RESUMABLE UPLOAD LOGIC (Bypass Vercel 4.5MB limit)
@@ -49,7 +47,7 @@ export async function POST(request: Request) {
         
         if (!res.ok) throw new Error("Gagal inisiasi upload Google Drive");
         const uploadUrl = res.headers.get('location');
-        return NextResponse.json({ success: true, uploadUrl }, { headers: corsHeaders });
+        return NextResponse.json({ success: true, uploadUrl }, { headers: getCorsHeaders(request) });
       }
       
       if (action === 'finish') {
@@ -58,7 +56,7 @@ export async function POST(request: Request) {
           fileId: fileId,
           requestBody: { role: 'reader', type: 'anyone' },
         });
-        return NextResponse.json({ success: true }, { headers: corsHeaders });
+        return NextResponse.json({ success: true }, { headers: getCorsHeaders(request) });
       }
     }
 
@@ -67,13 +65,13 @@ export async function POST(request: Request) {
     const file = formData.get('file') as File;
     
     if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400, headers: corsHeaders });
+      return NextResponse.json({ error: "No file provided" }, { status: 400, headers: getCorsHeaders(request) });
     }
 
     // Ambil setting dari Firestore
 const settingsDoc = await getDoc(doc(db, "settings", "general"));
     if (!settingsDoc.exists()) {
-      return NextResponse.json({ error: "Settings not found" }, { status: 500, headers: corsHeaders });
+      return NextResponse.json({ error: "Settings not found" }, { status: 500, headers: getCorsHeaders(request) });
     }
     const settingsData = settingsDoc.data();
     const clientId = settingsData.googleClientId;
@@ -82,7 +80,7 @@ const settingsDoc = await getDoc(doc(db, "settings", "general"));
     const folderId = settingsData.googleDriveFolderId;
 
     if (!clientId || !clientSecret || !refreshToken || !folderId) {
-      return NextResponse.json({ error: "Google Drive OAuth Credentials (Client ID, Secret, Refresh Token) or Folder ID not configured" }, { status: 500, headers: corsHeaders });
+      return NextResponse.json({ error: "Google Drive OAuth Credentials (Client ID, Secret, Refresh Token) or Folder ID not configured" }, { status: 500, headers: getCorsHeaders(request) });
     }
 
     const oauth2Client = new google.auth.OAuth2(
@@ -140,10 +138,10 @@ const settingsDoc = await getDoc(doc(db, "settings", "general"));
       fileId: fileId,
       webViewLink: uploadRes.data.webViewLink,
       webContentLink: uploadRes.data.webContentLink
-    }, { headers: corsHeaders });
+    }, { headers: getCorsHeaders(request) });
 
   } catch (error: any) {
     console.error("Upload error:", error);
-    return NextResponse.json({ error: error.message || "Failed to upload" }, { status: 500, headers: corsHeaders });
+    return NextResponse.json({ error: error.message || "Failed to upload" }, { status: 500, headers: getCorsHeaders(request) });
   }
 }

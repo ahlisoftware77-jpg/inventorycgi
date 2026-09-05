@@ -1,18 +1,16 @@
 import { NextResponse } from 'next/server';
+import { authenticateRequest, getCorsHeaders } from '@/lib/api-security';
 import nodemailer from 'nodemailer';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-};
 
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 200, headers: corsHeaders });
+
+export async function OPTIONS(request: Request) {
+  return new NextResponse(null, { status: 200, headers: getCorsHeaders(request) });
 }
 
 export async function POST(request: Request) {
   try {
+    await authenticateRequest(request);
     const contentType = request.headers.get('content-type') || '';
     let smtp, to, subject, html, action;
     let mailAttachments: any[] = [];
@@ -45,7 +43,7 @@ export async function POST(request: Request) {
     }
 
     if (!smtp || !smtp.host || !smtp.user || !smtp.pass) {
-      return NextResponse.json({ error: 'Incomplete SMTP configuration provided.' }, { status: 400, headers: corsHeaders });
+      return NextResponse.json({ error: 'Incomplete SMTP configuration provided.' }, { status: 400, headers: getCorsHeaders(request) });
     }
 
     const port = Number(smtp.port) || 465;
@@ -68,11 +66,11 @@ export async function POST(request: Request) {
     // If action is testConnection, return success here
     if (action === 'testConnection') {
       await transporter.verify();
-      return NextResponse.json({ success: true, message: 'Koneksi SMTP berhasil.' }, { headers: corsHeaders });
+      return NextResponse.json({ success: true, message: 'Koneksi SMTP berhasil.' }, { headers: getCorsHeaders(request) });
     }
 
     if (!to || !Array.isArray(to) || to.length === 0) {
-      return NextResponse.json({ error: 'No recipients provided.' }, { status: 400, headers: corsHeaders });
+      return NextResponse.json({ error: 'No recipients provided.' }, { status: 400, headers: getCorsHeaders(request) });
     }
 
     // Send emails (using bcc to hide recipient list from each other if multiple)
@@ -121,10 +119,10 @@ export async function POST(request: Request) {
       success: true, 
       message: `Emails sent successfully to ${to.length} recipients.`,
       messageId: info.messageId 
-    }, { headers: corsHeaders });
+    }, { headers: getCorsHeaders(request) });
 
   } catch (error: any) {
     console.error('Error sending email:', error);
-    return NextResponse.json({ error: 'Failed to send email', details: error.message }, { status: 500, headers: corsHeaders });
+    return NextResponse.json({ error: 'Failed to send email', details: error.message }, { status: 500, headers: getCorsHeaders(request) });
   }
 }
