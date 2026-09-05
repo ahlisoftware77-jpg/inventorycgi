@@ -308,8 +308,11 @@ Sistem kami secara otomatis akan merubah format link khusus tersebut menjadi tom
       setMessages([{ role: 'model', content: text }]);
       setHasGeneratedInitial(true);
     } catch (err: any) {
-      console.error('Error generating AI analysis:', err);
-      setError(err.message || 'Terjadi kesalahan sistem saat menganalisis halaman.');
+      let errMsg = err.message || 'Terjadi kesalahan sistem saat menganalisis halaman.';
+      if (errMsg.toLowerCase().includes('high demand') || errMsg.toLowerCase().includes('overloaded')) {
+        errMsg = 'Server AI Copilot saat ini sedang mengalami antrean tinggi. Mohon tunggu beberapa saat dan coba lagi.';
+      }
+      setError(errMsg);
     } finally {
       setIsPending(false);
     }
@@ -377,8 +380,11 @@ Sistem kami secara otomatis akan merubah format link khusus tersebut menjadi tom
 
       setMessages(prev => [...prev, { role: 'model', content: text }]);
     } catch (err: any) {
-      console.error('Error sending message to Gemini:', err);
-      setError(err.message || 'Gagal mengirim pesan obrolan.');
+      let errMsg = err.message || 'Gagal mengirim pesan obrolan.';
+      if (errMsg.toLowerCase().includes('high demand') || errMsg.toLowerCase().includes('overloaded')) {
+        errMsg = 'Server AI Copilot saat ini sedang mengalami antrean tinggi. Mohon tunggu beberapa saat dan coba lagi.';
+      }
+      setError(errMsg);
     } finally {
       setIsPending(false);
     }
@@ -684,21 +690,6 @@ Sistem kami secara otomatis akan merubah format link khusus tersebut menjadi tom
     <>
       {/* 1. Floating Action Button (FAB) & Pro AI Label */}
       <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3">
-        {!isOpen && (
-          <div 
-            onClick={() => setIsOpen(true)}
-            className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-slate-950/90 backdrop-blur-xl border border-teal-500/40 shadow-[0_4px_25px_rgba(20,184,166,0.35)] text-white text-[10px] font-black uppercase tracking-wider cursor-pointer hover:scale-105 active:scale-95 transition-all animate-bounce select-none group"
-          >
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-80"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-            </span>
-            <span className="bg-gradient-to-r from-teal-300 via-emerald-300 to-indigo-300 bg-clip-text text-transparent drop-shadow-md group-hover:from-teal-200 group-hover:to-indigo-200">
-              Tanyakan AI Copilot ✨
-            </span>
-            <span className="text-[7.5px] font-black uppercase px-1.5 py-0.5 rounded-full bg-indigo-500/30 text-indigo-200 border border-indigo-400/30">PRO</span>
-          </div>
-        )}
 
         <div className="relative group">
           {/* Cosmic Aura Gradient Backdrop Glow */}

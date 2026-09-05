@@ -218,24 +218,6 @@ export default function Header() {
       </div>
       
       <div className="flex items-center gap-1 sm:gap-4 shrink-0">
-        {/* Quick AI Assistant Trigger in Header */}
-        <button
-          onClick={() => {
-            const fab = document.getElementById('ai-copilot-fab');
-            if (fab) fab.click();
-          }}
-          className="relative hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-teal-500/20 via-indigo-500/20 to-purple-500/20 border border-teal-400/40 text-teal-200 hover:border-teal-300 transition-all hover:scale-105 active:scale-95 group shadow-md cursor-pointer select-none"
-          title="Buka Asisten AI Copilot"
-        >
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-80"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-400"></span>
-          </span>
-          <Sparkles className="w-3.5 h-3.5 text-teal-300 animate-pulse group-hover:rotate-12 transition-transform" />
-          <span className="text-[10px] font-black uppercase tracking-wider text-teal-100 group-hover:text-white">AI Copilot</span>
-          <span className="text-[7.5px] font-black uppercase px-1.5 py-0.2 rounded-full bg-indigo-500/40 text-indigo-200 border border-indigo-400/30">PRO</span>
-        </button>
-
         <div className="hidden sm:block">
           <Button 
             variant="ghost" 
