@@ -48,7 +48,8 @@ import {
   FileStack,
   Tags,
   Pencil,
-  FileSignature
+  FileSignature,
+  BarChart2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -768,6 +769,73 @@ export default function HelpContent() {
                                 <li><strong>Alur Mutasi:</strong> Setiap perpindahan aset antar departemen wajib disetujui oleh unit pengirim dan unit penerima di sistem.</li>
                                 <li><strong>Penghapusan (Disposal):</strong> Aset yang rusak permanen wajib diajukan disposal dengan bukti foto serah terima/pemusnahan.</li>
                                 <li><strong>History Tracking:</strong> Memantau jejak audit siapa yang bertanggung jawab atas aset pada periode tertentu.</li>
+                            </ul>
+                        </section>
+                    </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            {/* SECTION 10: REGISTER DESIGN */}
+            <AccordionItem value="item-register-design" className="border-none rounded-[2rem] px-6 bg-slate-50 dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800">
+              <AccordionTrigger className="text-xl font-black uppercase text-slate-900 dark:text-white hover:no-underline py-6 text-left">
+                <div className="flex items-center gap-3 text-left">
+                    <Pencil className="h-6 w-6 text-primary" />
+                    <span>10. REGISTER DESIGN & PREVIEW</span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="prose prose-sm max-w-none text-base pt-2 pb-8 text-left">
+                <div id="print-register-design" className="space-y-6 text-left text-black">
+                    <div className="flex justify-end no-print">
+                        <Button variant="outline" size="sm" onClick={() => handlePrintSection('10. Register Design & Preview', 'print-register-design')} className="rounded-full font-bold h-8 border-primary/20 text-primary hover:bg-primary/5">
+                            <Printer className="h-3 w-3 mr-2" /> Cetak Materi
+                        </Button>
+                    </div>
+                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200 leading-relaxed mb-4 text-left">
+                        Register Design: Panduan pengelolaan sistem pencatatan desain, pengunggahan gambar ke Google Drive, dan fitur dasbor analitik.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left text-black">
+                        <section className="bg-white dark:bg-slate-900 p-6 rounded-2xl border shadow-sm space-y-4 text-left text-black">
+                            <h4 className="flex items-center gap-2 font-black text-sm uppercase text-slate-900 dark:text-white text-left">
+                                <FileSignature className="h-4 w-4 text-blue-600" /> Pencatatan & Validasi
+                            </h4>
+                            <ul className="list-disc pl-5 space-y-2 text-sm font-medium text-slate-600 dark:text-slate-400 text-left">
+                                <li><strong>Input Data:</strong> Pastikan Anda mengisi kolom yang wajib seperti Nomor Desain, Nomor DAR, dan Nama Desainer dengan akurat.</li>
+                                <li><strong>Validasi Otomatis:</strong> Sistem akan mengunci kolom "Tipe Desain" jika desain sudah memiliki Nomor DAR, mencegah perubahan setelah desain diresmikan.</li>
+                                <li><strong>Filter & Ekspor:</strong> Anda bisa menggunakan kolom pencarian dan mengekspor data ke Excel menggunakan tombol di pojok kanan atas tabel.</li>
+                            </ul>
+                        </section>
+
+                        <section className="bg-white dark:bg-slate-900 p-6 rounded-2xl border shadow-sm space-y-4 text-left text-black">
+                            <h4 className="flex items-center gap-2 font-black text-sm uppercase text-slate-900 dark:text-white text-left">
+                                <ImageIcon className="h-4 w-4 text-emerald-600" /> Unggah Gambar (Google Drive)
+                            </h4>
+                            <ul className="list-disc pl-5 space-y-2 text-sm font-medium text-slate-600 dark:text-slate-400 text-left">
+                                <li><strong>Tanpa Batas Ukuran:</strong> Sistem dapat menerima gambar berukuran besar dan mengunggahnya langsung ke server Google Drive tanpa membebani penyimpanan aplikasi.</li>
+                                <li><strong>Preview Otomatis:</strong> Sorot/Hover ikon mata (Lihat) untuk memunculkan kotak pratinjau gambar beserta rincian spesifikasi desain tersebut.</li>
+                                <li><strong>Klik untuk Menutup:</strong> Pada kotak preview, Anda bisa mengklik tombol silang (X) atau menekan tombol ESC di keyboard untuk menutup layar pratinjau.</li>
+                            </ul>
+                        </section>
+
+                        <section className="bg-white dark:bg-slate-900 p-6 rounded-2xl border shadow-sm space-y-4 text-left text-black">
+                            <h4 className="flex items-center gap-2 font-black text-sm uppercase text-slate-900 dark:text-white text-left">
+                                <RefreshCw className="h-4 w-4 text-amber-600" /> Sinkronisasi & Penghapusan
+                            </h4>
+                            <ul className="list-disc pl-5 space-y-2 text-sm font-medium text-slate-600 dark:text-slate-400 text-left">
+                                <li><strong>Hapus Gambar:</strong> Anda bisa menghapus gambar dari sistem dan Google Drive dengan mengklik ikon Tempat Sampah di dalam kotak pratinjau.</li>
+                                <li><strong>Sinkronisasi Aman:</strong> Jika file terhapus secara manual di Google Drive, tekan kembali tombol hapus di aplikasi agar data di tabel ikut terhapus dan bersih kembali.</li>
+                                <li><strong>Pemulihan File:</strong> Hubungi admin sistem jika gambar salah terhapus untuk diperiksa apakah bisa direstore dari Recycle Bin Google Drive.</li>
+                            </ul>
+                        </section>
+
+                        <section className="bg-white dark:bg-slate-900 p-6 rounded-2xl border shadow-sm space-y-4 text-left text-black">
+                            <h4 className="flex items-center gap-2 font-black text-sm uppercase text-slate-900 dark:text-white text-left">
+                                <BarChart2 className="h-4 w-4 text-rose-600" /> Analitik Dasbor & Copilot
+                            </h4>
+                            <ul className="list-disc pl-5 space-y-2 text-sm font-medium text-slate-600 dark:text-slate-400 text-left">
+                                <li><strong>Ringkasan Analitik:</strong> Gunakan menu Dasbor Desain untuk melihat visualisasi distribusi Tipe Desain (diagram akar), tren bulanan, dan 5 Analitik Teratas (Desainer, Pelanggan, Item).</li>
+                                <li><strong>Bantuan AI (Copilot):</strong> Klik tombol melayang (FAB) di pojok kanan bawah untuk mengaktifkan AI Copilot. Anda bisa meminta AI memberikan insight/saran strategi bisnis berdasarkan data desain.</li>
+                                <li><strong>Real-time AI:</strong> Analisa dari Copilot bersifat <em>on-the-fly</em> dan membaca langsung dari tabel Anda saat itu juga.</li>
                             </ul>
                         </section>
                     </div>

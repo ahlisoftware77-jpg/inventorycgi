@@ -102,6 +102,7 @@ export default function AICopilot() {
     if (pathname.startsWith('/kategori')) return { name: 'Manajemen Kategori Aset', icon: Sparkles };
     if (pathname.startsWith('/cost-center')) return { name: 'Manajemen Cost Center', icon: Sparkles };
     if (pathname.startsWith('/settings')) return { name: 'Pengaturan Sistem', icon: Sparkles };
+    if (pathname.startsWith('/register-design')) return { name: 'Analitik Desain & R&D', icon: Sparkles };
     return { name: 'Asisten Umum', icon: Sparkles };
   }, [pathname]);
 
@@ -232,6 +233,23 @@ export default function AICopilot() {
 
         context = `Konteks Pengguna Sistem:\n- Total Pengguna Terdaftar: ${usersData.length}\n- Sebaran Peran (Role): ${JSON.stringify(usersData.reduce((acc: any, curr) => { acc[curr.role || 'User'] = (acc[curr.role || 'User'] || 0) + 1; return acc; }, {}))}\n- Pengguna Pending/Menunggu Konfirmasi: ${JSON.stringify(usersData.filter(u => u.role === 'Pending'))}`;
         prompt = `Anda adalah Analis Keamanan Akses AI untuk PT. China Glaze Indonesia. Analisis sebaran peran pengguna. Berikan ulasan keamanan akses jika rasio Admin terlalu tinggi dibanding User biasa, serta ingatkan jika ada akun pendaftaran tertunda yang butuh verifikasi segera.`;
+      }
+      else if (pathname.startsWith('/register-design')) {
+        // 10. Register Design
+        const designSnapshot = await getDocs(query(collection(db, 'register_design'), limit(200)));
+        const designData = designSnapshot.docs.map(d => ({
+          typeDesign: d.data().typeDesign || 'Tidak Ada Tipe',
+          designer: d.data().designer || 'Tanpa Nama',
+          customer: d.data().customer || 'Umum',
+          status: d.data().status || 'FREE'
+        }));
+
+        const typeDesignCount = designData.reduce((acc: any, curr) => { acc[curr.typeDesign] = (acc[curr.typeDesign] || 0) + 1; return acc; }, {});
+        const designerCount = designData.reduce((acc: any, curr) => { acc[curr.designer] = (acc[curr.designer] || 0) + 1; return acc; }, {});
+        const customerCount = designData.reduce((acc: any, curr) => { acc[curr.customer] = (acc[curr.customer] || 0) + 1; return acc; }, {});
+
+        context = `Konteks Register Design:\n- Total Data Desain (Max 200 Terbaru): ${designData.length}\n- Distribusi Tipe Desain: ${JSON.stringify(typeDesignCount)}\n- Beban Kerja Desainer: ${JSON.stringify(designerCount)}\n- Top Customer: ${JSON.stringify(customerCount)}`;
+        prompt = `Anda adalah Analis Desain & R&D AI untuk PT. China Glaze Indonesia. Analisis data pendaftaran desain terkini dari database. Berikan wawasan (insight) bisnis mengenai tren tipe desain yang paling banyak diminta, evaluasi beban kerja desainer, dan berikan rekomendasi atau saran strategis untuk tim R&D/Desain berdasarkan pola pelanggan atau tipe yang sering muncul.`;
       }
       else {
         // Fallback
