@@ -289,7 +289,7 @@ export default function DashboardDesignSummary() {
         
         {/* Col 1: Trend & Monthly Chart (Span 5) */}
         <div className="lg:col-span-5 flex flex-col gap-4 min-h-0">
-          <Card className="flex-1 flex flex-col shadow-sm border-slate-200 overflow-hidden bg-white/60 backdrop-blur-sm transition-all duration-300 hover:shadow-md">
+          <Card className="flex-1 flex flex-col shadow-sm border-slate-200 overflow-hidden bg-white/60 backdrop-blur-sm transition-all duration-300 hover:shadow-md min-h-[280px]">
             <CardHeader className="pb-2 pt-4 px-4 shrink-0">
               <CardTitle className="text-sm font-bold flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-blue-500" /> Tren Pertumbuhan Tahunan
@@ -332,7 +332,7 @@ export default function DashboardDesignSummary() {
             </CardContent>
           </Card>
           
-          <Card className="flex-1 flex flex-col shadow-sm border-slate-200 overflow-hidden bg-white/60 backdrop-blur-sm transition-all duration-300 hover:shadow-md">
+          <Card className="flex-1 flex flex-col shadow-sm border-slate-200 overflow-hidden bg-white/60 backdrop-blur-sm transition-all duration-300 hover:shadow-md min-h-[280px]">
             <CardHeader className="pb-0 pt-4 px-4 shrink-0">
               <CardTitle className="text-sm font-bold">Status Bulanan ({selectedYear})</CardTitle>
             </CardHeader>
@@ -355,7 +355,7 @@ export default function DashboardDesignSummary() {
         </div>
 
         {/* Col 2: Top 5 Tabs (Span 4) */}
-        <Card className="lg:col-span-4 flex flex-col shadow-sm border-slate-200 overflow-hidden bg-white/60 backdrop-blur-sm transition-all duration-300 hover:shadow-md">
+        <Card className="lg:col-span-4 flex flex-col shadow-sm border-slate-200 overflow-hidden bg-white/60 backdrop-blur-sm transition-all duration-300 hover:shadow-md min-h-[300px]">
           <CardContent className="p-4 flex-1 flex flex-col h-full">
             <Tabs defaultValue="item" className="h-full flex flex-col">
               <div className="flex justify-between items-center mb-4 shrink-0">
@@ -388,7 +388,7 @@ export default function DashboardDesignSummary() {
 
         {/* Col 3: Pie & Recent (Span 3) */}
         <div className="lg:col-span-3 flex flex-col gap-4 min-h-0">
-          <Card className="flex-1 flex flex-col shadow-sm border-slate-200 overflow-hidden bg-white/60 backdrop-blur-sm transition-all duration-300 hover:shadow-md">
+          <Card className="flex-1 flex flex-col shadow-sm border-slate-200 overflow-hidden bg-white/60 backdrop-blur-sm transition-all duration-300 hover:shadow-md min-h-[250px]">
              <CardHeader className="pb-0 pt-4 px-4 shrink-0">
               <CardTitle className="text-sm font-bold">Distribusi Tipe Desain</CardTitle>
             </CardHeader>
