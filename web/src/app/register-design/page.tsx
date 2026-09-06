@@ -1572,6 +1572,8 @@ export default function RegisterDesignPage() {
   const handleImportExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    
+    const targetInput = e.target; // Simpan referensi input file
 
     const reader = new FileReader();
     reader.onload = async (evt) => {
@@ -1583,8 +1585,15 @@ export default function RegisterDesignPage() {
         const importedData = XLSX.utils.sheet_to_json(ws, { raw: false, dateNF: 'yyyy-mm-dd' });
         
         let successCount = 0;
+        const toStringSafe = (val: any) => val !== undefined && val !== null ? String(val).trim() : "";
+
         for (const row of importedData as any[]) {
           const { DAR_No, ...rest } = row;
+
+          // Cek jika baris benar-benar kosong (hanya terbaca karena formatting Excel)
+          if (!DAR_No && !rest.itemName && !rest.customer && !rest.typeDesign && !rest.designNo) {
+            continue; // Skip baris yang pada dasarnya kosong
+          }
 
           let parsedDate = rest.entryDate;
           if (parsedDate && typeof parsedDate === 'string' && parsedDate.includes('/')) {
@@ -1596,43 +1605,43 @@ export default function RegisterDesignPage() {
           }
           
           const payload = {
-            darNo: DAR_No || "",
-            entryDate: parsedDate || new Date().toISOString().split('T')[0],
-            itemName: rest.itemName || "",
-            customer: rest.customer || "",
-            designer: rest.designer || "",
-            technician: rest.technician || "",
-            version: rest.version || "",
-            typeDesign: rest.typeDesign || "",
-            designSource: rest.designSource || "",
-            designNo: rest.designNo || "",
-            type: rest.type || "",
-            sizeChecks: rest.sizeChecks || "",
-            sizeFaces: rest.sizeFaces || "",
-            sizeCm1: rest.sizeCm1 || "",
-            sizeCm2: rest.sizeCm2 || "",
-            glazeChecks: rest.glazeChecks || "",
-            glazeResidue: rest.glazeResidue || "",
-            surfaceChecks: rest.surfaceChecks || "",
-            surfaceTemp: rest.surfaceTemp || "",
-            inkChecks: rest.inkChecks || "",
-            inkOther: rest.inkOther || "",
-            guPtvChecks: rest.guPtvChecks || "",
-            guPtv: rest.guPtv || "", guPtv2: rest.guPtv2 || "", guPtv3: rest.guPtv3 || "", 
-            guPtv4: rest.guPtv4 || "", guPtv5: rest.guPtv5 || "", guPtv6: rest.guPtv6 || "",
-            note2: rest.note2 || "",
-            sendBy: rest.sendBy || "",
-            benefit: rest.benefit || "",
-            benefitText: rest.benefitText || "",
-            lastTimeReq: rest.lastTimeReq || "",
-            feedback: rest.feedback || "",
-            feedbackDetails: rest.feedbackDetails || "",
-            lastDesignSupp: rest.lastDesignSupp || "",
-            requiredDate: rest.requiredDate || "",
-            closingDate: rest.closingDate || "",
-            generalNote: rest.generalNote || "",
-            createdBy: rest.createdBy || "",
-            status: rest.status || "FREE",
+            darNo: toStringSafe(DAR_No),
+            entryDate: toStringSafe(parsedDate || new Date().toISOString().split('T')[0]),
+            itemName: toStringSafe(rest.itemName),
+            customer: toStringSafe(rest.customer),
+            designer: toStringSafe(rest.designer),
+            technician: toStringSafe(rest.technician),
+            version: toStringSafe(rest.version),
+            typeDesign: toStringSafe(rest.typeDesign),
+            designSource: toStringSafe(rest.designSource),
+            designNo: toStringSafe(rest.designNo),
+            type: toStringSafe(rest.type),
+            sizeChecks: toStringSafe(rest.sizeChecks),
+            sizeFaces: toStringSafe(rest.sizeFaces),
+            sizeCm1: toStringSafe(rest.sizeCm1),
+            sizeCm2: toStringSafe(rest.sizeCm2),
+            glazeChecks: toStringSafe(rest.glazeChecks),
+            glazeResidue: toStringSafe(rest.glazeResidue),
+            surfaceChecks: toStringSafe(rest.surfaceChecks),
+            surfaceTemp: toStringSafe(rest.surfaceTemp),
+            inkChecks: toStringSafe(rest.inkChecks),
+            inkOther: toStringSafe(rest.inkOther),
+            guPtvChecks: toStringSafe(rest.guPtvChecks),
+            guPtv: toStringSafe(rest.guPtv), guPtv2: toStringSafe(rest.guPtv2), guPtv3: toStringSafe(rest.guPtv3), 
+            guPtv4: toStringSafe(rest.guPtv4), guPtv5: toStringSafe(rest.guPtv5), guPtv6: toStringSafe(rest.guPtv6),
+            note2: toStringSafe(rest.note2),
+            sendBy: toStringSafe(rest.sendBy),
+            benefit: toStringSafe(rest.benefit),
+            benefitText: toStringSafe(rest.benefitText),
+            lastTimeReq: toStringSafe(rest.lastTimeReq),
+            feedback: toStringSafe(rest.feedback),
+            feedbackDetails: toStringSafe(rest.feedbackDetails),
+            lastDesignSupp: toStringSafe(rest.lastDesignSupp),
+            requiredDate: toStringSafe(rest.requiredDate),
+            closingDate: toStringSafe(rest.closingDate),
+            generalNote: toStringSafe(rest.generalNote),
+            createdBy: toStringSafe(rest.createdBy),
+            status: toStringSafe(rest.status) || "FREE",
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
           };
@@ -1647,7 +1656,7 @@ export default function RegisterDesignPage() {
         toast({ title: "Gagal Import", description: "Terjadi kesalahan saat membaca file Excel.", variant: "destructive" });
       }
       
-      e.target.value = '';
+      targetInput.value = '';
     };
     reader.readAsBinaryString(file);
   };
