@@ -15,10 +15,10 @@ try {
       token: process.env.UPSTASH_REDIS_REST_TOKEN,
     });
 
-    // 10 requests per minute for drive upload/delete API
+    // 50 requests per minute for drive upload/delete API
     uploadLimiter = new Ratelimit({
-      redis,
-      limiter: Ratelimit.slidingWindow(10, '1 m'),
+      redis: redis!,
+      limiter: Ratelimit.slidingWindow(50, '1 m'),
       analytics: true,
     });
 

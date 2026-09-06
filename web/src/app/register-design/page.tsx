@@ -1548,6 +1548,7 @@ export default function RegisterDesignPage() {
       generalNote: d.generalNote || "",
       createdBy: d.createdBy || "",
       status: d.status || "",
+      linkFoto: d.designImage ? `https://drive.google.com/uc?id=${d.designImage}` : "",
     })));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Register Design");
@@ -1561,7 +1562,7 @@ export default function RegisterDesignPage() {
       sizeCm1: "", sizeCm2: "", glazeChecks: "", glazeResidue: "", surfaceChecks: "", surfaceTemp: "",
       inkChecks: "", inkOther: "", guPtvChecks: "", guPtv: "", guPtv2: "", guPtv3: "", guPtv4: "", guPtv5: "", guPtv6: "",
       note2: "", sendBy: "", benefit: "", benefitText: "", lastTimeReq: "", feedback: "", feedbackDetails: "",
-      lastDesignSupp: "", requiredDate: "", closingDate: "", generalNote: "", createdBy: "", status: "FREE"
+      lastDesignSupp: "", requiredDate: "", closingDate: "", generalNote: "", createdBy: "", status: "FREE", linkFoto: ""
     }];
     const ws = XLSX.utils.json_to_sheet(templateData);
     const wb = XLSX.utils.book_new();
@@ -1602,6 +1603,27 @@ export default function RegisterDesignPage() {
                const y = parts[2].length === 2 ? `20${parts[2]}` : parts[2];
                parsedDate = `${y}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
              }
+          }
+
+          const eDarNo = toStringSafe(DAR_No).toLowerCase().trim();
+          const eItemName = toStringSafe(rest.itemName).toLowerCase().trim();
+
+          const isDuplicate = data.some(existing => {
+            const exDar = (existing.darNo || "").toLowerCase().trim();
+            const exItem = (existing.itemName || "").toLowerCase().trim();
+            
+            if (eDarNo && eItemName) {
+               return exDar === eDarNo && exItem === eItemName;
+            } else if (!eDarNo && eItemName) {
+               return exItem === eItemName;
+            } else if (eDarNo && !eItemName) {
+               return exDar === eDarNo;
+            }
+            return false;
+          });
+
+          if (isDuplicate) {
+            continue; // Skip baris ini karena duplikat
           }
           
           const payload = {
