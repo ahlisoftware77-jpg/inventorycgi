@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, DialogClose } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export interface RegisterDesignItem {
   id: string;
@@ -666,9 +667,23 @@ export default function RegisterDesignPage() {
   const [data, setData] = useState<RegisterDesignItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [searchCategory, setSearchCategory] = useState("all");
+
+  type HistoryAction = {
+    id: string;
+    field: keyof RegisterDesignItem;
+    oldValue: string;
+    newValue: string;
+  };
+  const [undoStack, setUndoStack] = useState<HistoryAction[]>([]);
+  const [redoStack, setRedoStack] = useState<HistoryAction[]>([]);
 
   const [isShareDashboardOpen, setIsShareDashboardOpen] = useState(false);
   const [dashboardPasscode, setDashboardPasscode] = useState("123456");
+
+  const [isTrashOpen, setIsTrashOpen] = useState(false);
+  const [trashData, setTrashData] = useState<any[]>([]);
+  const [loadingTrash, setLoadingTrash] = useState(false);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -684,6 +699,50 @@ export default function RegisterDesignPage() {
     }
   }, [user, loadingUser, router, toast]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          handleRedoRef.current();
+        } else {
+          handleUndoRef.current();
+        }
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        handleRedoRef.current();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const handleUndoRef = useRef<() => void>(() => {});
+  const handleRedoRef = useRef<() => void>(() => {});
+
+  useEffect(() => {
+    handleUndoRef.current = () => {
+      if (undoStack.length === 0) return;
+      const action = undoStack[undoStack.length - 1];
+      setUndoStack(prev => prev.slice(0, -1));
+      setRedoStack(prev => [...prev, action]);
+      handleUpdateCell(action.id, action.field, action.oldValue, true);
+      toast({ title: "Undo Berhasil", description: `Mengembalikan nilai pada baris tersebut.`, duration: 2000 });
+    };
+
+    handleRedoRef.current = () => {
+      if (redoStack.length === 0) return;
+      const action = redoStack[redoStack.length - 1];
+      setRedoStack(prev => prev.slice(0, -1));
+      setUndoStack(prev => [...prev, action]);
+      handleUpdateCell(action.id, action.field, action.newValue, true);
+      toast({ title: "Redo Berhasil", description: `Menerapkan kembali nilai pada baris tersebut.`, duration: 2000 });
+    };
+  }, [undoStack, redoStack, data]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!scrollContainerRef.current) return;
@@ -908,14 +967,39 @@ export default function RegisterDesignPage() {
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
   }, [handleAddRow]);
 
-  const handleDeleteRow = async (id: string) => {
-    if (!confirm("Hapus baris ini secara permanen?")) return;
-    
-    const currentRow = data.find(d => d.id === id);
-    if (!currentRow) return;
-
+  const fetchTrashData = async () => {
+    setLoadingTrash(true);
     try {
-      if (currentRow.designImage) {
+      const q = query(collection(db, "trash_register_design"), orderBy("deletedAt", "desc"));
+      const snapshot = await getDocs(q);
+      setTrashData(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (error) {
+      console.error("Gagal mengambil data tempat sampah:", error);
+    } finally {
+      setLoadingTrash(false);
+    }
+  };
+
+  const handleRestoreTrash = async (item: any) => {
+    try {
+      const { deletedAt, ...restData } = item;
+      await setDoc(doc(db, "register_design", item.id), restData);
+      await deleteDoc(doc(db, "trash_register_design", item.id));
+      
+      setTrashData(prev => prev.filter(t => t.id !== item.id));
+      setData(prev => [restData as RegisterDesignItem, ...prev]);
+      
+      toast({ title: "Berhasil", description: "Data berhasil dipulihkan dari tempat sampah." });
+    } catch (error) {
+      console.error("Gagal memulihkan:", error);
+      toast({ title: "Gagal memulihkan data", variant: "destructive" });
+    }
+  };
+
+  const handlePermanentDelete = async (item: any) => {
+    if (!confirm("Hapus baris ini secara PERMANEN? File gambar di Google Drive juga akan terhapus dan data tidak bisa dikembalikan lagi.")) return;
+    try {
+      if (item.designImage) {
         const apiUrl = typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
           ? 'https://inventorycgi.vercel.app/api/delete-drive' 
           : '/api/delete-drive';
@@ -923,11 +1007,33 @@ export default function RegisterDesignPage() {
         await fetch(apiUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fileId: currentRow.designImage }),
+          body: JSON.stringify({ fileId: item.designImage }),
         }).catch(err => console.error("Gagal menghapus gambar di drive:", err));
       }
 
+      await deleteDoc(doc(db, "trash_register_design", item.id));
+      setTrashData(prev => prev.filter(t => t.id !== item.id));
+      toast({ title: "Terhapus Permanen", description: "Data telah dihapus selamanya." });
+    } catch (error) {
+      console.error("Gagal menghapus permanen:", error);
+      toast({ title: "Gagal menghapus", variant: "destructive" });
+    }
+  };
+
+  const handleDeleteRow = async (id: string) => {
+    if (!confirm("Pindahkan baris ini ke Tempat Sampah?")) return;
+    
+    const currentRow = data.find(d => d.id === id);
+    if (!currentRow) return;
+
+    try {
+      // Move to trash
+      await setDoc(doc(db, "trash_register_design", id), {
+        ...currentRow,
+        deletedAt: serverTimestamp()
+      });
       await deleteDoc(doc(db, "register_design", id));
+      
       setData(data.filter(d => d.id !== id));
       const newSel = new Set(selectedIds);
       newSel.delete(id);
@@ -954,11 +1060,20 @@ export default function RegisterDesignPage() {
     }
   };
 
-  const handleUpdateCell = async (id: string, field: keyof RegisterDesignItem, value: string) => {
+  const handleUpdateCell = async (id: string, field: keyof RegisterDesignItem, value: string, isHistoryAction = false) => {
     let updatePayload: any = { [field]: value, updatedAt: serverTimestamp() };
     let generatedDesignNo: string | undefined = undefined;
     
     const currentRow = data.find(d => d.id === id);
+    if (!currentRow) return;
+
+    const oldValue = (currentRow[field] as string) || "";
+    if (oldValue === value && field !== "designNo" && field !== "designer") return;
+
+    if (!isHistoryAction && field !== "designImage") {
+      setUndoStack(prev => [...prev, { id, field, oldValue, newValue: value }]);
+      setRedoStack([]);
+    }
 
     if (field === "designNo" && value.trim() !== "") {
       if ((window as any).designNoTimeout) clearTimeout((window as any).designNoTimeout);
@@ -1325,15 +1440,22 @@ export default function RegisterDesignPage() {
     }
   };
 
-  const filteredData = data.filter(d => 
-    !search || 
-    (d.itemName || "").toLowerCase().includes(search.toLowerCase()) || 
-    (d.customer || "").toLowerCase().includes(search.toLowerCase()) ||
-    (d.darNo || "").toLowerCase().includes(search.toLowerCase()) ||
-    (d.designNo || "").toLowerCase().includes(search.toLowerCase()) ||
-    (d.status || "").toLowerCase().includes(search.toLowerCase()) ||
-    (d.typeDesign || "").toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredData = data.filter(d => {
+    if (!search) return true;
+    const lowerSearch = search.toLowerCase();
+    
+    if (searchCategory === "all") {
+       return String(d.itemName || "").toLowerCase().includes(lowerSearch) || 
+              String(d.customer || "").toLowerCase().includes(lowerSearch) ||
+              String(d.darNo || "").toLowerCase().includes(lowerSearch) ||
+              String(d.designNo || "").toLowerCase().includes(lowerSearch) ||
+              String(d.status || "").toLowerCase().includes(lowerSearch) ||
+              String(d.typeDesign || "").toLowerCase().includes(lowerSearch) ||
+              String(d.designer || "").toLowerCase().includes(lowerSearch);
+    } else {
+       return String((d as any)[searchCategory] || "").toLowerCase().includes(lowerSearch);
+    }
+  });
 
   const handleSort = (key: string) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -1455,17 +1577,27 @@ export default function RegisterDesignPage() {
     reader.onload = async (evt) => {
       try {
         const bstr = evt.target?.result;
-        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wb = XLSX.read(bstr, { type: 'binary', cellDates: true });
         const wsname = wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
-        const importedData = XLSX.utils.sheet_to_json(ws);
+        const importedData = XLSX.utils.sheet_to_json(ws, { raw: false, dateNF: 'yyyy-mm-dd' });
         
         let successCount = 0;
         for (const row of importedData as any[]) {
           const { DAR_No, ...rest } = row;
+
+          let parsedDate = rest.entryDate;
+          if (parsedDate && typeof parsedDate === 'string' && parsedDate.includes('/')) {
+             const parts = parsedDate.split('/');
+             if (parts.length === 3) {
+               const y = parts[2].length === 2 ? `20${parts[2]}` : parts[2];
+               parsedDate = `${y}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+             }
+          }
+          
           const payload = {
             darNo: DAR_No || "",
-            entryDate: rest.entryDate || new Date().toISOString().split('T')[0],
+            entryDate: parsedDate || new Date().toISOString().split('T')[0],
             itemName: rest.itemName || "",
             customer: rest.customer || "",
             designer: rest.designer || "",
@@ -1534,14 +1666,30 @@ export default function RegisterDesignPage() {
             <p className="text-xs text-slate-500 mt-1 font-medium">Input desain individual bergaya Excel dan kelompokkan ke dalam Form DAR.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <div className="relative w-full sm:w-auto">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <Input 
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Cari Item/Customer/Status/Tipe..."
-                className="pl-9 h-9 w-full sm:w-64 text-sm"
-              />
+            <div className="relative w-full sm:w-auto flex items-center bg-white border border-slate-200 rounded-md overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500">
+              <Select value={searchCategory} onValueChange={setSearchCategory}>
+                <SelectTrigger className="w-[130px] border-none shadow-none focus:ring-0 bg-slate-50 text-xs font-semibold text-slate-700 h-9 rounded-none border-r border-slate-200">
+                  <SelectValue placeholder="Kategori" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Kolom</SelectItem>
+                  <SelectItem value="darNo">Nomor DAR</SelectItem>
+                  <SelectItem value="itemName">Nama Item</SelectItem>
+                  <SelectItem value="customer">Customer</SelectItem>
+                  <SelectItem value="designer">Desainer</SelectItem>
+                  <SelectItem value="status">Status</SelectItem>
+                  <SelectItem value="typeDesign">Tipe Desain</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <Input 
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder={searchCategory === 'all' ? "Cari apapun..." : "Cari..."}
+                  className="pl-9 h-9 w-full sm:w-48 text-sm border-none shadow-none focus-visible:ring-0 rounded-none bg-transparent"
+                />
+              </div>
             </div>
             <div className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1.5 rounded-full whitespace-nowrap">
               {filteredData.length} Baris
@@ -1554,8 +1702,14 @@ export default function RegisterDesignPage() {
               </Button>
               
               <Button variant="outline" size="sm" onClick={() => setIsShareDashboardOpen(true)} className="font-bold border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 flex-1 sm:flex-none">
-                <Share2 className="w-4 h-4 mr-2 hidden sm:inline" />
-                Share Dashboard
+                <Share2 className="w-4 h-4 mr-2 hidden sm:inline" /> Share Dashboard
+              </Button>
+              
+              <Button variant="outline" size="sm" onClick={() => {
+                setIsTrashOpen(true);
+                fetchTrashData();
+              }} className="font-bold border-red-200 text-red-700 bg-red-50 hover:bg-red-100 flex-1 sm:flex-none">
+                <Trash2 className="w-4 h-4 mr-2 hidden sm:inline" /> Tempat Sampah
               </Button>
 
               <Button variant="outline" size="sm" onClick={handleDownloadTemplate} className="font-bold border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 flex-1 sm:flex-none">
@@ -1914,13 +2068,6 @@ export default function RegisterDesignPage() {
         </div>
       </div>
 
-      {/* Datalists */}
-      
-      
-      
-      
-      
-
       <Dialog open={isGroupDialogOpen} onOpenChange={setIsGroupDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -2002,6 +2149,53 @@ export default function RegisterDesignPage() {
               Copy Link Share
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Trash Bin Dialog */}
+      <Dialog open={isTrashOpen} onOpenChange={setIsTrashOpen}>
+        <DialogContent className="sm:max-w-4xl p-0 overflow-hidden bg-slate-50 flex flex-col max-h-[85vh]">
+          <DialogHeader className="p-4 border-b border-slate-200 bg-white">
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <Trash2 className="w-5 h-5" /> Tempat Sampah Desain
+            </DialogTitle>
+            <DialogDescription>
+              Baris data yang dihapus akan disimpan di sini. Anda dapat memulihkannya atau menghapusnya secara permanen.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto p-4">
+            {loadingTrash ? (
+              <div className="flex justify-center p-8"><div className="w-6 h-6 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div></div>
+            ) : trashData.length === 0 ? (
+              <div className="text-center py-12 text-slate-500">Tempat sampah kosong.</div>
+            ) : (
+              <div className="space-y-3">
+                {trashData.map((item) => (
+                  <div key={item.id} className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex-1 overflow-hidden">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-bold text-sm text-slate-800">{item.designNo || 'No Design'}</span>
+                        <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{item.darNo || 'No DAR'}</span>
+                      </div>
+                      <div className="text-xs text-slate-600 truncate flex gap-4">
+                        <span><strong>Item:</strong> {item.itemName || '-'}</span>
+                        <span><strong>Tipe:</strong> {item.typeDesign || '-'}</span>
+                        <span><strong>Customer:</strong> {item.customer || '-'}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button variant="outline" size="sm" onClick={() => handleRestoreTrash(item)} className="text-emerald-700 bg-emerald-50 border-emerald-200 hover:bg-emerald-100">
+                        <Check className="w-4 h-4 mr-1" /> Restore
+                      </Button>
+                      <Button variant="destructive" size="sm" onClick={() => handlePermanentDelete(item)}>
+                        Hapus Permanen
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </DashboardLayout>

@@ -84,7 +84,8 @@ export default function DashboardDesignSummary() {
     const years = new Set<string>();
     data.forEach(d => {
       if (d.entryDate) {
-        const y = d.entryDate.split('-')[0];
+        const entryStr = String(d.entryDate);
+        const y = entryStr.split('-')[0];
         if (y && y.length === 4) years.add(y);
       }
     });
@@ -114,8 +115,9 @@ export default function DashboardDesignSummary() {
     const result = months.map(m => ({ month: m, "IN USE": 0, "FREE": 0, "ARCHIVE": 0, "IN LOCK": 0, Total: 0 }));
     
     data.forEach(d => {
-      if (d.entryDate && d.entryDate.startsWith(selectedYear)) {
-        const monthIndex = parseInt(d.entryDate.split('-')[1], 10) - 1;
+      const entryStr = String(d.entryDate || "");
+      if (entryStr && entryStr.startsWith(selectedYear)) {
+        const monthIndex = parseInt(entryStr.split('-')[1], 10) - 1;
         if (monthIndex >= 0 && monthIndex < 12) {
           const status = d.status as string;
           if (status === "IN USE" || status === "FREE" || status === "ARCHIVE" || status === "IN LOCK") {
@@ -133,7 +135,8 @@ export default function DashboardDesignSummary() {
     
     data.forEach(d => {
       if (d.entryDate) {
-        const y = d.entryDate.split('-')[0];
+        const entryStr = String(d.entryDate);
+        const y = entryStr.split('-')[0];
         if (y && y.length === 4) {
           if (!yearMap.has(y)) {
             yearMap.set(y, { year: y, "IN USE": 0, "FREE": 0, "ARCHIVE": 0, "IN LOCK": 0, Total: 0 });
@@ -182,14 +185,14 @@ export default function DashboardDesignSummary() {
 
   const recentItems = useMemo(() => {
      return [...data]
-       .sort((a, b) => (b.entryDate || "").localeCompare(a.entryDate || ""))
+       .sort((a, b) => String(b.entryDate || "").localeCompare(String(a.entryDate || "")))
        .slice(0, 5);
   }, [data]);
 
   const galleryItems = useMemo(() => {
     return [...data]
       .filter(d => d.designImage)
-      .sort((a, b) => (b.entryDate || "").localeCompare(a.entryDate || ""))
+      .sort((a, b) => String(b.entryDate || "").localeCompare(String(a.entryDate || "")))
       .slice(0, 20);
   }, [data]);
 
