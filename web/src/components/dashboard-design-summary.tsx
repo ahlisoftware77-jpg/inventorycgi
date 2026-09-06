@@ -94,29 +94,37 @@ export default function DashboardDesignSummary() {
     return Array.from(years).sort().reverse();
   }, [data]);
 
+  const filteredData = useMemo(() => {
+    if (!selectedYear || selectedYear === 'all') return data;
+    return data.filter(d => {
+      const entryStr = String(d.entryDate || "");
+      return entryStr.startsWith(selectedYear);
+    });
+  }, [data, selectedYear]);
+
   const stats = useMemo(() => {
     let inUse = 0;
     let free = 0;
     let archive = 0;
     let inLock = 0;
     
-    data.forEach(d => {
+    filteredData.forEach(d => {
       if (d.status === "IN USE") inUse++;
       else if (d.status === "FREE") free++;
       else if (d.status === "ARCHIVE") archive++;
       else if (d.status === "IN LOCK") inLock++;
     });
 
-    return { total: data.length, inUse, free, archive, inLock };
-  }, [data]);
+    return { total: filteredData.length, inUse, free, archive, inLock };
+  }, [filteredData]);
 
   const monthlyData = useMemo(() => {
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const result = months.map(m => ({ month: m, "IN USE": 0, "FREE": 0, "ARCHIVE": 0, "IN LOCK": 0, Total: 0 }));
     
-    data.forEach(d => {
+    filteredData.forEach(d => {
       const entryStr = String(d.entryDate || "");
-      if (entryStr && entryStr.startsWith(selectedYear)) {
+      if (entryStr) {
         const monthIndex = parseInt(entryStr.split('-')[1], 10) - 1;
         if (monthIndex >= 0 && monthIndex < 12) {
           const status = d.status as string;
@@ -128,7 +136,7 @@ export default function DashboardDesignSummary() {
       }
     });
     return result;
-  }, [data, selectedYear]);
+  }, [filteredData]);
 
   const yearlyData = useMemo(() => {
     const yearMap = new Map<string, any>();
@@ -156,7 +164,7 @@ export default function DashboardDesignSummary() {
 
   const getTop5 = (field: string) => {
     const counts = new Map<string, number>();
-    data.forEach(d => {
+    filteredData.forEach(d => {
       if (d[field]) {
         counts.set(d[field], (counts.get(d[field]) || 0) + 1);
       }
@@ -167,13 +175,13 @@ export default function DashboardDesignSummary() {
       .slice(0, 5);
   };
 
-  const customerData = useMemo(() => getTop5('customer'), [data]);
-  const designerData = useMemo(() => getTop5('designer'), [data]);
-  const itemData = useMemo(() => getTop5('itemName'), [data]);
+  const customerData = useMemo(() => getTop5('customer'), [filteredData]);
+  const designerData = useMemo(() => getTop5('designer'), [filteredData]);
+  const itemData = useMemo(() => getTop5('itemName'), [filteredData]);
 
   const typeDesignData = useMemo(() => {
     const counts = new Map<string, number>();
-    data.forEach(d => {
+    filteredData.forEach(d => {
       if (d.typeDesign) {
          counts.set(d.typeDesign, (counts.get(d.typeDesign) || 0) + 1);
       }
@@ -181,20 +189,20 @@ export default function DashboardDesignSummary() {
     return Array.from(counts.entries())
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
-  }, [data]);
+  }, [filteredData]);
 
   const recentItems = useMemo(() => {
-     return [...data]
+     return [...filteredData]
        .sort((a, b) => String(b.entryDate || "").localeCompare(String(a.entryDate || "")))
        .slice(0, 5);
-  }, [data]);
+  }, [filteredData]);
 
   const galleryItems = useMemo(() => {
-    return [...data]
+    return [...filteredData]
       .filter(d => d.designImage)
       .sort((a, b) => String(b.entryDate || "").localeCompare(String(a.entryDate || "")))
       .slice(0, 20);
-  }, [data]);
+  }, [filteredData]);
 
   if (loading) {
     return (
@@ -257,6 +265,7 @@ export default function DashboardDesignSummary() {
               <SelectValue placeholder="Tahun" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">Semua</SelectItem>
               {availableYears.map(y => (
                 <SelectItem key={y} value={y}>{y}</SelectItem>
               ))}
@@ -337,7 +346,7 @@ export default function DashboardDesignSummary() {
           
           <Card className="flex-1 flex flex-col shadow-sm border-slate-200 overflow-hidden bg-white/60 backdrop-blur-sm transition-all duration-300 hover:shadow-md min-h-[280px]">
             <CardHeader className="pb-0 pt-4 px-4 shrink-0">
-              <CardTitle className="text-sm font-bold">Status Bulanan ({selectedYear})</CardTitle>
+              <CardTitle className="text-sm font-bold">Status Bulanan ({selectedYear === 'all' ? 'Semua Tahun' : selectedYear})</CardTitle>
             </CardHeader>
             <CardContent className="flex-1 min-h-0 px-2 pb-2">
               <ResponsiveContainer width="100%" height="100%">
