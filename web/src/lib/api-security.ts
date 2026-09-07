@@ -1,10 +1,6 @@
 import { auth } from '@/lib/firebase-admin';
 
 export async function authenticateRequest(request: Request) {
-  if (!auth) {
-    throw new Error('Firebase Admin Auth is not initialized. Check your server credentials.');
-  }
-
   const authHeader = request.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) {
     throw new Error('Unauthorized: Missing or invalid token');

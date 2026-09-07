@@ -1081,7 +1081,7 @@ export default function RegisterDesignPage() {
       setLoadingTrash(true);
       for (const item of trashData) {
         if (item.designImage) {
-          const apiUrl = window.location.hostname === 'localhost' ? '/api/delete-drive' : 'https://inventorycgi.vercel.app/api/delete-drive';
+          const apiUrl = window.location.hostname === 'localhost' ? 'https://inventorycgi.vercel.app/api/delete-drive' : '/api/delete-drive';
           auth.currentUser?.getIdToken().then(token => {
             fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ fileId: item.designImage }) }).catch(err => console.error(err));
           });
