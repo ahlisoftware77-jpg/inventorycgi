@@ -26,7 +26,9 @@ export default function OAuthCallbackPage() {
       }
 
       try {
-        const apiUrl = '/api/exchange-token';
+        const apiUrl = window.location.hostname === 'localhost' 
+          ? '/api/exchange-token' 
+          : 'https://inventorycgi.vercel.app/api/exchange-token';
           
         // Redirect URI must match exactly what was sent during the auth request
         const redirectUri = window.location.origin + '/oauth-callback';
