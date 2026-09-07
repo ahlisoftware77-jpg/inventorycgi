@@ -4,7 +4,7 @@ import { google } from 'googleapis';
 import { db } from '@/lib/firebase/config';
 import { doc, getDoc } from 'firebase/firestore';
 
-
+export const dynamic = 'force-dynamic';
 
 export async function OPTIONS(request: Request) {
   return new NextResponse(null, { status: 200, headers: getCorsHeaders(request) });

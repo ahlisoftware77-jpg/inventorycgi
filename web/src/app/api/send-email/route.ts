@@ -126,3 +126,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Failed to send email', details: error.message }, { status: 500, headers: getCorsHeaders(request) });
   }
 }
+
+export const dynamic = 'force-dynamic';
+

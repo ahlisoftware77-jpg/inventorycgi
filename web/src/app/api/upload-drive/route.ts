@@ -145,3 +145,6 @@ const settingsDoc = await getDoc(doc(db, "settings", "general"));
     return NextResponse.json({ error: error.message || "Failed to upload" }, { status: 500, headers: getCorsHeaders(request) });
   }
 }
+
+export const dynamic = 'force-dynamic';
+

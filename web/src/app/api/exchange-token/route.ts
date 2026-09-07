@@ -56,3 +56,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message || "Failed to authenticate" }, { status: 500, headers: corsHeaders });
   }
 }
+
+export const dynamic = 'force-dynamic';
+
