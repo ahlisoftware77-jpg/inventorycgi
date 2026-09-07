@@ -7,13 +7,14 @@ import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { db, auth } from '@/lib/firebase/config';
 import { collection, getDocs, doc, setDoc, deleteDoc, updateDoc, query, orderBy, serverTimestamp, where, addDoc } from 'firebase/firestore';
-import { Trash2, Plus, Save, Layers, CheckSquare, Search, ChevronDown, Check, Eye, X, Pencil, Share2, ChevronUp, BarChart2, Download, Upload, FileSpreadsheet, Lock, Unlock } from 'lucide-react';
+import { Trash2, Plus, Save, Layers, CheckSquare, Search, ChevronDown, Check, Eye, X, Pencil, Share2, ChevronUp, BarChart2, Download, Upload, FileSpreadsheet, Lock, Unlock, Loader2, MoreHorizontal } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, DialogClose } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 export interface RegisterDesignItem {
   id: string;
@@ -371,7 +372,21 @@ const CellImageUpload = ({
   }
 
   return (
-    <div className="relative flex items-center justify-center w-full h-full">
+    <div 
+      className="relative flex items-center justify-center w-full h-full group focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 rounded"
+      tabIndex={0}
+      onPaste={(e) => {
+        const pastedText = e.clipboardData.getData('text');
+        if (pastedText && pastedText.includes('drive.google.com')) {
+          const id = extractDriveId(pastedText);
+          if (id) {
+            e.preventDefault();
+            handleUpdateCell(row.id, 'designImage', id);
+            toast({ title: 'Link Tersimpan', description: 'Google Drive ID berhasil disalin.' });
+          }
+        }
+      }}
+    >
       {isUploading ? (
         <span className="text-[10px] text-slate-500 animate-pulse">Uploading...</span>
       ) : (
@@ -660,9 +675,16 @@ async function hashString(str: string) {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+const extractDriveId = (url: string) => {
+  if (!url) return "";
+  const match = url.match(/(?:file\/d\/|id=)([\w-]+)/);
+  return match ? match[1] : url.trim();
+};
+
 export default function RegisterDesignPage() {
   const { user, loading: loadingUser } = useAuth();
   const router = useRouter();
+  const isAdmin = user?.email === 'triyadi72@gmail.com';
   const { toast } = useToast();
   const [data, setData] = useState<RegisterDesignItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -686,6 +708,7 @@ export default function RegisterDesignPage() {
   const [loadingTrash, setLoadingTrash] = useState(false);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
@@ -820,6 +843,14 @@ export default function RegisterDesignPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
   const [targetDarNo, setTargetDarNo] = useState("");
+  const [importProgress, setImportProgress] = useState<{current: number, total: number, isParsing?: boolean} | null>(null);
+  const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
+  const [rowLimit, setRowLimit] = useState<number>(50);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isMassDeleteOpen, setIsMassDeleteOpen] = useState(false);
+  const [massDeleteYear, setMassDeleteYear] = useState<string>("");
+  const [massDeleteConfirm, setMassDeleteConfirm] = useState("");
+  const [isMassDeleting, setIsMassDeleting] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -860,6 +891,10 @@ export default function RegisterDesignPage() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, searchCategory, selectedYear, rowLimit]);
 
   const handleOpenSign = async (darNo: string) => {
     try {
@@ -979,6 +1014,50 @@ export default function RegisterDesignPage() {
       setLoadingTrash(false);
     }
   };
+  const handleMassDelete = async () => {
+    if (!isAdmin) return;
+    if (massDeleteConfirm !== `HAPUS ${massDeleteYear}`) {
+      toast({ title: "Konfirmasi gagal", description: "Teks konfirmasi tidak cocok.", variant: "destructive" });
+      return;
+    }
+
+    setIsMassDeleting(true);
+    try {
+      const itemsToDelete = data.filter(d => {
+        const dateStr = d.entryDate || (d.createdAt && typeof (d.createdAt as any).toDate === 'function' ? (d.createdAt as any).toDate().toISOString() : "");
+        if (dateStr) {
+          const y = new Date(dateStr).getFullYear().toString();
+          return y === massDeleteYear;
+        }
+        return false;
+      });
+
+      if (itemsToDelete.length === 0) {
+        toast({ title: "Data tidak ditemukan", description: `Tidak ada data di tahun ${massDeleteYear}` });
+        setIsMassDeleting(false);
+        return;
+      }
+
+      for (const item of itemsToDelete) {
+        await setDoc(doc(db, "trash_register_design", item.id), {
+          ...item,
+          deletedAt: serverTimestamp()
+        });
+        await deleteDoc(doc(db, "register_design", item.id));
+      }
+
+      setData(prev => prev.filter(d => !itemsToDelete.some(it => it.id === d.id)));
+      setIsMassDeleteOpen(false);
+      setMassDeleteConfirm("");
+      toast({ title: "Hapus Masal Berhasil", description: `${itemsToDelete.length} data dipindahkan ke Tempat Sampah.` });
+
+    } catch (err) {
+      console.error("Gagal mass delete:", err);
+      toast({ title: "Gagal Hapus Masal", variant: "destructive" });
+    } finally {
+      setIsMassDeleting(false);
+    }
+  };
 
   const handleRestoreTrash = async (item: any) => {
     try {
@@ -993,6 +1072,29 @@ export default function RegisterDesignPage() {
     } catch (error) {
       console.error("Gagal memulihkan:", error);
       toast({ title: "Gagal memulihkan data", variant: "destructive" });
+    }
+  };
+
+  const handleEmptyTrash = async () => {
+    if (!confirm("Kosongkan Tempat Sampah? Semua baris data dan file gambar akan dihapus PERMANEN dan tidak bisa dikembalikan lagi.")) return;
+    try {
+      setLoadingTrash(true);
+      for (const item of trashData) {
+        if (item.designImage) {
+          const apiUrl = window.location.hostname === 'localhost' ? 'https://inventorycgi.vercel.app/api/delete-drive' : '/api/delete-drive';
+          auth.currentUser?.getIdToken().then(token => {
+            fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ fileId: item.designImage }) }).catch(err => console.error(err));
+          });
+        }
+        await deleteDoc(doc(db, "trash_register_design", item.id));
+      }
+      setTrashData([]);
+      toast({ title: "Terhapus Permanen", description: "Tempat sampah berhasil dikosongkan." });
+    } catch (error) {
+      console.error("Gagal mengosongkan tempat sampah:", error);
+      toast({ title: "Gagal", description: "Terjadi kesalahan saat menghapus data.", variant: "destructive" });
+    } finally {
+      setLoadingTrash(false);
     }
   };
 
@@ -1134,7 +1236,7 @@ export default function RegisterDesignPage() {
       updatePayload.designNo = generatedDesignNo;
     }
 
-    const infoAndNoteFields = ["benefit", "generalNote", "note2", "lastTimeReq", "benefitText", "feedbackDetails", "lastDesignSupp", "requiredDate", "closingDate"];
+    const infoAndNoteFields = ["benefit", "generalNote", "note2", "lastTimeReq", "benefitText", "feedbackDetails", "lastDesignSupp", "requiredDate", "closingDate", "technician", "designer", "customer"];
     const shouldSync = currentRow?.darNo && infoAndNoteFields.includes(field);
 
     // Update local state immediately
@@ -1248,7 +1350,7 @@ export default function RegisterDesignPage() {
     
     // VALIDATION: Check if specifications are identical
     const specFields: (keyof RegisterDesignItem)[] = [
-      'customer', 'designer', 'technician', 'typeDesign', 'designSource', 'type',
+      'customer', 'designer', 'technician', 'typeDesign', 'type',
       'sizeChecks', 'sizeFaces', 'sizeCm1', 'sizeCm2', 'glazeChecks', 'glazeResidue', 'surfaceChecks',
       'surfaceTemp', 'guPtvChecks', 'guPtv', 'guPtv2', 'guPtv3', 'guPtv4', 'guPtv5', 'guPtv6', 'inkChecks', 'inkOther', 'sendBy', 'benefit'
     ];
@@ -1440,22 +1542,47 @@ export default function RegisterDesignPage() {
     }
   };
 
-  const filteredData = data.filter(d => {
-    if (!search) return true;
-    const lowerSearch = search.toLowerCase();
-    
-    if (searchCategory === "all") {
-       return String(d.itemName || "").toLowerCase().includes(lowerSearch) || 
-              String(d.customer || "").toLowerCase().includes(lowerSearch) ||
-              String(d.darNo || "").toLowerCase().includes(lowerSearch) ||
-              String(d.designNo || "").toLowerCase().includes(lowerSearch) ||
-              String(d.status || "").toLowerCase().includes(lowerSearch) ||
-              String(d.typeDesign || "").toLowerCase().includes(lowerSearch) ||
-              String(d.designer || "").toLowerCase().includes(lowerSearch);
-    } else {
-       return String((d as any)[searchCategory] || "").toLowerCase().includes(lowerSearch);
-    }
-  });
+  const yearOptions = React.useMemo(() => {
+    const years = new Set<string>();
+    data.forEach(d => {
+       const dateStr = d.entryDate || (d.createdAt && typeof (d.createdAt as any).toDate === 'function' ? (d.createdAt as any).toDate().toISOString() : "");
+       if (dateStr) {
+          const y = new Date(dateStr).getFullYear().toString();
+          if (y !== "NaN") years.add(y);
+       }
+    });
+    years.add(new Date().getFullYear().toString());
+    return Array.from(years).sort((a,b) => b.localeCompare(a));
+  }, [data]);
+
+  const filteredData = React.useMemo(() => {
+    return data.filter(d => {
+      // Year Filter
+      const dateStr = d.entryDate || (d.createdAt && typeof (d.createdAt as any).toDate === 'function' ? (d.createdAt as any).toDate().toISOString() : "");
+      let itemYear = new Date().getFullYear().toString();
+      if (dateStr) {
+         const y = new Date(dateStr).getFullYear().toString();
+         if (y !== "NaN") itemYear = y;
+      }
+      if (selectedYear !== "all" && itemYear !== selectedYear) return false;
+
+      // Search Filter
+      if (!search) return true;
+      const lowerSearch = search.toLowerCase();
+      
+      if (searchCategory === "all") {
+         return String(d.itemName || "").toLowerCase().includes(lowerSearch) || 
+                String(d.customer || "").toLowerCase().includes(lowerSearch) ||
+                String(d.darNo || "").toLowerCase().includes(lowerSearch) ||
+                String(d.designNo || "").toLowerCase().includes(lowerSearch) ||
+                String(d.status || "").toLowerCase().includes(lowerSearch) ||
+                String(d.typeDesign || "").toLowerCase().includes(lowerSearch) ||
+                String(d.designer || "").toLowerCase().includes(lowerSearch);
+      } else {
+         return String((d as any)[searchCategory] || "").toLowerCase().includes(lowerSearch);
+      }
+    });
+  }, [data, search, searchCategory, selectedYear]);
 
   const handleSort = (key: string) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -1473,17 +1600,40 @@ export default function RegisterDesignPage() {
         let bVal = (b as any)[sortConfig.key] || "";
         
         if (sortConfig.key === "createdAt" || sortConfig.key === "updatedAt") {
-            aVal = (a as any)[sortConfig.key]?.seconds || 0;
-            bVal = (b as any)[sortConfig.key]?.seconds || 0;
+            aVal = (a as any)[sortConfig.key]?.seconds || ((a as any)[sortConfig.key] ? Date.now() / 1000 : 0);
+            bVal = (b as any)[sortConfig.key]?.seconds || ((b as any)[sortConfig.key] ? Date.now() / 1000 : 0);
         }
 
         if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
         if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
         return 0;
       });
+    } else {
+      // Default sort by createdAt descending if not sorted
+      sortableItems.sort((a, b) => {
+         const aSec = (a as any).createdAt?.seconds || ((a as any).createdAt ? Date.now() / 1000 : 0);
+         const bSec = (b as any).createdAt?.seconds || ((b as any).createdAt ? Date.now() / 1000 : 0);
+         return bSec - aSec;
+      });
     }
+
     return sortableItems;
   }, [filteredData, sortConfig]);
+
+  const totalPages = React.useMemo(() => {
+    if (!search && rowLimit > 0) {
+      return Math.ceil(sortedAndFilteredData.length / rowLimit);
+    }
+    return 1;
+  }, [sortedAndFilteredData.length, search, rowLimit]);
+
+  const paginatedData = React.useMemo(() => {
+    if (!search && rowLimit > 0) {
+      const start = (currentPage - 1) * rowLimit;
+      return sortedAndFilteredData.slice(start, start + rowLimit);
+    }
+    return sortedAndFilteredData;
+  }, [sortedAndFilteredData, search, rowLimit, currentPage]);
 
   const toggleSelectAll = () => {
     if (filteredData.length === 0) return;
@@ -1576,8 +1726,11 @@ export default function RegisterDesignPage() {
     
     const targetInput = e.target; // Simpan referensi input file
 
+    setImportProgress({ current: 0, total: 100, isParsing: true });
+
     const reader = new FileReader();
     reader.onload = async (evt) => {
+      await new Promise(r => setTimeout(r, 50));
       try {
         const bstr = evt.target?.result;
         const wb = XLSX.read(bstr, { type: 'binary', cellDates: true });
@@ -1586,9 +1739,35 @@ export default function RegisterDesignPage() {
         const importedData = XLSX.utils.sheet_to_json(ws, { raw: false, dateNF: 'yyyy-mm-dd' });
         
         let successCount = 0;
+        const totalRows = (importedData as any[]).length;
+        setImportProgress({ current: 0, total: totalRows });
+
         const toStringSafe = (val: any) => val !== undefined && val !== null ? String(val).trim() : "";
 
-        for (const row of importedData as any[]) {
+        const parseExcelDate = (val: any) => {
+          if (!val) return "";
+          let s = String(val).trim();
+          // DD-MM-YYYY or DD/MM/YYYY
+          const match1 = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})$/);
+          if (match1) {
+            let d = match1[1].padStart(2, '0');
+            let m = match1[2].padStart(2, '0');
+            let y = match1[3].length === 2 ? `20${match1[3]}` : match1[3];
+            return `${y}-${m}-${d}`;
+          }
+          // YYYY-MM-DD or YYYY/MM/DD
+          const match2 = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+          if (match2) {
+            return `${match2[1]}-${match2[2].padStart(2, '0')}-${match2[3].padStart(2, '0')}`;
+          }
+          return s;
+        };
+
+        for (let i = 0; i < totalRows; i++) {
+          const row = (importedData as any[])[i];
+          setImportProgress({ current: i + 1, total: totalRows });
+          if (i % 5 === 0) await new Promise(r => setTimeout(r, 0));
+
           const { DAR_No, ...rest } = row;
 
           // Cek jika baris benar-benar kosong (hanya terbaca karena formatting Excel)
@@ -1596,14 +1775,7 @@ export default function RegisterDesignPage() {
             continue; // Skip baris yang pada dasarnya kosong
           }
 
-          let parsedDate = rest.entryDate;
-          if (parsedDate && typeof parsedDate === 'string' && parsedDate.includes('/')) {
-             const parts = parsedDate.split('/');
-             if (parts.length === 3) {
-               const y = parts[2].length === 2 ? `20${parts[2]}` : parts[2];
-               parsedDate = `${y}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
-             }
-          }
+          let parsedDate = parseExcelDate(rest.entryDate);
 
           const eDarNo = toStringSafe(DAR_No).toLowerCase().trim();
           const eItemName = toStringSafe(rest.itemName).toLowerCase().trim();
@@ -1655,15 +1827,16 @@ export default function RegisterDesignPage() {
             sendBy: toStringSafe(rest.sendBy),
             benefit: toStringSafe(rest.benefit),
             benefitText: toStringSafe(rest.benefitText),
-            lastTimeReq: toStringSafe(rest.lastTimeReq),
+            lastTimeReq: parseExcelDate(rest.lastTimeReq),
             feedback: toStringSafe(rest.feedback),
             feedbackDetails: toStringSafe(rest.feedbackDetails),
             lastDesignSupp: toStringSafe(rest.lastDesignSupp),
-            requiredDate: toStringSafe(rest.requiredDate),
-            closingDate: toStringSafe(rest.closingDate),
+            requiredDate: parseExcelDate(rest.requiredDate),
+            closingDate: parseExcelDate(rest.closingDate),
             generalNote: toStringSafe(rest.generalNote),
             createdBy: toStringSafe(rest.createdBy),
             status: toStringSafe(rest.status) || "FREE",
+            designImage: rest.linkFoto ? extractDriveId(toStringSafe(rest.linkFoto)) : "",
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
           };
@@ -1676,6 +1849,8 @@ export default function RegisterDesignPage() {
       } catch (err) {
         console.error(err);
         toast({ title: "Gagal Import", description: "Terjadi kesalahan saat membaca file Excel.", variant: "destructive" });
+      } finally {
+        setImportProgress(null);
       }
       
       targetInput.value = '';
@@ -1722,50 +1897,89 @@ export default function RegisterDesignPage() {
                 />
               </div>
             </div>
+            
             <div className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1.5 rounded-full whitespace-nowrap">
               {filteredData.length} Baris
             </div>
+
+            <div className="flex items-center gap-2">
+              <Select value={selectedYear} onValueChange={setSelectedYear}>
+                <SelectTrigger className="w-[100px] h-9 text-xs font-semibold bg-white border-slate-200">
+                  <SelectValue placeholder="Tahun" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Tahun</SelectItem>
+                  {yearOptions.map(y => (
+                    <SelectItem key={y} value={y}>{y}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={rowLimit.toString()} onValueChange={(v) => setRowLimit(parseInt(v))}>
+                <SelectTrigger className="w-[110px] h-9 text-xs font-semibold bg-white border-slate-200">
+                  <SelectValue placeholder="Baris" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="50">50 Baris</SelectItem>
+                  <SelectItem value="100">100 Baris</SelectItem>
+                  <SelectItem value="0">Semua</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             
             <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto mt-2 xl:mt-0">
-              <Button variant="outline" size="sm" onClick={handleOpenGroupDialog} disabled={selectedIds.size === 0} className="font-bold border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 flex-1 sm:flex-none">
-                <CheckSquare className="w-4 h-4 mr-2 hidden sm:inline" />
-                Group to DAR ({selectedIds.size})
-              </Button>
-              
-              <Button variant="outline" size="sm" onClick={() => setIsShareDashboardOpen(true)} className="font-bold border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 flex-1 sm:flex-none">
-                <Share2 className="w-4 h-4 mr-2 hidden sm:inline" /> Share Dashboard
-              </Button>
-              
-              <Button variant="outline" size="sm" onClick={() => {
-                setIsTrashOpen(true);
-                fetchTrashData();
-              }} className="font-bold border-red-200 text-red-700 bg-red-50 hover:bg-red-100 flex-1 sm:flex-none">
-                <Trash2 className="w-4 h-4 mr-2 hidden sm:inline" /> Tempat Sampah
-              </Button>
-
-              <Button variant="outline" size="sm" onClick={handleDownloadTemplate} className="font-bold border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 flex-1 sm:flex-none">
-                <Download className="w-4 h-4 mr-2 hidden sm:inline" />
-                Template Excel
-              </Button>
-              <div className="relative flex-1 sm:flex-none">
-                <input type="file" accept=".xlsx, .xls" onChange={handleImportExcel} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" title="Import Excel" />
-                <Button variant="outline" size="sm" className="font-bold border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 w-full pointer-events-none">
-                  <Upload className="w-4 h-4 mr-2 hidden sm:inline" />
-                  Import Excel
+              {selectedIds.size > 0 && (
+                <Button variant="outline" size="sm" onClick={handleOpenGroupDialog} className="font-semibold text-slate-700 hover:bg-slate-100 flex-1 sm:flex-none transition-colors border-slate-300">
+                  <CheckSquare className="w-4 h-4 mr-2" /> Group to DAR ({selectedIds.size})
                 </Button>
-              </div>
-              <Button variant="outline" size="sm" onClick={handleExportExcel} className="font-bold border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 flex-1 sm:flex-none">
-                <FileSpreadsheet className="w-4 h-4 mr-2 hidden sm:inline" />
-                Export Excel
+              )}
+
+              <Button variant="outline" size="sm" onClick={() => router.push('/register-design/dashboard')} className="font-semibold text-slate-700 hover:bg-slate-100 flex-1 sm:flex-none transition-colors border-slate-300">
+                <BarChart2 className="w-4 h-4 mr-2 hidden sm:inline" /> Dashboard
               </Button>
 
-              <Button variant="outline" size="sm" onClick={() => router.push('/register-design/dashboard')} className="font-bold border-purple-200 text-purple-700 bg-purple-50 hover:bg-purple-100 flex-1 sm:flex-none">
-                <BarChart2 className="w-4 h-4 mr-2 hidden sm:inline" />
-                Dashboard
-              </Button>
-              <Button onClick={handleAddRow} size="sm" className="font-bold bg-blue-600 hover:bg-blue-700 flex-1 sm:flex-none">
-                <Plus className="w-4 h-4 mr-1 hidden sm:inline" />
-                Baris Baru (F8)
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="font-semibold text-slate-700 hover:bg-slate-100 border-slate-300">
+                    Lainnya <ChevronDown className="w-4 h-4 ml-2" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48 bg-white border-slate-200 shadow-md">
+                  <DropdownMenuItem onClick={() => setIsShareDashboardOpen(true)} className="cursor-pointer text-slate-700 focus:bg-slate-50">
+                    <Share2 className="w-4 h-4 mr-2" /> Share Dashboard
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuSeparator className="bg-slate-100" />
+                  
+                  <DropdownMenuItem onClick={handleDownloadTemplate} className="cursor-pointer text-slate-700 focus:bg-slate-50">
+                    <Download className="w-4 h-4 mr-2" /> Template Excel
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuItem onClick={handleExportExcel} className="cursor-pointer text-slate-700 focus:bg-slate-50">
+                    <FileSpreadsheet className="w-4 h-4 mr-2" /> Export Excel
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuItem onClick={() => fileInputRef.current?.click()} className="cursor-pointer text-slate-700 focus:bg-slate-50">
+                    <Upload className="w-4 h-4 mr-2" /> Import Excel
+                  </DropdownMenuItem>
+
+                  {isAdmin && (
+                    <>
+                      <DropdownMenuSeparator className="bg-slate-100" />
+                      <DropdownMenuItem onClick={() => setIsMassDeleteOpen(true)} className="cursor-pointer text-red-600 focus:text-red-700 focus:bg-red-50">
+                        <Trash2 className="w-4 h-4 mr-2" /> Hapus Masal
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { setIsTrashOpen(true); fetchTrashData(); }} className="cursor-pointer text-red-600 focus:text-red-700 focus:bg-red-50">
+                        <Trash2 className="w-4 h-4 mr-2" /> Tempat Sampah
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <input type="file" ref={fileInputRef} accept=".xlsx, .xls" onChange={handleImportExcel} className="hidden" title="Import Excel" />
+
+              <Button onClick={handleAddRow} size="sm" className="font-semibold bg-slate-900 hover:bg-slate-800 text-white flex-1 sm:flex-none transition-colors shadow-sm">
+                <Plus className="w-4 h-4 mr-1 hidden sm:inline" /> Baris Baru (F8)
               </Button>
             </div>
           </div>
@@ -2027,7 +2241,7 @@ export default function RegisterDesignPage() {
               ) : filteredData.length === 0 ? (
                 <tr><td colSpan={24} className="p-8 text-center text-slate-500 font-bold">Tidak ada data desain.</td></tr>
               ) : (
-                sortedAndFilteredData.map((row, idx) => (
+                paginatedData.map((row, idx) => (
                   <tr key={row.id} className="border-b border-slate-200 hover:bg-blue-50/50 group transition-colors">
                     <td className="w-10 min-w-[40px] max-w-[40px] p-0 border-r text-center sticky left-0 bg-white group-hover:bg-blue-50 z-20">
                       <input type="checkbox" checked={selectedIds.has(row.id)} onChange={() => toggleSelect(row.id)} className="w-4 h-4 cursor-pointer accent-red-600" />
@@ -2075,18 +2289,18 @@ export default function RegisterDesignPage() {
                       <div className="flex items-center justify-center gap-1">
                         {row.darNo && (
                           <>
-                            <Button variant="ghost" size="icon" onClick={() => handleOpenSign(row.darNo)} className="h-6 w-6 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50" title="Isi Tanda Tangan">
+                            <Button variant="ghost" size="icon" onClick={() => handleOpenSign(row.darNo)} className="h-6 w-6 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 shadow-sm border border-emerald-100" title="Isi Tanda Tangan">
                               <Pencil className="w-3.5 h-3.5" />
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={() => setPreviewDarNo(row.darNo)} className="h-6 w-6 text-slate-400 hover:text-blue-600 hover:bg-blue-50" title="Preview Form DAR">
+                            <Button variant="ghost" size="icon" onClick={() => setPreviewDarNo(row.darNo)} className="h-6 w-6 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 shadow-sm border border-blue-100" title="Preview Form DAR">
                               <Eye className="w-3.5 h-3.5" />
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleSharePublicLink(row.darNo)} className="h-6 w-6 text-slate-400 hover:text-purple-600 hover:bg-purple-50" title="Bagikan Link Public Form DAR" disabled={isSharing}>
+                            <Button variant="ghost" size="icon" onClick={() => handleSharePublicLink(row.darNo)} className="h-6 w-6 bg-purple-50 text-purple-600 hover:bg-purple-100 hover:text-purple-700 shadow-sm border border-purple-100" title="Bagikan Link Public Form DAR" disabled={isSharing}>
                               <Share2 className="w-3.5 h-3.5" />
                             </Button>
                           </>
                         )}
-                        <Button variant="ghost" size="icon" onClick={() => handleDeleteRow(row.id)} className="h-6 w-6 text-slate-400 hover:text-red-600 hover:bg-red-50" title="Hapus Baris">
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteRow(row.id)} className="h-6 w-6 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 shadow-sm border border-red-100" title="Hapus Baris">
                           <Trash2 className="w-3.5 h-3.5" />
                         </Button>
                       </div>
@@ -2097,6 +2311,33 @@ export default function RegisterDesignPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination UI */}
+        {!search && rowLimit > 0 && totalPages > 1 && (
+          <div className="flex items-center justify-between p-4 border-t border-slate-200 bg-white">
+            <div className="text-sm text-slate-500 font-semibold">
+              Halaman {currentPage} dari {totalPages}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
+                disabled={currentPage === 1}
+              >
+                Sebelumnya
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
+                disabled={currentPage === totalPages}
+              >
+                Selanjutnya
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       <Dialog open={isGroupDialogOpen} onOpenChange={setIsGroupDialogOpen}>
@@ -2183,16 +2424,74 @@ export default function RegisterDesignPage() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={isMassDeleteOpen} onOpenChange={setIsMassDeleteOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-red-600 flex items-center gap-2">
+              <Trash2 className="w-5 h-5" /> Hapus Masal per Tahun
+            </DialogTitle>
+            <DialogDescription>
+              Fitur ini akan memindahkan <strong>semua data</strong> pada tahun yang dipilih ke Tempat Sampah.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div>
+              <label className="text-sm font-bold text-slate-700 block mb-2">Pilih Tahun</label>
+              <Select value={massDeleteYear} onValueChange={setMassDeleteYear}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Pilih tahun yang akan dihapus" />
+                </SelectTrigger>
+                <SelectContent>
+                  {yearOptions.filter(y => y !== 'all').map(y => (
+                    <SelectItem key={y} value={y}>{y}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {massDeleteYear && (
+              <div className="bg-red-50 p-3 rounded-md border border-red-200 text-sm text-red-800">
+                Ketik <strong>HAPUS {massDeleteYear}</strong> di bawah ini untuk mengonfirmasi:
+                <Input 
+                  value={massDeleteConfirm} 
+                  onChange={e => setMassDeleteConfirm(e.target.value)} 
+                  className="mt-2 border-red-300 focus-visible:ring-red-500 font-mono" 
+                  placeholder={`HAPUS ${massDeleteYear}`}
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsMassDeleteOpen(false)}>Batal</Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleMassDelete} 
+              disabled={!massDeleteYear || massDeleteConfirm !== `HAPUS ${massDeleteYear}` || isMassDeleting}
+            >
+              {isMassDeleting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Trash2 className="w-4 h-4 mr-2" />}
+              Hapus Data
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Trash Bin Dialog */}
       <Dialog open={isTrashOpen} onOpenChange={setIsTrashOpen}>
         <DialogContent className="sm:max-w-4xl p-0 overflow-hidden bg-slate-50 flex flex-col max-h-[85vh]">
-          <DialogHeader className="p-4 border-b border-slate-200 bg-white">
-            <DialogTitle className="flex items-center gap-2 text-red-600">
-              <Trash2 className="w-5 h-5" /> Tempat Sampah Desain
-            </DialogTitle>
-            <DialogDescription>
-              Baris data yang dihapus akan disimpan di sini. Anda dapat memulihkannya atau menghapusnya secara permanen.
-            </DialogDescription>
+          <DialogHeader className="p-4 border-b border-slate-200 bg-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <DialogTitle className="flex items-center gap-2 text-red-600">
+                <Trash2 className="w-5 h-5" /> Tempat Sampah Desain
+              </DialogTitle>
+              <DialogDescription>
+                Baris data yang dihapus akan disimpan di sini. Anda dapat memulihkannya atau menghapusnya secara permanen.
+              </DialogDescription>
+            </div>
+            {trashData.length > 0 && !loadingTrash && (
+              <Button variant="destructive" onClick={handleEmptyTrash} size="sm" className="shrink-0 font-bold">
+                <Trash2 className="w-4 h-4 mr-2" /> Kosongkan Tempat Sampah
+              </Button>
+            )}
           </DialogHeader>
           <div className="flex-1 overflow-auto p-4">
             {loadingTrash ? (
@@ -2226,6 +2525,32 @@ export default function RegisterDesignPage() {
                 ))}
               </div>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={importProgress !== null} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-md [&>button]:hidden">
+          <DialogHeader>
+            <DialogTitle>{importProgress?.isParsing ? "Membaca File Excel..." : "Mengimpor Data Excel..."}</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center justify-center py-6 gap-4">
+            <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
+            
+            {!importProgress?.isParsing && (
+              <div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                <div 
+                  className="bg-blue-600 h-2.5 rounded-full transition-all duration-300" 
+                  style={{ width: `${importProgress ? Math.round((importProgress.current / importProgress.total) * 100) : 0}%` }}
+                ></div>
+              </div>
+            )}
+            
+            <p className="text-sm font-medium text-slate-600">
+              {importProgress?.isParsing 
+                ? "Mengekstrak data dari file..." 
+                : `Memproses ${importProgress?.current} dari ${importProgress?.total} baris (${importProgress ? Math.round((importProgress.current / importProgress.total) * 100) : 0}%)`
+              }
+            </p>
           </div>
         </DialogContent>
       </Dialog>

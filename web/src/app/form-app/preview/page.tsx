@@ -44,7 +44,7 @@ function PreviewContent() {
     const {
         darNo = '', type = [], requiredDate = '', closingDate = '', sizeChecks = [], sizeFaces = '', sizeCm1 = '', sizeCm2 = '',
         glazeChecks = [], glazeResidue = '', surfaceChecks = [], surfaceTemp = '', guPtv = [], guPtvChecks = [], inkChecks = [], inkOther = '', sendBy = [],
-        items = [], numColumns = 4, note2Rows = [], lastDesignSupp = [], feedbackRows = [], signatures = {},
+        items = [], numColumns = 32, note2Rows = [], lastDesignSupp = [], feedbackRows = [], signatures = {},
         customer = '', entryDate = '', designer = '', technician = '', purpose = '', designNo = '',
         benefit = '', lastTimeReq = '', feedback = '', generalNote = ''
     } = report;

@@ -163,6 +163,11 @@ service cloud.firestore {
       allow delete: if true;
     }
 
+    match /trash_register_design/{id} {
+      allow create: if true;
+      allow read, update, delete: if request.auth != null && getUserRole(request.auth.uid) == 'Admin';
+    }
+
     match /form_app/{id} {
       allow get, list: if true;
       allow create, update: if true;
