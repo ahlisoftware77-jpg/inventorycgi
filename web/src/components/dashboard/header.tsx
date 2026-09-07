@@ -175,15 +175,15 @@ export default function Header() {
               <Menu className="h-5 w-5" />
             </Button>
             <div className="flex items-center gap-2 sm:gap-3 ml-1 sm:ml-2 min-w-0">
-                <Image src="/icon-512x512.png" alt="Logo" width={24} height={24} className="opacity-90 shrink-0 drop-shadow-lg sm:w-7 sm:h-7" />
-                <span className="hidden sm:inline-block text-white font-black uppercase tracking-tight text-[11px] sm:text-base truncate max-w-[100px] sm:max-w-[450px] italic">{companyName}</span>
+                <Image src="/cgi2.png" alt="Logo" width={24} height={24} className="opacity-90 shrink-0 drop-shadow-lg object-contain sm:w-7 sm:h-7" />
+                <span className="hidden sm:inline-block text-white font-black uppercase tracking-tight text-[11px] sm:text-base truncate max-w-[100px] sm:max-w-[450px]" style={{ fontFamily: 'CGIFont' }}>{companyName}</span>
             </div>
           </div>
         ) : (
           <div className="flex items-center gap-2 min-w-0">
             <Link href="/" className="flex items-center gap-2 sm:gap-3 min-w-0">
-              <Image src="/icon-512x512.png" alt="Logo" width={28} height={28} className="shrink-0 drop-shadow-lg sm:w-8 sm:h-8" />
-              <span className="hidden sm:inline-block text-white font-black uppercase tracking-tight text-xs sm:text-base truncate max-w-[150px] sm:max-w-500 italic">{companyName}</span>
+              <Image src="/cgi2.png" alt="Logo" width={28} height={28} className="shrink-0 drop-shadow-lg object-contain sm:w-8 sm:h-8" />
+              <span className="hidden sm:inline-block text-white font-black uppercase tracking-tight text-xs sm:text-base truncate max-w-[150px] sm:max-w-500" style={{ fontFamily: 'CGIFont' }}>{companyName}</span>
             </Link>
           </div>
         )}

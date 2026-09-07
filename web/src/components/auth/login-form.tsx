@@ -129,11 +129,11 @@ export function LoginForm() {
   return (
     <Card className="w-full max-w-[400px] border-none shadow-2xl bg-white/90 dark:bg-slate-950/90 backdrop-blur-xl rounded-[2.5rem] overflow-hidden animate-in fade-in zoom-in duration-700">
       <CardHeader className="pt-10 pb-6 flex flex-col items-center space-y-4">
-        <div className="p-3 bg-cyan-600 rounded-2xl shadow-lg shadow-cyan-600/20">
-          <Image src="/cgi.png" alt="Logo" width={40} height={40} className="brightness-0 invert" />
+        <div className="bg-transparent mb-2">
+          <Image src="/cgi2.png" alt="Logo" width={90} height={90} className="object-contain" />
         </div>
         <div className="text-center space-y-1">
-          <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white uppercase line-clamp-2">{companyName}</h1>
+          <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white uppercase line-clamp-2" style={{ fontFamily: 'CGIFont' }}>{companyName}</h1>
           <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">Management Control Panel</p>
         </div>
       </CardHeader>
