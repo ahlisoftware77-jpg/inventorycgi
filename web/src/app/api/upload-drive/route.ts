@@ -146,5 +146,5 @@ const settingsDoc = await getDoc(doc(db, "settings", "general"));
   }
 }
 
-export const dynamic = 'force-dynamic';
+
 
