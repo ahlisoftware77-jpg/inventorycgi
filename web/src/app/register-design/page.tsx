@@ -176,9 +176,6 @@ const CellImageUpload = ({
   
 
   const getUploadApiUrl = () => {
-    if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-      return 'https://inventorycgi.vercel.app/api/upload-drive';
-    }
     return '/api/upload-drive';
   };
 
@@ -191,9 +188,7 @@ const CellImageUpload = ({
     
     setIsUploading(true);
     try {
-      const apiUrl = typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
-        ? 'https://inventorycgi.vercel.app/api/delete-drive' 
-        : '/api/delete-drive';
+      const apiUrl = '/api/delete-drive';
         
       const token = await auth.currentUser?.getIdToken();
       const res = await fetch(apiUrl, {
@@ -1081,7 +1076,7 @@ export default function RegisterDesignPage() {
       setLoadingTrash(true);
       for (const item of trashData) {
         if (item.designImage) {
-          const apiUrl = window.location.hostname === 'localhost' ? 'https://inventorycgi.vercel.app/api/delete-drive' : '/api/delete-drive';
+          const apiUrl = '/api/delete-drive';
           auth.currentUser?.getIdToken().then(token => {
             fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ fileId: item.designImage }) }).catch(err => console.error(err));
           });
@@ -1102,9 +1097,7 @@ export default function RegisterDesignPage() {
     if (!confirm("Hapus baris ini secara PERMANEN? File gambar di Google Drive juga akan terhapus dan data tidak bisa dikembalikan lagi.")) return;
     try {
       if (item.designImage) {
-        const apiUrl = typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
-          ? 'https://inventorycgi.vercel.app/api/delete-drive' 
-          : '/api/delete-drive';
+        const apiUrl = '/api/delete-drive';
           
         await fetch(apiUrl, {
           method: 'POST',
