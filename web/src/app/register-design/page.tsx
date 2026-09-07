@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, DialogClose } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuPortal } from '@/components/ui/dropdown-menu';
 
 export interface RegisterDesignItem {
   id: string;
@@ -1650,13 +1650,29 @@ export default function RegisterDesignPage() {
   };
 
 
-  const handleExportExcel = () => {
+  const handleExportExcel = (year?: string) => {
     if (data.length === 0) {
       toast({ title: "Data kosong", variant: "destructive" });
       return;
     }
+    
+    let exportData = data;
+    if (year) {
+      exportData = data.filter(d => {
+        const dateStr = d.entryDate || (d.createdAt && typeof (d.createdAt as any).toDate === 'function' ? (d.createdAt as any).toDate().toISOString() : "");
+        if (dateStr) {
+          return new Date(dateStr).getFullYear().toString() === year;
+        }
+        return false;
+      });
+      if (exportData.length === 0) {
+        toast({ title: `Tidak ada data di tahun ${year}`, variant: "destructive" });
+        return;
+      }
+    }
+
     // Set column order explicitly to match the web view and template
-    const ws = XLSX.utils.json_to_sheet(data.map(d => ({
+    const ws = XLSX.utils.json_to_sheet(exportData.map(d => ({
       DAR_No: d.darNo || "",
       entryDate: d.entryDate || "",
       itemName: d.itemName || "",
@@ -1696,15 +1712,26 @@ export default function RegisterDesignPage() {
       requiredDate: d.requiredDate || "",
       closingDate: d.closingDate || "",
       generalNote: d.generalNote || "",
-      createdBy: d.createdBy || "",
       status: d.status || "",
       linkFoto: d.designImage ? `https://drive.google.com/uc?id=${d.designImage}` : "",
     })));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Register Design");
-    XLSX.writeFile(wb, `Register_Design_${new Date().toISOString().split('T')[0]}.xlsx`);
+    const fileName = `Register_Design_${year ? year + '_' : ''}${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(wb, fileName);
   };
 
+  const exportYears = React.useMemo(() => {
+    const years = new Set<string>();
+    data.forEach(d => {
+      const dateStr = d.entryDate || (d.createdAt && typeof (d.createdAt as any).toDate === 'function' ? (d.createdAt as any).toDate().toISOString() : "");
+      if (dateStr) {
+          const y = new Date(dateStr).getFullYear().toString();
+          if (y !== "NaN") years.add(y);
+      }
+    });
+    return Array.from(years).sort((a,b) => b.localeCompare(a));
+  }, [data]);
   const handleDownloadTemplate = () => {
     const templateData = [{
       DAR_No: "", entryDate: "2024-01-01", itemName: "", customer: "", designer: "", technician: "",
@@ -1954,10 +1981,24 @@ export default function RegisterDesignPage() {
                     <Download className="w-4 h-4 mr-2" /> Template Excel
                   </DropdownMenuItem>
                   
-                  <DropdownMenuItem onClick={handleExportExcel} className="cursor-pointer text-slate-700 focus:bg-slate-50">
-                    <FileSpreadsheet className="w-4 h-4 mr-2" /> Export Excel
-                  </DropdownMenuItem>
-                  
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger className="cursor-pointer text-slate-700 focus:bg-slate-50">
+                      <FileSpreadsheet className="w-4 h-4 mr-2" /> Export Excel
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuPortal>
+                      <DropdownMenuSubContent>
+                        <DropdownMenuItem onClick={() => handleExportExcel()} className="cursor-pointer font-semibold">
+                          Semua Tahun
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        {exportYears.map(year => (
+                          <DropdownMenuItem key={year} onClick={() => handleExportExcel(year)} className="cursor-pointer">
+                            Tahun {year}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuPortal>
+                  </DropdownMenuSub>
                   <DropdownMenuItem onClick={() => fileInputRef.current?.click()} className="cursor-pointer text-slate-700 focus:bg-slate-50">
                     <Upload className="w-4 h-4 mr-2" /> Import Excel
                   </DropdownMenuItem>
@@ -1978,7 +2019,7 @@ export default function RegisterDesignPage() {
 
               <input type="file" ref={fileInputRef} accept=".xlsx, .xls" onChange={handleImportExcel} className="hidden" title="Import Excel" />
 
-              <Button onClick={() => router.push('/register-design/gallery')} size="sm" variant="outline" className="font-semibold text-slate-700 bg-white shadow-sm hover:bg-slate-50 hover:text-blue-600 transition-colors hidden sm:flex border-slate-200">
+              <Button onClick={() => router.push('/register-design/gallery')} size="sm" variant="outline" className="font-semibold text-slate-700 bg-white shadow-sm hover:bg-slate-50 hover:text-blue-600 transition-colors flex flex-1 sm:flex-none border-slate-200">
                 <Layers className="w-4 h-4 mr-1.5 text-blue-500" /> Gallery
               </Button>
 
