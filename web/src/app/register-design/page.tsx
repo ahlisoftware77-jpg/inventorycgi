@@ -1978,6 +1978,10 @@ export default function RegisterDesignPage() {
 
               <input type="file" ref={fileInputRef} accept=".xlsx, .xls" onChange={handleImportExcel} className="hidden" title="Import Excel" />
 
+              <Button onClick={() => router.push('/register-design/gallery')} size="sm" variant="outline" className="font-semibold text-slate-700 bg-white shadow-sm hover:bg-slate-50 hover:text-blue-600 transition-colors hidden sm:flex border-slate-200">
+                <Layers className="w-4 h-4 mr-1.5 text-blue-500" /> Gallery
+              </Button>
+
               <Button onClick={handleAddRow} size="sm" className="font-semibold bg-slate-900 hover:bg-slate-800 text-white flex-1 sm:flex-none transition-colors shadow-sm">
                 <Plus className="w-4 h-4 mr-1 hidden sm:inline" /> Baris Baru (F8)
               </Button>
