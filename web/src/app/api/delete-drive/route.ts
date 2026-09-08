@@ -1,28 +1,30 @@
 import { NextResponse } from 'next/server';
-import { authenticateRequest, getCorsHeaders } from '@/lib/api-security';
 import { google } from 'googleapis';
 import { db } from '@/lib/firebase/config';
 import { doc, getDoc } from 'firebase/firestore';
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
 
-
-export async function OPTIONS(request: Request) {
-  return new NextResponse(null, { status: 200, headers: getCorsHeaders(request) });
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 200, headers: corsHeaders });
 }
 
 export async function POST(request: Request) {
   try {
-    await authenticateRequest(request);
     const { fileId } = await request.json();
-    
+
     if (!fileId) {
-      return NextResponse.json({ error: "No fileId provided" }, { status: 400, headers: getCorsHeaders(request) });
+      return NextResponse.json({ error: "No fileId provided" }, { status: 400, headers: corsHeaders });
     }
 
     // Ambil setting dari Firestore
     const settingsDoc = await getDoc(doc(db, "settings", "general"));
     if (!settingsDoc.exists()) {
-      return NextResponse.json({ error: "Settings not found" }, { status: 500, headers: getCorsHeaders(request) });
+      return NextResponse.json({ error: "Settings not found" }, { status: 500, headers: corsHeaders });
     }
     const settingsData = settingsDoc.data();
     const clientId = settingsData.googleClientId;
@@ -30,7 +32,7 @@ export async function POST(request: Request) {
     const refreshToken = settingsData.googleRefreshToken;
 
     if (!clientId || !clientSecret || !refreshToken) {
-      return NextResponse.json({ error: "Google Drive OAuth Credentials not configured" }, { status: 500, headers: getCorsHeaders(request) });
+      return NextResponse.json({ error: "Google Drive OAuth Credentials not configured" }, { status: 500, headers: corsHeaders });
     }
 
     const oauth2Client = new google.auth.OAuth2(
@@ -45,25 +47,17 @@ export async function POST(request: Request) {
     const drive = google.drive({ version: 'v3', auth: oauth2Client });
 
     // Proses Delete
-    try {
-      await drive.files.delete({
-        fileId: fileId,
-      });
-    } catch (err: any) {
-      if (err.code === 404 || err.status === 404) {
-        console.log(`File ${fileId} sudah tidak ada di Google Drive (404). Menganggap sukses.`);
-      } else {
-        throw err;
-      }
-    }
+    await drive.files.delete({
+      fileId: fileId,
+    });
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       deletedFileId: fileId
-    }, { headers: getCorsHeaders(request) });
+    }, { headers: corsHeaders });
 
   } catch (error: any) {
     console.error("Delete error:", error);
-    return NextResponse.json({ error: error.message || "Failed to delete" }, { status: 500, headers: getCorsHeaders(request) });
+    return NextResponse.json({ error: error.message || "Failed to delete" }, { status: 500, headers: corsHeaders });
   }
 }
