@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { db, auth } from '@/lib/firebase/config';
 import { collection, getDocs, doc, setDoc, deleteDoc, updateDoc, query, orderBy, serverTimestamp, where, addDoc } from 'firebase/firestore';
-import { Trash2, Plus, Save, Layers, CheckSquare, Search, ChevronDown, Check, Eye, X, Pencil, Share2, ChevronUp, BarChart2, Download, Upload, FileSpreadsheet, Lock, Unlock, Loader2, MoreHorizontal } from 'lucide-react';
+import { Trash2, Plus, Save, Layers, CheckSquare, Search, ChevronDown, Check, Eye, X, Pencil, Share2, ChevronUp, BarChart2, Download, Upload, FileSpreadsheet, Lock, Unlock, Loader2, MoreHorizontal, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
@@ -705,6 +705,8 @@ export default function RegisterDesignPage() {
 
   const [isTrashOpen, setIsTrashOpen] = useState(false);
   const [trashData, setTrashData] = useState<any[]>([]);
+  const [selectedTrashIds, setSelectedTrashIds] = useState<Set<string>>(new Set());
+  const [trashSearch, setTrashSearch] = useState("");
   const [loadingTrash, setLoadingTrash] = useState(false);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -1004,12 +1006,70 @@ export default function RegisterDesignPage() {
 
   const fetchTrashData = async () => {
     setLoadingTrash(true);
+    setSelectedTrashIds(new Set());
     try {
-      const q = query(collection(db, "trash_register_design"), orderBy("deletedAt", "desc"));
+      const q = query(collection(db, "trash_register_design"));
       const snapshot = await getDocs(q);
-      setTrashData(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+      const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      
+      // Sort by deletedAt descending
+      data.sort((a, b) => {
+        const dateA = a.deletedAt ? new Date(a.deletedAt).getTime() : 0;
+        const dateB = b.deletedAt ? new Date(b.deletedAt).getTime() : 0;
+        return dateB - dateA;
+      });
+      
+      setTrashData(data);
     } catch (error) {
       console.error("Gagal mengambil data tempat sampah:", error);
+    } finally {
+      setLoadingTrash(false);
+    }
+  };
+
+  const toggleSelectTrash = (id: string) => {
+    setSelectedTrashIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAllTrash = () => {
+    const q = trashSearch.toLowerCase();
+    const filtered = trashData.filter(item => 
+      (item.designNo || '').toLowerCase().includes(q) ||
+      (item.itemName || '').toLowerCase().includes(q) ||
+      (item.customer || '').toLowerCase().includes(q) ||
+      (item.darNo || '').toLowerCase().includes(q)
+    );
+
+    if (selectedTrashIds.size === filtered.length && filtered.length > 0) {
+      setSelectedTrashIds(new Set());
+    } else {
+      setSelectedTrashIds(new Set(filtered.map(t => t.id)));
+    }
+  };
+
+  const handleRestoreMultipleTrash = async () => {
+    if (selectedTrashIds.size === 0) return;
+    try {
+      setLoadingTrash(true);
+      const itemsToRestore = trashData.filter(t => selectedTrashIds.has(t.id));
+      for (const item of itemsToRestore) {
+        const { deletedAt, ...restData } = item;
+        await setDoc(doc(db, "register_design", item.id), restData);
+        await deleteDoc(doc(db, "trash_register_design", item.id));
+        
+        setData(prev => [restData as RegisterDesignItem, ...prev]);
+      }
+      setTrashData(prev => prev.filter(t => !selectedTrashIds.has(t.id)));
+      setSelectedTrashIds(new Set());
+      toast({ title: "Berhasil", description: `${itemsToRestore.length} data berhasil dipulihkan.` });
+    } catch (error) {
+      console.error("Gagal memulihkan:", error);
+      toast({ title: "Gagal memulihkan data", variant: "destructive" });
     } finally {
       setLoadingTrash(false);
     }
@@ -1887,10 +1947,10 @@ export default function RegisterDesignPage() {
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col h-full bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="flex flex-col h-[calc(100vh-90px)] bg-white rounded-xl shadow-sm border border-slate-200">
         
         {/* Header */}
-        <div className="flex flex-col xl:flex-row xl:items-center justify-between p-4 border-b border-slate-200 bg-slate-50 gap-4">
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between p-4 border-b border-slate-200 bg-slate-50 gap-4 rounded-t-xl">
           <div>
             <h1 className="text-xl font-black text-slate-800 flex items-center gap-2">
               <Layers className="text-blue-600" />
@@ -2027,22 +2087,54 @@ export default function RegisterDesignPage() {
                 <Plus className="w-4 h-4 mr-1 hidden sm:inline" /> Baris Baru (F8)
               </Button>
             </div>
+
+            {/* Pagination UI - Header Version */}
+            {!search && rowLimit > 0 && totalPages > 1 && (
+              <div className="flex items-center gap-3 ml-auto xl:ml-2 bg-white border border-slate-200 rounded-md shadow-sm px-2 py-1">
+                <div className="text-xs text-slate-600 font-semibold hidden sm:block">
+                  <span className="text-slate-400 font-medium mr-1">Halaman</span>
+                  {currentPage} <span className="text-slate-400 font-medium mx-1">dari</span> {totalPages}
+                </div>
+                <div className="flex items-center gap-1 sm:border-l sm:border-slate-200 sm:pl-2">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-6 w-6 rounded text-slate-600 hover:text-blue-600 hover:bg-blue-50"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
+                    disabled={currentPage === 1}
+                    title="Sebelumnya"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-6 w-6 rounded text-slate-600 hover:text-blue-600 hover:bg-blue-50"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
+                    disabled={currentPage === totalPages}
+                    title="Selanjutnya"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Excel Grid Container */}
         <div 
           ref={scrollContainerRef}
-          className={`flex-1 overflow-auto bg-slate-50 relative ${isDragging ? 'cursor-grabbing select-none' : ''}`}
+          className={`flex-1 overflow-auto bg-slate-50 relative pb-4 rounded-b-xl ${isDragging ? 'cursor-grabbing select-none' : ''}`}
           onMouseDown={handleMouseDown}
           onMouseLeave={handleMouseLeave}
           onMouseUp={handleMouseUp}
           onMouseMove={handleMouseMove}
         >
           <table className="w-max min-w-full text-left text-[11px] border-collapse bg-white">
-            <thead className="sticky top-0 z-10 bg-slate-100 shadow-sm border-b-2 border-slate-300 text-slate-700 font-bold uppercase tracking-wider">
+            <thead className="sticky top-0 z-40 bg-slate-100 shadow-sm border-b-2 border-slate-300 text-slate-700 font-bold uppercase tracking-wider">
               <tr>
-                <th className="w-10 min-w-[40px] max-w-[40px] p-0 border-r text-center sticky left-0 bg-slate-100 z-30">
+                <th className="w-10 min-w-[40px] max-w-[40px] p-0 border-r text-center sticky top-0 left-0 bg-slate-100 z-40">
                   <input 
                     type="checkbox" 
                     className="w-4 h-4 cursor-pointer accent-red-600 mx-auto block" 
@@ -2050,7 +2142,7 @@ export default function RegisterDesignPage() {
                     onChange={toggleSelectAll}
                   />
                 </th>
-                <th className="p-2 border-r bg-blue-50 text-blue-800 cursor-pointer hover:bg-slate-200 transition-colors select-none group sticky left-10 z-20 shadow-[4px_0_8px_rgba(0,0,0,0.02)]" onClick={() => handleSort("darNo")}>
+                <th className="p-2 border-r bg-blue-50 text-blue-800 cursor-pointer hover:bg-slate-200 transition-colors select-none group sticky top-0 left-10 z-40 shadow-[4px_0_8px_rgba(0,0,0,0.02)]" onClick={() => handleSort("darNo")}>
                   <div className="flex items-center gap-1">
                     DAR No
                     {sortConfig?.key === "darNo" ? (
@@ -2058,7 +2150,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("entryDate")}>
+                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("entryDate")}>
                   <div className="flex items-center gap-1">
                     Tgl Input
                     {sortConfig?.key === "entryDate" ? (
@@ -2066,7 +2158,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="p-2 border-r bg-slate-50 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("createdBy")}>
+                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("createdBy")}>
                   <div className="flex items-center gap-1 text-slate-500">
                     Dibuat Oleh
                     {sortConfig?.key === "createdBy" ? (
@@ -2074,7 +2166,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("itemName")}>
+                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("itemName")}>
                   <div className="flex items-center gap-1">
                     Nama Item
                     {sortConfig?.key === "itemName" ? (
@@ -2082,7 +2174,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("customer")}>
+                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("customer")}>
                   <div className="flex items-center gap-1">
                     Customer
                     {sortConfig?.key === "customer" ? (
@@ -2090,7 +2182,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("designer")}>
+                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("designer")}>
                   <div className="flex items-center gap-1">
                     Designer
                     {sortConfig?.key === "designer" ? (
@@ -2098,7 +2190,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("technician")}>
+                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("technician")}>
                   <div className="flex items-center gap-1">
                     Technician
                     {sortConfig?.key === "technician" ? (
@@ -2106,7 +2198,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="p-2 border-r bg-slate-50 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("purpose")}>
+                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("purpose")}>
                   <div className="flex items-center gap-1">
                     Tujuan
                     {sortConfig?.key === "purpose" ? (
@@ -2114,10 +2206,10 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="p-2 border-r bg-slate-50 text-center select-none w-20">
+                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 text-center select-none w-20">
                   <div className="flex items-center justify-center gap-1"><Eye className="w-3 h-3 text-slate-400" /> Gambar</div>
                 </th>
-                <th className="p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("version")}>
+                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("version")}>
                   <div className="flex items-center gap-1">
                     Versi
                     {sortConfig?.key === "version" ? (
@@ -2125,7 +2217,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("status")}>
+                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("status")}>
                   <div className="flex items-center gap-1">
                     Status
                     {sortConfig?.key === "status" ? (
@@ -2133,7 +2225,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("typeDesign")}>
+                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("typeDesign")}>
                   <div className="flex items-center gap-1">
                     Tipe Desain
                     {sortConfig?.key === "typeDesign" ? (
@@ -2141,7 +2233,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("designSource")}>
+                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("designSource")}>
                   <div className="flex items-center gap-1">
                     Sumber Desain
                     {sortConfig?.key === "designSource" ? (
@@ -2149,7 +2241,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("designNo")}>
+                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("designNo")}>
                   <div className="flex items-center gap-1">
                     Design No
                     {sortConfig?.key === "designNo" ? (
@@ -2157,7 +2249,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("requiredDate")}>
+                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("requiredDate")}>
                   <div className="flex items-center gap-1">
                     Req Date
                     {sortConfig?.key === "requiredDate" ? (
@@ -2165,7 +2257,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("closingDate")}>
+                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("closingDate")}>
                   <div className="flex items-center gap-1">
                     Closing Date
                     {sortConfig?.key === "closingDate" ? (
@@ -2173,7 +2265,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="p-2 border-r bg-slate-50 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("type")}>
+                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("type")}>
                   <div className="flex items-center gap-1">
                     Type (W/F/D)
                     {sortConfig?.key === "type" ? (
@@ -2181,7 +2273,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="p-2 border-r bg-slate-50 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("sizeChecks")}>
+                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("sizeChecks")}>
                   <div className="flex items-center gap-1">
                     Size
                     {sortConfig?.key === "sizeChecks" ? (
@@ -2189,7 +2281,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="p-2 border-r bg-slate-50 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("glazeChecks")}>
+                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("glazeChecks")}>
                   <div className="flex items-center gap-1">
                     Glaze
                     {sortConfig?.key === "glazeChecks" ? (
@@ -2197,7 +2289,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="p-2 border-r bg-slate-50 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("surfaceChecks")}>
+                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("surfaceChecks")}>
                   <div className="flex items-center gap-1">
                     Surface
                     {sortConfig?.key === "surfaceChecks" ? (
@@ -2205,7 +2297,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="p-2 border-r bg-slate-50 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("guPtv")}>
+                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("guPtv")}>
                   <div className="flex items-center gap-1">
                     GU/PTV
                     {sortConfig?.key === "guPtv" ? (
@@ -2213,7 +2305,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="p-2 border-r bg-slate-50 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("inkChecks")}>
+                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("inkChecks")}>
                   <div className="flex items-center gap-1">
                     Ink
                     {sortConfig?.key === "inkChecks" ? (
@@ -2221,7 +2313,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="p-2 border-r bg-slate-50 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("sendBy")}>
+                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("sendBy")}>
                   <div className="flex items-center gap-1">
                     Send By
                     {sortConfig?.key === "sendBy" ? (
@@ -2229,7 +2321,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="p-2 border-r bg-slate-50 text-emerald-800 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("benefitText")}>
+                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 text-emerald-800 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("benefitText")}>
                   <div className="flex items-center gap-1">
                     Benefit
                     {sortConfig?.key === "benefitText" ? (
@@ -2237,7 +2329,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="p-2 border-r bg-slate-50 text-emerald-800 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("generalNote")}>
+                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 text-emerald-800 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("generalNote")}>
                   <div className="flex items-center gap-1">
                     Note 1
                     {sortConfig?.key === "generalNote" ? (
@@ -2245,7 +2337,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="p-2 border-r bg-slate-50 text-emerald-800 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("lastTimeReq")}>
+                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 text-emerald-800 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("lastTimeReq")}>
                   <div className="flex items-center gap-1">
                     Last Time Req
                     {sortConfig?.key === "lastTimeReq" ? (
@@ -2253,7 +2345,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="p-2 border-r bg-slate-50 text-emerald-800 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("feedbackDetails")}>
+                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 text-emerald-800 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("feedbackDetails")}>
                   <div className="flex items-center gap-1">
                     Feedback (Rows)
                     {sortConfig?.key === "feedbackDetails" ? (
@@ -2261,7 +2353,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="p-2 border-r bg-slate-50 text-emerald-800 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("lastDesignSupp")}>
+                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 text-emerald-800 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("lastDesignSupp")}>
                   <div className="flex items-center gap-1">
                     Last Design Supp
                     {sortConfig?.key === "lastDesignSupp" ? (
@@ -2269,7 +2361,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="p-2 border-r bg-slate-50 text-emerald-800 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("note2")}>
+                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 text-emerald-800 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("note2")}>
                   <div className="flex items-center gap-1">
                     Note 2
                     {sortConfig?.key === "note2" ? (
@@ -2277,7 +2369,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="p-2 text-center sticky right-0 bg-slate-100 z-20 shadow-[-4px_0_12px_rgba(0,0,0,0.05)]">Aksi</th>
+                <th className="p-2 text-center sticky top-0 right-0 bg-slate-100 z-40 shadow-[-4px_0_12px_rgba(0,0,0,0.05)]">Aksi</th>
               </tr>
             </thead>
             <tbody>
@@ -2357,32 +2449,7 @@ export default function RegisterDesignPage() {
           </table>
         </div>
 
-        {/* Pagination UI */}
-        {!search && rowLimit > 0 && totalPages > 1 && (
-          <div className="flex items-center justify-between p-4 border-t border-slate-200 bg-white">
-            <div className="text-sm text-slate-500 font-semibold">
-              Halaman {currentPage} dari {totalPages}
-            </div>
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
-                disabled={currentPage === 1}
-              >
-                Sebelumnya
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
-                disabled={currentPage === totalPages}
-              >
-                Selanjutnya
-              </Button>
-            </div>
-          </div>
-        )}
+        {/* Pagination UI (Moved to Header) */}
       </div>
 
       <Dialog open={isGroupDialogOpen} onOpenChange={setIsGroupDialogOpen}>
@@ -2523,51 +2590,108 @@ export default function RegisterDesignPage() {
       {/* Trash Bin Dialog */}
       <Dialog open={isTrashOpen} onOpenChange={setIsTrashOpen}>
         <DialogContent className="sm:max-w-4xl p-0 overflow-hidden bg-slate-50 flex flex-col max-h-[85vh]">
-          <DialogHeader className="p-4 border-b border-slate-200 bg-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <DialogTitle className="flex items-center gap-2 text-red-600">
-                <Trash2 className="w-5 h-5" /> Tempat Sampah Desain
-              </DialogTitle>
-              <DialogDescription>
-                Baris data yang dihapus akan disimpan di sini. Anda dapat memulihkannya atau menghapusnya secara permanen.
-              </DialogDescription>
-            </div>
-            {trashData.length > 0 && !loadingTrash && (
-              <Button variant="destructive" onClick={handleEmptyTrash} size="sm" className="shrink-0 font-bold">
-                <Trash2 className="w-4 h-4 mr-2" /> Kosongkan Tempat Sampah
-              </Button>
-            )}
-          </DialogHeader>
-          <div className="flex-1 overflow-auto p-4">
-            {loadingTrash ? (
-              <div className="flex justify-center p-8"><div className="w-6 h-6 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div></div>
-            ) : trashData.length === 0 ? (
-              <div className="text-center py-12 text-slate-500">Tempat sampah kosong.</div>
-            ) : (
-              <div className="space-y-3">
-                {trashData.map((item) => (
-                  <div key={item.id} className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex-1 overflow-hidden">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-bold text-sm text-slate-800">{item.designNo || 'No Design'}</span>
-                        <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{item.darNo || 'No DAR'}</span>
-                      </div>
-                      <div className="text-xs text-slate-600 truncate flex gap-4">
-                        <span><strong>Item:</strong> {item.itemName || '-'}</span>
-                        <span><strong>Tipe:</strong> {item.typeDesign || '-'}</span>
-                        <span><strong>Customer:</strong> {item.customer || '-'}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Button variant="outline" size="sm" onClick={() => handleRestoreTrash(item)} className="text-emerald-700 bg-emerald-50 border-emerald-200 hover:bg-emerald-100">
-                        <Check className="w-4 h-4 mr-1" /> Restore
+            <DialogHeader className="p-4 border-b border-slate-200 bg-white flex flex-col gap-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <DialogTitle className="flex items-center gap-2 text-red-600">
+                    <Trash2 className="w-5 h-5" /> Tempat Sampah Desain
+                  </DialogTitle>
+                  <DialogDescription>
+                    Baris data yang dihapus akan disimpan di sini. Anda dapat memulihkannya atau menghapusnya secara permanen.
+                  </DialogDescription>
+                </div>
+                {trashData.length > 0 && !loadingTrash && (
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    {selectedTrashIds.size > 0 && (
+                      <Button variant="outline" onClick={handleRestoreMultipleTrash} size="sm" className="shrink-0 text-emerald-700 bg-emerald-50 border-emerald-200 hover:bg-emerald-100 font-bold">
+                        <Check className="w-4 h-4 mr-2" /> Restore ({selectedTrashIds.size})
                       </Button>
-                      <Button variant="destructive" size="sm" onClick={() => handlePermanentDelete(item)}>
-                        Hapus Permanen
-                      </Button>
-                    </div>
+                    )}
+                    <Button variant="destructive" onClick={handleEmptyTrash} size="sm" className="shrink-0 font-bold ml-auto sm:ml-0">
+                      <Trash2 className="w-4 h-4 mr-2" /> Kosongkan Tempat Sampah
+                    </Button>
                   </div>
-                ))}
+                )}
+              </div>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Input 
+                  placeholder="Cari berdasarkan No Design, Item, Customer, atau DAR..."
+                  value={trashSearch}
+                  onChange={(e) => setTrashSearch(e.target.value)}
+                  className="pl-9 bg-slate-50 border-slate-200"
+                />
+              </div>
+            </DialogHeader>
+            <div className="flex-1 overflow-auto p-4 bg-slate-50">
+              {loadingTrash ? (
+                <div className="flex justify-center p-8"><div className="w-6 h-6 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div></div>
+              ) : trashData.length === 0 ? (
+                <div className="text-center py-12 text-slate-500">Tempat sampah kosong.</div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center px-2 py-1 gap-3">
+                    <input 
+                      type="checkbox" 
+                      className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                      checked={
+                        (() => {
+                          const q = trashSearch.toLowerCase();
+                          const f = trashData.filter(i => (i.designNo||'').toLowerCase().includes(q) || (i.itemName||'').toLowerCase().includes(q) || (i.customer||'').toLowerCase().includes(q) || (i.darNo||'').toLowerCase().includes(q));
+                          return selectedTrashIds.size === f.length && f.length > 0;
+                        })()
+                      }
+                      onChange={toggleSelectAllTrash}
+                      title="Pilih Semua"
+                    />
+                    <span className="text-sm font-semibold text-slate-600">Pilih Semua</span>
+                  </div>
+                  {[...trashData]
+                    .filter(item => {
+                      const q = trashSearch.toLowerCase();
+                      return (item.designNo || '').toLowerCase().includes(q) ||
+                             (item.itemName || '').toLowerCase().includes(q) ||
+                             (item.customer || '').toLowerCase().includes(q) ||
+                             (item.darNo || '').toLowerCase().includes(q);
+                    })
+                    .sort((a,b) => new Date(b.deletedAt || 0).getTime() - new Date(a.deletedAt || 0).getTime())
+                    .map((item) => (
+                    <div key={item.id} className={`bg-white p-3 rounded-lg border shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors ${selectedTrashIds.has(item.id) ? 'border-blue-400 bg-blue-50/30' : 'border-slate-200'}`}>
+                      <div className="flex items-center gap-3 flex-1 overflow-hidden">
+                        <input 
+                          type="checkbox" 
+                          className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer shrink-0"
+                          checked={selectedTrashIds.has(item.id)}
+                          onChange={() => toggleSelectTrash(item.id)}
+                        />
+                        <div className="flex-1 overflow-hidden">
+                          <div className="flex flex-wrap items-center gap-2 mb-1">
+                            <span className="font-bold text-sm text-slate-800">{item.designNo || 'No Design'}</span>
+                            <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full border border-slate-200">{item.darNo || 'No DAR'}</span>
+                            {item.deletedAt && (
+                              <span className="text-[11px] text-red-500 bg-red-50 px-2 py-0.5 rounded-full font-medium ml-auto sm:ml-0 flex items-center">
+                                <Calendar className="w-3 h-3 mr-1" />
+                                Dihapus: {new Date(item.deletedAt).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute:'2-digit' })}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs text-slate-600 truncate flex gap-4 mt-1.5">
+                            <span><strong>Item:</strong> {item.itemName || '-'}</span>
+                            <span><strong>Tipe:</strong> {item.typeDesign || '-'}</span>
+                            <span><strong>Customer:</strong> {item.customer || '-'}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 ml-7 sm:ml-0">
+                        <Button variant="outline" size="sm" onClick={() => handleRestoreTrash(item)} className="text-emerald-700 bg-emerald-50 border-emerald-200 hover:bg-emerald-100">
+                          <Check className="w-4 h-4 md:mr-1" /> <span className="hidden md:inline">Restore</span>
+                        </Button>
+                        <Button variant="destructive" size="sm" onClick={() => handlePermanentDelete(item)}>
+                          <Trash2 className="w-4 h-4 md:mr-1" /> <span className="hidden md:inline">Hapus Permanen</span>
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
               </div>
             )}
           </div>

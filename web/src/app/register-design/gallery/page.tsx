@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase/config';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
-import { Search, Loader2, X, ZoomIn, Calendar, Layers, Tag, User } from 'lucide-react';
+import { Search, Loader2, X, ZoomIn, Calendar, Layers, Tag, User, Image as ImageIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -110,11 +110,21 @@ export default function RegisterDesignGalleryPage() {
   }, [data, search, selectedYear, selectedType, selectedDesigner]);
 
   const getStatusColor = (status: string) => {
-    if (status === 'IN LOCK') return 'bg-rose-500 text-white border-rose-600';
-    if (status === 'IN USE') return 'bg-emerald-500 text-white border-emerald-600';
-    if (status === 'FREE') return 'bg-blue-500 text-white border-blue-600';
-    if (status === 'ARCHIVE') return 'bg-sky-400 text-white border-sky-500';
+    if (status === 'IN LOCK') return 'bg-rose-500 text-white border-rose-600 shadow-rose-500/30 shadow-md';
+    if (status === 'IN USE') return 'bg-emerald-500 text-white border-emerald-600 shadow-emerald-500/30 shadow-md';
+    if (status === 'FREE') return 'bg-blue-500 text-white border-blue-600 shadow-blue-500/30 shadow-md';
+    if (status === 'ARCHIVE') return 'bg-violet-500 text-white border-violet-600 shadow-violet-500/30 shadow-md';
     return 'bg-slate-100 text-slate-600 border-slate-200';
+  };
+
+  const getDesignerColor = (val: string) => {
+    switch(val) {
+      case 'D1 Riki': return 'bg-blue-700 text-blue-50 border-blue-800 font-medium';
+      case 'D2 Diaz': return 'bg-[#156e47] text-emerald-50 border-emerald-900 font-medium'; // Dark green
+      case 'D3 Rian': return 'bg-[#7a3b00] text-amber-50 border-amber-950 font-medium'; // Dark brown
+      case 'D4 Darmawan': return 'bg-[#b30000] text-red-50 border-red-900 font-medium'; // Dark red
+      default: return 'bg-slate-100 text-slate-600 border-slate-200';
+    }
   };
 
   if (loadingUser || !user) {
@@ -131,11 +141,17 @@ export default function RegisterDesignGalleryPage() {
     <DashboardLayout>
       <div className="flex flex-col h-full bg-slate-50 relative overflow-hidden">
         {/* Header & Controls */}
-        <div className="shrink-0 bg-white border-b border-slate-200 p-4 md:p-6 shadow-sm z-10 relative">
+        <div className="shrink-0 bg-white/80 backdrop-blur-xl border-b border-slate-200 p-4 md:p-6 shadow-sm z-10 relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-50/50 via-indigo-50/30 to-purple-50/50 -z-10" />
           <div className="max-w-7xl mx-auto space-y-4">
-            <div>
-              <h1 className="text-2xl font-black text-slate-800 tracking-tight">Design Gallery</h1>
-              <p className="text-sm text-slate-500 font-medium mt-1">Eksplorasi visual seluruh desain yang terdaftar</p>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20 text-white shrink-0">
+                <Layers className="w-6 h-6" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-black bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent tracking-tight">Design Gallery</h1>
+                <p className="text-sm text-slate-500 font-medium mt-0.5">Eksplorasi visual seluruh desain yang terdaftar</p>
+              </div>
             </div>
             
             <div className="flex flex-wrap items-center gap-3">
@@ -218,7 +234,7 @@ export default function RegisterDesignGalleryPage() {
                   <div 
                     key={item.id} 
                     onClick={() => setLightboxItem(item)}
-                    className="group bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-xl hover:border-blue-300 hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col"
+                    className="group bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden hover:shadow-[0_20px_40px_-15px_rgba(59,130,246,0.15)] hover:border-blue-200 hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col"
                   >
                     {/* Image Thumbnail */}
                     <div className="relative aspect-square bg-slate-100 overflow-hidden">
@@ -256,7 +272,7 @@ export default function RegisterDesignGalleryPage() {
                     </div>
                     
                     {/* Card Content */}
-                    <div className="p-4 flex flex-col flex-1">
+                    <div className="p-4 flex flex-col flex-1 bg-gradient-to-b from-white to-slate-50/50">
                       <h3 className="font-bold text-slate-800 text-sm line-clamp-1 group-hover:text-blue-600 transition-colors" title={item.itemName}>
                         {item.itemName || 'Tanpa Nama'}
                       </h3>
@@ -268,9 +284,15 @@ export default function RegisterDesignGalleryPage() {
                             {item.designNo || '-'} &bull; {item.typeDesign || '-'}
                           </span>
                         </div>
-                        <div className="flex items-center text-xs text-slate-500">
+                        <div className="flex items-center text-xs text-slate-500 mt-1 mb-1">
                           <User className="w-3.5 h-3.5 mr-1.5 shrink-0" />
-                          <span className="truncate">{item.designer || '-'}</span>
+                          <span className={`truncate px-2 py-0.5 rounded border ${getDesignerColor(item.designer || '')}`}>{item.designer || '-'}</span>
+                        </div>
+                        <div className="flex items-center text-xs text-slate-500">
+                          <ImageIcon className="w-3.5 h-3.5 mr-1.5 shrink-0" />
+                          <span className="truncate" title={item.designImageName || `Desain_${item.designNo || 'Gambar'}.jpg`}>
+                            {item.designImageName || `Desain_${item.designNo || 'Gambar'}.jpg`}
+                          </span>
                         </div>
                         <div className="flex items-center text-xs text-slate-500">
                           <Calendar className="w-3.5 h-3.5 mr-1.5 shrink-0" />
@@ -293,15 +315,15 @@ export default function RegisterDesignGalleryPage() {
 
         {/* Lightbox / Zoom View */}
         {lightboxItem && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/95 backdrop-blur-sm p-4 md:p-8 animate-in fade-in duration-200">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4 md:p-8 animate-in fade-in duration-300">
             <button 
               onClick={() => setLightboxItem(null)}
-              className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors z-50"
+              className="absolute top-6 right-6 p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all hover:scale-110 z-50 backdrop-blur-sm"
             >
               <X className="w-6 h-6" />
             </button>
 
-            <div className="max-w-6xl w-full max-h-full flex flex-col md:flex-row bg-white rounded-2xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="max-w-6xl w-full max-h-full flex flex-col md:flex-row bg-white rounded-2xl overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-300 border border-white/20">
               {/* Image Section */}
               <div className="flex-1 bg-slate-100 flex items-center justify-center p-4 min-h-[40vh] md:min-h-0 relative">
                 {lightboxItem.designImage ? (
@@ -355,7 +377,9 @@ export default function RegisterDesignGalleryPage() {
                     <div className="grid grid-cols-2 gap-4 border-b border-slate-100 pb-4">
                       <div>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Designer</p>
-                        <p className="font-semibold text-slate-700 text-sm">{lightboxItem.designer || '-'}</p>
+                        <p className="font-semibold text-sm">
+                          <span className={`px-2 py-0.5 rounded border ${getDesignerColor(lightboxItem.designer || '')}`}>{lightboxItem.designer || '-'}</span>
+                        </p>
                       </div>
                       <div>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Customer</p>
@@ -371,6 +395,15 @@ export default function RegisterDesignGalleryPage() {
                       <div>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Technician</p>
                         <p className="font-semibold text-slate-700 text-sm">{lightboxItem.technician || '-'}</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4 border-b border-slate-100 pb-4">
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">File Gambar</p>
+                        <p className="font-semibold text-slate-700 text-sm break-all">
+                          {lightboxItem.designImageName || `Desain_${lightboxItem.designNo || 'Gambar'}.jpg`}
+                        </p>
                       </div>
                     </div>
                   </div>
