@@ -25,8 +25,10 @@ export default function RegisterDesignGalleryPage() {
   const [selectedYear, setSelectedYear] = useState<string>("all");
   const [selectedType, setSelectedType] = useState<string>("all");
   const [selectedDesigner, setSelectedDesigner] = useState<string>("all");
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
   
   // Options
+  const statusOptions = ['FREE', 'IN USE', 'IN LOCK', 'ARCHIVE'];
   const [yearOptions, setYearOptions] = useState<string[]>([]);
   const [typeOptions, setTypeOptions] = useState<string[]>([]);
   const [designerOptions, setDesignerOptions] = useState<string[]>([]);
@@ -101,13 +103,16 @@ export default function RegisterDesignGalleryPage() {
       // Designer Filter
       if (selectedDesigner !== "all" && d.designer !== selectedDesigner) return false;
 
+      // Status Filter
+      if (selectedStatus !== "all" && d.status !== selectedStatus) return false;
+
       // Search Filter
       if (!search) return true;
       const lowerSearch = search.toLowerCase();
       return String(d.itemName || "").toLowerCase().includes(lowerSearch) || 
              String(d.designNo || "").toLowerCase().includes(lowerSearch);
     });
-  }, [data, search, selectedYear, selectedType, selectedDesigner]);
+  }, [data, search, selectedYear, selectedType, selectedDesigner, selectedStatus]);
 
   const getStatusColor = (status: string) => {
     if (status === 'IN LOCK') return 'bg-rose-500 text-white border-rose-600 shadow-rose-500/30 shadow-md';
@@ -202,6 +207,20 @@ export default function RegisterDesignGalleryPage() {
                     <SelectItem value="all" className="font-medium text-blue-600 focus:bg-blue-50">Semua Desainer</SelectItem>
                     {designerOptions.map(d => (
                       <SelectItem key={d} value={d}>{d}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="w-36">
+                <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                  <SelectTrigger className="bg-white border-slate-200 focus:ring-blue-500 font-medium">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all" className="font-medium text-blue-600 focus:bg-blue-50">Semua Status</SelectItem>
+                    {statusOptions.map(s => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
