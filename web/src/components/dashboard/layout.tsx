@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, type ReactNode, useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { auth, db } from '@/lib/firebase/config';
@@ -17,12 +17,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
 
   useEffect(() => {
     if (loading) return;
 
-    const isPublicPath = pathname.startsWith('/public/') || pathname === '/login' || pathname === '/register' || pathname === '/help';
+    const hasShareId = searchParams?.get('shareId') !== null;
+    const isPublicPath = pathname.startsWith('/public/') || pathname === '/login' || pathname === '/register' || pathname === '/help' || hasShareId;
 
     if (!user) {
       if (!isPublicPath) {
@@ -68,7 +70,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         return;
       }
     }
-  }, [user, loading, pathname, router, toast]);
+  }, [user, loading, pathname, router, toast, searchParams]);
 
   // Jika sedang memuat data otentikasi awal, tampilkan spinner ringan di area konten
   if (loading) {
@@ -81,7 +83,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }
 
   // Cek akses secara sinkron saat render untuk menghindari kedipan layout
-  const isPublicPath = pathname.startsWith('/public/') || pathname === '/login' || pathname === '/register' || pathname === '/help';
+  const hasShareId = searchParams?.get('shareId') !== null;
+  const isPublicPath = pathname.startsWith('/public/') || pathname === '/login' || pathname === '/register' || pathname === '/help' || hasShareId;
   if (user) {
     if (user.role === 'Pending') return null;
     if (user.role !== 'Admin') {

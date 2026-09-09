@@ -267,17 +267,30 @@ export default function BroadcastEmailPage() {
       if (!broadcastRef.current) break;
       const email = selectedEmails[i];
       try {
-        const res = await fetch(getApiUrl(), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+        let options: RequestInit = { method: 'POST' };
+        if (attachments.length > 0) {
+          const formData = new FormData();
+          formData.append('action', 'send');
+          formData.append('smtp', JSON.stringify(currentSmtp));
+          formData.append('to', JSON.stringify([email]));
+          formData.append('subject', broadcastSubject);
+          formData.append('html', broadcastMessage);
+          attachments.forEach((file, index) => {
+            formData.append(`attachment_${index}`, file);
+          });
+          options.body = formData;
+        } else {
+          options.headers = { 'Content-Type': 'application/json' };
+          options.body = JSON.stringify({
             action: 'send',
             smtp: currentSmtp,
             to: [email],
             subject: broadcastSubject,
             html: broadcastMessage
-          })
-        });
+          });
+        }
+        
+        const res = await fetch(getApiUrl(), options);
         if (!res.ok) throw new Error('Gagal');
         setBroadcastLogs(prev => [...prev, { time: new Date().toLocaleTimeString(), msg: `Terkirim: ${email}`, type: 'success' }]);
       } catch (err) {
@@ -517,6 +530,28 @@ export default function BroadcastEmailPage() {
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Isi Pesan (Mendukung HTML)</Label>
                   <Textarea value={broadcastMessage} onChange={(e) => setBroadcastMessage(e.target.value)} onPaste={handlePaste} placeholder="Tulis pesan... (Bisa Paste Gambar langsung di sini)" className="min-h-[120px] rounded-2xl bg-slate-50 dark:bg-slate-800 border-none shadow-inner resize-none font-medium text-sm leading-relaxed" />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Lampiran (Opsional)</Label>
+                  <Input type="file" multiple onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    setAttachments(prev => [...prev, ...files]);
+                    e.target.value = '';
+                  }} className="rounded-xl h-10 bg-slate-50 dark:bg-slate-800 border-none shadow-inner file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer pt-1" />
+                  
+                  {attachments.length > 0 && (
+                    <div className="flex gap-2 flex-wrap pt-2">
+                      {attachments.map((file, idx) => (
+                        <Badge key={idx} variant="outline" className="pl-3 pr-1 py-1 flex items-center gap-2 bg-slate-50">
+                          <span className="truncate max-w-[150px] font-medium text-xs">{file.name}</span>
+                          <Button variant="ghost" size="sm" className="h-5 w-5 p-0 rounded-full text-red-500 hover:text-red-700 hover:bg-red-100" onClick={() => setAttachments(attachments.filter((_, i) => i !== idx))}>
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 
                 <div className="flex justify-start gap-3 pt-4">

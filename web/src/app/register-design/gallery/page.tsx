@@ -4,13 +4,23 @@ import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/dashboard/layout';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
-import { db } from '@/lib/firebase/config';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
-import { Search, Loader2, X, ZoomIn, Calendar, Layers, Tag, User, Image as ImageIcon } from 'lucide-react';
+import { db, auth } from '@/lib/firebase/config';
+import { collection, getDocs, query, orderBy, doc, updateDoc, getDoc } from 'firebase/firestore';
+import { Search, Loader2, X, ZoomIn, Calendar, Layers, Tag, User, Image as ImageIcon, Trash2, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RegisterDesignItem } from '../page';
+
+async function hashString(str: string) {
+  const msgBuffer = new TextEncoder().encode(str);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashHex;
+}
 
 export default function RegisterDesignGalleryPage() {
   const { user, loading: loadingUser } = useAuth();
@@ -32,16 +42,126 @@ export default function RegisterDesignGalleryPage() {
   const [yearOptions, setYearOptions] = useState<string[]>([]);
   const [typeOptions, setTypeOptions] = useState<string[]>([]);
   const [designerOptions, setDesignerOptions] = useState<string[]>([]);
+  
+  const [isPublicAuthOpen, setIsPublicAuthOpen] = useState(false);
+  const [publicPasscode, setPublicPasscode] = useState('');
+  const [isPublicAuthenticated, setIsPublicAuthenticated] = useState(false);
+  const isReadOnly = !user;
 
   // Lightbox
   const [lightboxItem, setLightboxItem] = useState<RegisterDesignItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteImage = async (item: RegisterDesignItem) => {
+    if (!item.designImage) return;
+    
+    if (!confirm(`Apakah Anda yakin ingin menghapus gambar ini dari sistem dan Google Drive?\nFile: ${item.designImageName || 'Gambar'}`)) return;
+    
+    setIsDeleting(true);
+    toast({ title: 'Menghapus...', description: 'Sedang menghapus gambar dari Google Drive.' });
+    try {
+      const apiUrl = typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
+        ? 'https://inventorycgi.vercel.app/api/delete-drive' 
+        : '/api/delete-drive';
+        
+      const token = await auth.currentUser?.getIdToken();
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ fileId: item.designImage }),
+      });
+      
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Gagal menghapus file dari Google Drive');
+      }
+      
+      // Update in Firestore
+      const docRef = doc(db, "register_design", item.id);
+      await updateDoc(docRef, {
+        designImage: '',
+        designImageName: ''
+      });
+      
+      // Update local state
+      setData(prev => prev.map(d => d.id === item.id ? { ...d, designImage: '', designImageName: '' } : d));
+      
+      // Close lightbox if open
+      setLightboxItem(null);
+      
+      toast({ title: 'Terhapus', description: 'Gambar berhasil dihapus dari Google Drive.' });
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Gagal Menghapus', description: err.message });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   useEffect(() => {
-    if (!loadingUser && !user) {
-      toast({ title: "Akses Ditolak", description: "Silakan login terlebih dahulu", variant: "destructive" });
-      router.push('/');
+    if (!loadingUser) {
+      if (!user) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const shareId = urlParams.get('shareId');
+        if (shareId) {
+          setIsPublicAuthOpen(true);
+        } else {
+          router.push('/login');
+        }
+      } else {
+        fetchData();
+      }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, loadingUser, router, toast]);
+
+  const handlePublicLogin = async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const shareId = urlParams.get('shareId');
+    if (!shareId) return;
+
+    try {
+      const docRef = doc(db, "shared_links", shareId);
+      const snap = await getDoc(docRef);
+      if (!snap.exists()) {
+        toast({ title: "Link Tidak Valid", description: "Link share ini tidak ditemukan.", variant: "destructive" });
+        return;
+      }
+      
+      const data = snap.data();
+      
+      if (data.expiresAt) {
+        const expiresAt = new Date(data.expiresAt);
+        if (new Date() > expiresAt) {
+          toast({ title: "Link Kedaluwarsa", description: "Waktu akses untuk link ini sudah habis.", variant: "destructive" });
+          return;
+        }
+      }
+      
+      if (data.type !== 'gallery') {
+         toast({ title: "Akses Ditolak", description: "Link ini bukan untuk halaman Gallery.", variant: "destructive" });
+         return;
+      }
+
+      const hashedInput = await hashString(publicPasscode);
+      if (hashedInput === data.hashedPasscode) {
+        setIsPublicAuthOpen(false);
+        setIsPublicAuthenticated(true);
+        fetchData();
+        toast({ title: "Berhasil", description: "Akses diberikan." });
+      } else {
+        toast({ title: "Passcode Salah", description: "Passcode yang Anda masukkan tidak cocok.", variant: "destructive" });
+      }
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+  };
+
+  useEffect(() => {
+    // fetchData is now called from auth effect
+  }, []);
 
   const fetchData = async () => {
     try {
@@ -79,12 +199,6 @@ export default function RegisterDesignGalleryPage() {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (user) {
-      fetchData();
-    }
-  }, [user]);
 
   const filteredData = React.useMemo(() => {
     return data.filter(d => {
@@ -132,7 +246,7 @@ export default function RegisterDesignGalleryPage() {
     }
   };
 
-  if (loadingUser || !user) {
+  if (loadingUser || (!user && !isPublicAuthOpen && !isPublicAuthenticated)) {
     return (
       <DashboardLayout>
         <div className="flex h-screen items-center justify-center bg-slate-50">
@@ -166,6 +280,10 @@ export default function RegisterDesignGalleryPage() {
                   placeholder="Cari Nama Desain / Design No..." 
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
+                  autoComplete="new-password"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  name="gallery_search_query"
                   className="pl-9 bg-slate-50 border-slate-200 focus-visible:ring-blue-500 transition-shadow"
                 />
               </div>
@@ -408,23 +526,110 @@ export default function RegisterDesignGalleryPage() {
 
                     <div className="grid grid-cols-2 gap-4 border-b border-slate-100 pb-4">
                       <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Size / Faces</p>
-                        <p className="font-semibold text-slate-700 text-sm">{lightboxItem.sizeChecks || '-'} / {lightboxItem.sizeFaces || '-'}</p>
-                      </div>
-                      <div>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Technician</p>
                         <p className="font-semibold text-slate-700 text-sm">{lightboxItem.technician || '-'}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Send By</p>
+                        <p className="font-semibold text-slate-700 text-sm">{lightboxItem.sendBy || '-'}</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 border-b border-slate-100 pb-4">
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Versi</p>
+                        <p className="font-semibold text-slate-700 text-sm">{lightboxItem.version || '-'}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Tujuan</p>
+                        <p className="font-semibold text-slate-700 text-sm">{lightboxItem.benefitText || lightboxItem.benefit || '-'}</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 border-b border-slate-100 pb-4">
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Req Date</p>
+                        <p className="font-semibold text-slate-700 text-sm">{lightboxItem.requiredDate || '-'}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Closing Date</p>
+                        <p className="font-semibold text-slate-700 text-sm">{lightboxItem.closingDate || '-'}</p>
+                      </div>
+                    </div>
+
+                    <div className="pt-2">
+                      <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-widest border-b-2 border-slate-200 inline-block mb-3">Spesifikasi Lanjutan</h3>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 border-b border-slate-100 pb-4">
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Size / Faces</p>
+                        <p className="font-semibold text-slate-700 text-sm">
+                          {lightboxItem.sizeCm1 ? `${lightboxItem.sizeCm1}x${lightboxItem.sizeCm2}` : (lightboxItem.sizeChecks || '-')} / {lightboxItem.sizeFaces || '-'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Glaze / Residue</p>
+                        <p className="font-semibold text-slate-700 text-sm">{lightboxItem.glazeChecks || '-'} / {lightboxItem.glazeResidue || '-'}</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 border-b border-slate-100 pb-4">
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Surface / Temp</p>
+                        <p className="font-semibold text-slate-700 text-sm">{lightboxItem.surfaceChecks || '-'} / {lightboxItem.surfaceTemp ? `${lightboxItem.surfaceTemp}°C` : '-'}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Ink / Other</p>
+                        <p className="font-semibold text-slate-700 text-sm">{lightboxItem.inkChecks || '-'} {lightboxItem.inkOther ? `(${lightboxItem.inkOther})` : ''}</p>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-1 gap-4 border-b border-slate-100 pb-4">
                       <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">File Gambar</p>
-                        <p className="font-semibold text-slate-700 text-sm break-all">
-                          {lightboxItem.designImageName || `Desain_${lightboxItem.designNo || 'Gambar'}.jpg`}
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">GU / PTV</p>
+                        <p className="font-semibold text-slate-700 text-sm">
+                          {[lightboxItem.guPtv, lightboxItem.guPtv2, lightboxItem.guPtv3, lightboxItem.guPtv4, lightboxItem.guPtv5, lightboxItem.guPtv6].filter(Boolean).join(', ') || '-'}
                         </p>
+                        {lightboxItem.guPtvChecks && (
+                          <p className="text-[11px] text-slate-500 mt-1 italic">{lightboxItem.guPtvChecks}</p>
+                        )}
                       </div>
                     </div>
+
+                      <div className="grid grid-cols-1 gap-4 border-b border-slate-100 pb-4">
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">File Gambar</p>
+                          <div className="flex items-center justify-between gap-2 bg-slate-50 p-2 rounded-lg border border-slate-200">
+                            {lightboxItem.designImage ? (
+                              <a 
+                                href={`https://drive.google.com/file/d/${lightboxItem.designImage}/view`} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="font-semibold text-blue-600 hover:text-blue-800 hover:underline text-sm break-all flex items-center gap-1.5"
+                                title="Buka Gambar di Google Drive"
+                              >
+                                {lightboxItem.designImageName || `Desain_${lightboxItem.designNo || 'Gambar'}.jpg`}
+                                <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                              </a>
+                            ) : (
+                              <p className="font-semibold text-slate-700 text-sm break-all">
+                                {lightboxItem.designImageName || `Desain_${lightboxItem.designNo || 'Gambar'}.jpg`}
+                              </p>
+                            )}
+                            {lightboxItem.designImage && !isReadOnly && (
+                              <button 
+                                onClick={() => handleDeleteImage(lightboxItem)}
+                                disabled={isDeleting}
+                                title="Hapus Gambar dari Google Drive"
+                                className="p-2 text-red-500 bg-white hover:bg-red-50 hover:text-red-700 border border-slate-200 rounded-md transition-colors flex items-center justify-center shrink-0 disabled:opacity-50"
+                              >
+                                {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                   </div>
                 </div>
               </div>
@@ -449,6 +654,33 @@ export default function RegisterDesignGalleryPage() {
           background: #94a3b8; 
         }
       `}} />
+
+      <Dialog open={isPublicAuthOpen} onOpenChange={setIsPublicAuthOpen}>
+        <DialogContent className="max-w-md" onInteractOutside={e => e.preventDefault()} onEscapeKeyDown={e => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle>Masukkan Passcode</DialogTitle>
+            <DialogDescription>
+              Link ini dilindungi oleh passcode. Silakan masukkan passcode untuk melihat data.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Input 
+              type="password" 
+              value={publicPasscode} 
+              onChange={e => setPublicPasscode(e.target.value)} 
+              placeholder="Passcode..."
+              onKeyDown={e => {
+                if (e.key === 'Enter') handlePublicLogin();
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button onClick={handlePublicLogin} className="w-full bg-blue-600 hover:bg-blue-700">
+              Masuk
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }

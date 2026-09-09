@@ -58,6 +58,13 @@ service cloud.firestore {
       allow delete: if request.auth != null && getUserRole(request.auth.uid) == 'Admin';
     }
     
+    // Rules for shared links (Register Design & Gallery)
+    match /shared_links/{shareId} {
+      allow read: if true; 
+      allow create: if request.auth != null;
+      allow delete: if request.auth != null && getUserRole(request.auth.uid) == 'Admin';
+    }
+    
     // Rules for public shared reports
     match /public_reports/{reportId} {
       allow read: if true;

@@ -6,8 +6,8 @@ import DashboardLayout from '@/components/dashboard/layout';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { db, auth } from '@/lib/firebase/config';
-import { collection, getDocs, doc, setDoc, deleteDoc, updateDoc, query, orderBy, serverTimestamp, where, addDoc } from 'firebase/firestore';
-import { Trash2, Plus, Save, Layers, CheckSquare, Search, ChevronDown, Check, Eye, X, Pencil, Share2, ChevronUp, BarChart2, Download, Upload, FileSpreadsheet, Lock, Unlock, Loader2, MoreHorizontal, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { collection, getDocs, doc, setDoc, deleteDoc, updateDoc, query, orderBy, serverTimestamp, where, addDoc, getDoc } from 'firebase/firestore';
+import { Trash2, Plus, Save, Layers, CheckSquare, Search, ChevronDown, Check, Eye, X, Pencil, Share2, ChevronUp, BarChart2, Download, Upload, FileSpreadsheet, Lock, Unlock, Loader2, MoreHorizontal, ChevronLeft, ChevronRight, Calendar, Image as ImageIcon } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
@@ -302,14 +302,25 @@ const CellImageUpload = ({
           {row.designImageName && (
             <div className="flex items-center justify-between gap-2 text-xs font-bold text-slate-900 bg-slate-200 py-1.5 px-3 mb-2 w-full max-w-[256px] rounded-md border border-slate-300 shadow-sm">
               <span className="truncate flex-1 text-left">{row.designImageName}</span>
-              <button 
-                onClick={handleDeleteImage} 
-                disabled={isUploading} 
-                title="Hapus Gambar" 
-                className="text-red-500 hover:text-red-700 bg-white hover:bg-red-50 rounded p-1 transition-colors shrink-0"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
+              <div className="flex gap-1 shrink-0">
+                <a 
+                  href="/register-design/gallery" 
+                  title="Buka Gallery" 
+                  className="text-blue-600 hover:text-blue-800 bg-white hover:bg-blue-50 rounded p-1 transition-colors"
+                >
+                  <ImageIcon className="w-3.5 h-3.5" />
+                </a>
+                {!row.isLocked && (
+                  <button 
+                    onClick={handleDeleteImage} 
+                    disabled={isUploading} 
+                    title="Hapus Gambar" 
+                    className="text-red-500 hover:text-red-700 bg-white hover:bg-red-50 rounded p-1 transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
             </div>
           )}
           <div className="relative w-48 h-48 sm:w-64 sm:h-64 rounded-lg overflow-hidden flex items-center justify-center bg-slate-100">
@@ -685,6 +696,7 @@ export default function RegisterDesignPage() {
   const { user, loading: loadingUser } = useAuth();
   const router = useRouter();
   const isAdmin = user?.email === 'triyadi72@gmail.com';
+  const isReadOnly = !user;
   const { toast } = useToast();
   const [data, setData] = useState<RegisterDesignItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -700,14 +712,21 @@ export default function RegisterDesignPage() {
   const [undoStack, setUndoStack] = useState<HistoryAction[]>([]);
   const [redoStack, setRedoStack] = useState<HistoryAction[]>([]);
 
-  const [isShareDashboardOpen, setIsShareDashboardOpen] = useState(false);
-  const [dashboardPasscode, setDashboardPasscode] = useState("123456");
+  const [isShareOpen, setIsShareOpen] = useState(false);
+  const [shareType, setShareType] = useState<'dashboard' | 'table' | 'gallery'>('table');
+  const [sharePasscode, setSharePasscode] = useState("123456");
+  const [shareDuration, setShareDuration] = useState("24");
+
+  const [isPublicAuthOpen, setIsPublicAuthOpen] = useState(false);
+  const [publicPasscode, setPublicPasscode] = useState('');
+  const [isPublicAuthenticated, setIsPublicAuthenticated] = useState(false);
 
   const [isTrashOpen, setIsTrashOpen] = useState(false);
   const [trashData, setTrashData] = useState<any[]>([]);
   const [selectedTrashIds, setSelectedTrashIds] = useState<Set<string>>(new Set());
   const [trashSearch, setTrashSearch] = useState("");
   const [loadingTrash, setLoadingTrash] = useState(false);
+  const [deleteProgress, setDeleteProgress] = useState<{current: number, total: number, isDeleting: boolean} | null>(null);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -716,13 +735,68 @@ export default function RegisterDesignPage() {
   const [scrollLeft, setScrollLeft] = useState(0);
 
   useEffect(() => {
-    if (!loadingUser && user) {
-      if (user.role !== 'Admin' && !user.permissions?.canAccessRegisterDesign) {
-        toast({ title: "Akses Ditolak", description: "Anda tidak memiliki izin untuk mengakses Register Design", variant: "destructive" });
-        router.push('/');
+    if (!loadingUser) {
+      if (user) {
+        if (user.role !== 'Admin' && !user.permissions?.canAccessRegisterDesign) {
+          toast({ title: "Akses Ditolak", description: "Anda tidak memiliki izin untuk mengakses Register Design", variant: "destructive" });
+          router.push('/');
+        } else {
+          fetchData();
+        }
+      } else {
+        const urlParams = new URLSearchParams(window.location.search);
+        const shareId = urlParams.get('shareId');
+        if (shareId) {
+          setIsPublicAuthOpen(true);
+        } else {
+          router.push('/login');
+        }
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, loadingUser, router, toast]);
+
+  const handlePublicLogin = async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const shareId = urlParams.get('shareId');
+    if (!shareId) return;
+
+    try {
+      const docRef = doc(db, "shared_links", shareId);
+      const snap = await getDoc(docRef);
+      if (!snap.exists()) {
+        toast({ title: "Link Tidak Valid", description: "Link share ini tidak ditemukan.", variant: "destructive" });
+        return;
+      }
+      
+      const data = snap.data();
+      
+      if (data.expiresAt) {
+        const expiresAt = new Date(data.expiresAt);
+        if (new Date() > expiresAt) {
+          toast({ title: "Link Kedaluwarsa", description: "Waktu akses untuk link ini sudah habis.", variant: "destructive" });
+          return;
+        }
+      }
+      
+      if (data.type !== 'table') {
+         toast({ title: "Akses Ditolak", description: "Link ini bukan untuk halaman Tabel.", variant: "destructive" });
+         return;
+      }
+
+      const hashedInput = await hashString(publicPasscode);
+      if (hashedInput === data.hashedPasscode) {
+        setIsPublicAuthOpen(false);
+        setIsPublicAuthenticated(true);
+        fetchData();
+        toast({ title: "Berhasil", description: "Akses diberikan." });
+      } else {
+        toast({ title: "Passcode Salah", description: "Passcode yang Anda masukkan tidak cocok.", variant: "destructive" });
+      }
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -891,7 +965,7 @@ export default function RegisterDesignPage() {
   };
 
   useEffect(() => {
-    fetchData();
+    // fetchData is now called from auth effect
   }, []);
 
   useEffect(() => {
@@ -970,6 +1044,10 @@ export default function RegisterDesignPage() {
   };
 
   const handleAddRow = useCallback(async () => {
+    if (isReadOnly) {
+      toast({ title: "Akses Ditolak", description: "Anda tidak memiliki izin untuk menambah baris", variant: "destructive" });
+      return;
+    }
     const newItem: Partial<RegisterDesignItem> = {
       darNo: "", entryDate: new Date().toISOString().split('T')[0], customer: "", itemName: "", designer: "", technician: "",
       status: "FREE", designImage: "", typeDesign: "", designSource: "", designNo: "", requiredDate: "", closingDate: "", type: "",
@@ -1014,8 +1092,8 @@ export default function RegisterDesignPage() {
       
       // Sort by deletedAt descending
       data.sort((a, b) => {
-        const dateA = a.deletedAt ? new Date(a.deletedAt).getTime() : 0;
-        const dateB = b.deletedAt ? new Date(b.deletedAt).getTime() : 0;
+        const dateA = a.deletedAt?.seconds ? a.deletedAt.seconds * 1000 : (a.deletedAt?.toDate ? a.deletedAt.toDate().getTime() : new Date(a.deletedAt || 0).getTime());
+        const dateB = b.deletedAt?.seconds ? b.deletedAt.seconds * 1000 : (b.deletedAt?.toDate ? b.deletedAt.toDate().getTime() : new Date(b.deletedAt || 0).getTime());
         return dateB - dateA;
       });
       
@@ -1139,22 +1217,69 @@ export default function RegisterDesignPage() {
     if (!confirm("Kosongkan Tempat Sampah? Semua baris data dan file gambar akan dihapus PERMANEN dan tidak bisa dikembalikan lagi.")) return;
     try {
       setLoadingTrash(true);
+      setDeleteProgress({ current: 0, total: trashData.length, isDeleting: true });
+      let currentIdx = 0;
+      
       for (const item of trashData) {
         if (item.designImage) {
-          const apiUrl = window.location.hostname === 'localhost' ? 'https://inventorycgi.vercel.app/api/delete-drive' : '/api/delete-drive';
-          auth.currentUser?.getIdToken().then(token => {
-            fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ fileId: item.designImage }) }).catch(err => console.error(err));
-          });
+          try {
+            const apiUrl = typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
+              ? 'https://inventorycgi.vercel.app/api/delete-drive' 
+              : '/api/delete-drive';
+            const token = await auth.currentUser?.getIdToken();
+            await fetch(apiUrl, { 
+              method: 'POST', 
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, 
+              body: JSON.stringify({ fileId: item.designImage }) 
+            });
+          } catch (err) {
+            console.error("Gagal menghapus gambar di drive:", err);
+          }
         }
         await deleteDoc(doc(db, "trash_register_design", item.id));
+        currentIdx++;
+        setDeleteProgress({ current: currentIdx, total: trashData.length, isDeleting: true });
       }
       setTrashData([]);
+      setDeleteProgress(prev => prev ? { ...prev, isDeleting: false } : null);
       toast({ title: "Terhapus Permanen", description: "Tempat sampah berhasil dikosongkan." });
     } catch (error) {
       console.error("Gagal mengosongkan tempat sampah:", error);
       toast({ title: "Gagal", description: "Terjadi kesalahan saat menghapus data.", variant: "destructive" });
     } finally {
       setLoadingTrash(false);
+      setTimeout(() => setDeleteProgress(null), 2000); // Sembunyikan setelah 2 detik
+    }
+  };
+
+  const handleCleanExpiredLinks = async () => {
+    if (!confirm("Hapus semua link share publik yang sudah kedaluwarsa?")) return;
+    
+    try {
+      const q = query(collection(db, "shared_links"));
+      const snap = await getDocs(q);
+      const now = new Date();
+      let deletedCount = 0;
+      
+      for (const docSnap of snap.docs) {
+        const data = docSnap.data();
+        if (data.expiresAt) {
+          const expiresAt = new Date(data.expiresAt);
+          if (now > expiresAt) {
+            await deleteDoc(doc(db, "shared_links", docSnap.id));
+            deletedCount++;
+          }
+        }
+      }
+      
+      if (deletedCount > 0) {
+        toast({ title: "Berhasil", description: `${deletedCount} link kedaluwarsa berhasil dihapus.` });
+      } else {
+        toast({ title: "Info", description: "Tidak ada link kedaluwarsa yang ditemukan." });
+      }
+    } catch (error) {
+      console.error("Gagal membersihkan link:", error);
+      toast({ title: "Gagal", description: "Terjadi kesalahan saat membersihkan link.", variant: "destructive" });
     }
   };
 
@@ -1223,6 +1348,8 @@ export default function RegisterDesignPage() {
   };
 
   const handleUpdateCell = async (id: string, field: keyof RegisterDesignItem, value: string, isHistoryAction = false) => {
+    if (isReadOnly) return;
+    
     let updatePayload: any = { [field]: value, updatedAt: serverTimestamp() };
     let generatedDesignNo: string | undefined = undefined;
     
@@ -1980,6 +2107,10 @@ export default function RegisterDesignPage() {
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder={searchCategory === 'all' ? "Cari apapun..." : "Cari..."}
+                  autoComplete="new-password"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  name="table_search_query"
                   className="pl-9 h-9 w-full sm:w-48 text-sm border-none shadow-none focus-visible:ring-0 rounded-none bg-transparent"
                 />
               </div>
@@ -2020,10 +2151,19 @@ export default function RegisterDesignPage() {
                 </Button>
               )}
 
-              <Button variant="outline" size="sm" onClick={() => router.push('/register-design/dashboard')} className="font-semibold text-slate-700 hover:bg-slate-100 flex-1 sm:flex-none transition-colors border-slate-300">
+              {!isReadOnly && (
+                <Button onClick={handleAddRow} size="sm" className="font-semibold bg-slate-900 hover:bg-slate-800 text-white flex-1 sm:flex-none transition-colors shadow-sm">
+                  <Plus className="w-4 h-4 mr-1 hidden sm:inline" /> Baris Baru (F8)
+                </Button>
+              )}
+            </div>
+            
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => router.push('/register-design/dashboard')} className="font-semibold text-slate-700 hover:bg-slate-100 border-slate-300">
                 <BarChart2 className="w-4 h-4 mr-2 hidden sm:inline" /> Dashboard
               </Button>
 
+              {!isReadOnly && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="font-semibold text-slate-700 hover:bg-slate-100 border-slate-300">
@@ -2031,9 +2171,24 @@ export default function RegisterDesignPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48 bg-white border-slate-200 shadow-md">
-                  <DropdownMenuItem onClick={() => setIsShareDashboardOpen(true)} className="cursor-pointer text-slate-700 focus:bg-slate-50">
-                    <Share2 className="w-4 h-4 mr-2" /> Share Dashboard
-                  </DropdownMenuItem>
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger className="cursor-pointer text-slate-700 focus:bg-slate-50">
+                      <Share2 className="w-4 h-4 mr-2" /> Share Public Link
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuPortal>
+                      <DropdownMenuSubContent>
+                        <DropdownMenuItem onClick={() => { setShareType('dashboard'); setIsShareOpen(true); }} className="cursor-pointer">
+                          Dashboard Summary
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { setShareType('table'); setIsShareOpen(true); }} className="cursor-pointer">
+                          Tabel Register Design
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { setShareType('gallery'); setIsShareOpen(true); }} className="cursor-pointer">
+                          Gallery Design
+                        </DropdownMenuItem>
+                      </DropdownMenuSubContent>
+                    </DropdownMenuPortal>
+                  </DropdownMenuSub>
                   
                   <DropdownMenuSeparator className="bg-slate-100" />
                   
@@ -2072,10 +2227,14 @@ export default function RegisterDesignPage() {
                       <DropdownMenuItem onClick={() => { setIsTrashOpen(true); fetchTrashData(); }} className="cursor-pointer text-red-600 focus:text-red-700 focus:bg-red-50">
                         <Trash2 className="w-4 h-4 mr-2" /> Tempat Sampah
                       </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleCleanExpiredLinks} className="cursor-pointer text-red-600 focus:text-red-700 focus:bg-red-50">
+                        <Trash2 className="w-4 h-4 mr-2" /> Bersihkan Link Basi
+                      </DropdownMenuItem>
                     </>
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
+              )}
 
               <input type="file" ref={fileInputRef} accept=".xlsx, .xls" onChange={handleImportExcel} className="hidden" title="Import Excel" />
 
@@ -2083,9 +2242,11 @@ export default function RegisterDesignPage() {
                 <Layers className="w-4 h-4 mr-1.5 text-blue-500" /> Gallery
               </Button>
 
-              <Button onClick={handleAddRow} size="sm" className="font-semibold bg-slate-900 hover:bg-slate-800 text-white flex-1 sm:flex-none transition-colors shadow-sm">
-                <Plus className="w-4 h-4 mr-1 hidden sm:inline" /> Baris Baru (F8)
-              </Button>
+              {!isReadOnly && (
+                <Button onClick={handleAddRow} size="sm" className="font-semibold bg-slate-900 hover:bg-slate-800 text-white flex-1 sm:flex-none transition-colors shadow-sm">
+                  <Plus className="w-4 h-4 mr-1 hidden sm:inline" /> Baris Baru (F8)
+                </Button>
+              )}
             </div>
 
             {/* Pagination UI - Header Version */}
@@ -2134,14 +2295,16 @@ export default function RegisterDesignPage() {
           <table className="w-max min-w-full text-left text-[11px] border-collapse bg-white">
             <thead className="sticky top-0 z-40 bg-slate-100 shadow-sm border-b-2 border-slate-300 text-slate-700 font-bold uppercase tracking-wider">
               <tr>
-                <th className="w-10 min-w-[40px] max-w-[40px] p-0 border-r text-center sticky top-0 left-0 bg-slate-100 z-40">
-                  <input 
-                    type="checkbox" 
-                    className="w-4 h-4 cursor-pointer accent-red-600 mx-auto block" 
-                    checked={filteredData.length > 0 && filteredData.every(d => selectedIds.has(d.id))}
-                    onChange={toggleSelectAll}
-                  />
-                </th>
+                {!isReadOnly && (
+                  <th className="w-10 min-w-[40px] max-w-[40px] p-0 border-r text-center sticky top-0 left-0 bg-slate-100 z-40">
+                    <input 
+                      type="checkbox" 
+                      className="w-4 h-4 cursor-pointer accent-red-600 mx-auto block" 
+                      checked={filteredData.length > 0 && filteredData.every(d => selectedIds.has(d.id))}
+                      onChange={toggleSelectAll}
+                    />
+                  </th>
+                )}
                 <th className="p-2 border-r bg-blue-50 text-blue-800 cursor-pointer hover:bg-slate-200 transition-colors select-none group sticky top-0 left-10 z-40 shadow-[4px_0_8px_rgba(0,0,0,0.02)]" onClick={() => handleSort("darNo")}>
                   <div className="flex items-center gap-1">
                     DAR No
@@ -2369,7 +2532,9 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="p-2 text-center sticky top-0 right-0 bg-slate-100 z-40 shadow-[-4px_0_12px_rgba(0,0,0,0.05)]">Aksi</th>
+                {!isReadOnly && (
+                  <th className="p-2 text-center sticky top-0 right-0 bg-slate-100 z-40 shadow-[-4px_0_12px_rgba(0,0,0,0.05)]">Aksi</th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -2378,72 +2543,71 @@ export default function RegisterDesignPage() {
               ) : filteredData.length === 0 ? (
                 <tr><td colSpan={24} className="p-8 text-center text-slate-500 font-bold">Tidak ada data desain.</td></tr>
               ) : (
-                paginatedData.map((row, idx) => (
-                  <tr key={row.id} className="border-b border-slate-200 hover:bg-blue-50/50 group transition-colors">
-                    <td className="w-10 min-w-[40px] max-w-[40px] p-0 border-r text-center sticky left-0 bg-white group-hover:bg-blue-50 z-20">
-                      <input type="checkbox" checked={selectedIds.has(row.id)} onChange={() => toggleSelect(row.id)} className="w-4 h-4 cursor-pointer accent-red-600" />
-                    </td>
-                    <td className="p-1 border-r font-black text-blue-700 sticky left-10 bg-[#f4f8ff] group-hover:bg-blue-50 z-10 shadow-[4px_0_8px_rgba(0,0,0,0.02)]">
-                      <CellInput handleUpdateCell={handleUpdateCell} row={row} field="darNo" width="w-24" />
-                    </td>
-                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="entryDate" width="w-28" type="date" /></td>
-                    <td className="p-1 border-r text-[10px] text-slate-500 bg-slate-50/50 text-center">{row.createdBy || '-'}</td>
-                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="itemName" width="w-40" /></td>
-                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="customer" options={customerOptions} width="w-32" /></td>
-                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="designer" options={designerOptions} colorFn={getDesignerColor} width="w-28" /></td>
-                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="technician" options={technicianOptions} colorFn={getTechnicianColor} width="w-28" /></td>
-                    <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="benefit" options={baseTujuanOptions} width="w-32" /></td>
-                    <td className="p-1 border-r bg-slate-50/50"><CellImageUpload handleUpdateCell={handleUpdateCell} row={row} /></td>
-                    <td className="p-1 border-r">
-                      <CellInput handleUpdateCell={handleUpdateCell} row={row} field="version" width="w-20" />
-                    </td>
-                    <td className="p-1 border-r">
-                      <CellSelect handleUpdateCell={handleUpdateCell} row={row} field="status" options={["IN LOCK", "IN USE", "FREE", "ARCHIVE"]} colorFn={getStatusColor} width="w-24" />
-                    </td>
-                    <td className="p-1 border-r">
-                      <CellInput handleUpdateCell={handleUpdateCell} row={row} field="typeDesign" options={typeDesignOptions} colorFn={getTypeDesignColor} width="w-20" />
-                    </td>
-                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="designSource" options={designSourceOptions} width="w-24" /></td>
-                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="designNo" width="w-24" /></td>
-                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="requiredDate" width="w-28" type="date" /></td>
-                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="closingDate" width="w-28" type="date" /></td>
-                    <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="type" options={baseTypeOptions} width="w-24" /></td>
-                    <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="sizeChecks" options={baseSizeOptions} customOptions={sizeCustomOptions} width="w-32" /></td>
-                    <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="glazeChecks" options={baseGlazeOptions} customOptions={glazeCustomOptions} width="w-32" /></td>
-                    <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="surfaceChecks" options={baseSurfaceOptions} customOptions={surfaceCustomOptions} width="w-32" /></td>
-                    <td className="p-1 border-r bg-slate-50/50">
-                       <CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="guPtvChecks" options={baseGuPtvOptions} customOptions={guPtvCustomOptions} width="w-32" />
-                    </td>
-                    <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="inkChecks" options={baseInkOptions} customOptions={inkCustomOptions} width="w-32" /></td>
-                    <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="sendBy" options={baseSendByOptions} width="w-24" /></td>
-                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="benefitText" width="w-40" /></td>
-                    <td className="p-1 border-r bg-slate-50/50"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="generalNote" width="w-48" /></td>
-                    <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="lastTimeReq" width="w-28" type="date" /></td>
-                    <td className="p-1 border-r"><CellGridInput handleUpdateCell={handleUpdateCell} row={row} field="feedbackDetails" title="Feedback" rowsCount={4} /></td>
-                    <td className="p-1 border-r"><CellGridInput handleUpdateCell={handleUpdateCell} row={row} field="lastDesignSupp" title="Support" rowsCount={6} /></td>
-                    <td className="p-1 border-r"><CellGridInput handleUpdateCell={handleUpdateCell} row={row} field="note2" title="Note 2" rowsCount={3} /></td>
-                    <td className="p-1 text-center sticky right-0 bg-white group-hover:bg-blue-50 z-10 shadow-[-4px_0_12px_rgba(0,0,0,0.02)]">
-                      <div className="flex items-center justify-center gap-1">
-                        {row.darNo && (
-                          <>
-                            <Button variant="ghost" size="icon" onClick={() => handleOpenSign(row.darNo)} className="h-6 w-6 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 shadow-sm border border-emerald-100" title="Isi Tanda Tangan">
-                              <Pencil className="w-3.5 h-3.5" />
+                paginatedData.map((origRow, idx) => {
+                  const row = { ...origRow, isLocked: origRow.isLocked || isReadOnly };
+                  return (
+                    <tr key={row.id} className="border-b border-slate-200 hover:bg-blue-50/50 group transition-colors">
+                      {!isReadOnly && (
+                        <td className="w-10 min-w-[40px] max-w-[40px] p-0 border-r text-center sticky left-0 bg-white group-hover:bg-blue-50 z-20">
+                          <input type="checkbox" checked={selectedIds.has(row.id)} onChange={() => toggleSelect(row.id)} className="w-4 h-4 cursor-pointer accent-red-600" />
+                        </td>
+                      )}
+                      <td className={`p-1 border-r font-black text-blue-700 bg-[#f4f8ff] group-hover:bg-blue-50 z-10 ${!isReadOnly ? 'sticky left-10' : ''} shadow-[4px_0_8px_rgba(0,0,0,0.02)]`}>
+                        <CellInput handleUpdateCell={handleUpdateCell} row={row} field="darNo" width="w-24" />
+                      </td>
+                      <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="entryDate" width="w-28" type="date" /></td>
+                      <td className="p-1 border-r text-[10px] text-slate-500 bg-slate-50/50 text-center">{row.createdBy || '-'}</td>
+                      <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="itemName" width="w-40" /></td>
+                      <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="customer" options={customerOptions} width="w-32" /></td>
+                      <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="designer" options={designerOptions} colorFn={getDesignerColor} width="w-28" /></td>
+                      <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="technician" options={technicianOptions} colorFn={getTechnicianColor} width="w-28" /></td>
+                      <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="benefit" options={baseTujuanOptions} width="w-32" /></td>
+                      <td className="p-1 border-r bg-slate-50/50"><CellImageUpload handleUpdateCell={handleUpdateCell} row={row} /></td>
+                      <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="version" width="w-20" /></td>
+                      <td className="p-1 border-r"><CellSelect handleUpdateCell={handleUpdateCell} row={row} field="status" options={["IN LOCK", "IN USE", "FREE", "ARCHIVE"]} colorFn={getStatusColor} width="w-24" /></td>
+                      <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="typeDesign" options={typeDesignOptions} colorFn={getTypeDesignColor} width="w-20" /></td>
+                      <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="designSource" options={designSourceOptions} width="w-24" /></td>
+                      <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="designNo" width="w-24" /></td>
+                      <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="requiredDate" width="w-28" type="date" /></td>
+                      <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="closingDate" width="w-28" type="date" /></td>
+                      <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="type" options={baseTypeOptions} width="w-24" /></td>
+                      <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="sizeChecks" options={baseSizeOptions} customOptions={sizeCustomOptions} width="w-32" /></td>
+                      <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="glazeChecks" options={baseGlazeOptions} customOptions={glazeCustomOptions} width="w-32" /></td>
+                      <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="surfaceChecks" options={baseSurfaceOptions} customOptions={surfaceCustomOptions} width="w-32" /></td>
+                      <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="guPtvChecks" options={baseGuPtvOptions} customOptions={guPtvCustomOptions} width="w-32" /></td>
+                      <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="inkChecks" options={baseInkOptions} customOptions={inkCustomOptions} width="w-32" /></td>
+                      <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="sendBy" options={baseSendByOptions} width="w-24" /></td>
+                      <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="benefitText" width="w-40" /></td>
+                      <td className="p-1 border-r bg-slate-50/50"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="generalNote" width="w-48" /></td>
+                      <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="lastTimeReq" width="w-28" type="date" /></td>
+                      <td className="p-1 border-r"><CellGridInput handleUpdateCell={handleUpdateCell} row={row} field="feedbackDetails" title="Feedback" rowsCount={4} /></td>
+                      <td className="p-1 border-r"><CellGridInput handleUpdateCell={handleUpdateCell} row={row} field="lastDesignSupp" title="Support" rowsCount={6} /></td>
+                      <td className="p-1 border-r"><CellGridInput handleUpdateCell={handleUpdateCell} row={row} field="note2" title="Note 2" rowsCount={3} /></td>
+                      {!isReadOnly && (
+                        <td className="p-1 text-center sticky right-0 bg-white group-hover:bg-blue-50 z-10 shadow-[-4px_0_12px_rgba(0,0,0,0.02)]">
+                          <div className="flex items-center justify-center gap-1">
+                            {row.darNo && (
+                              <>
+                                <Button variant="ghost" size="icon" onClick={() => handleOpenSign(row.darNo)} className="h-6 w-6 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 shadow-sm border border-emerald-100" title="Isi Tanda Tangan">
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={() => setPreviewDarNo(row.darNo)} className="h-6 w-6 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 shadow-sm border border-blue-100" title="Preview Form DAR">
+                                  <Eye className="w-3.5 h-3.5" />
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={() => handleSharePublicLink(row.darNo)} className="h-6 w-6 bg-purple-50 text-purple-600 hover:bg-purple-100 hover:text-purple-700 shadow-sm border border-purple-100" title="Bagikan Link Public Form DAR" disabled={isSharing}>
+                                  <Share2 className="w-3.5 h-3.5" />
+                                </Button>
+                              </>
+                            )}
+                            <Button variant="ghost" size="icon" onClick={() => handleDeleteRow(row.id)} className="h-6 w-6 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 shadow-sm border border-red-100" title="Hapus Baris">
+                              <Trash2 className="w-3.5 h-3.5" />
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={() => setPreviewDarNo(row.darNo)} className="h-6 w-6 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 shadow-sm border border-blue-100" title="Preview Form DAR">
-                              <Eye className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleSharePublicLink(row.darNo)} className="h-6 w-6 bg-purple-50 text-purple-600 hover:bg-purple-100 hover:text-purple-700 shadow-sm border border-purple-100" title="Bagikan Link Public Form DAR" disabled={isSharing}>
-                              <Share2 className="w-3.5 h-3.5" />
-                            </Button>
-                          </>
-                        )}
-                        <Button variant="ghost" size="icon" onClick={() => handleDeleteRow(row.id)} className="h-6 w-6 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 shadow-sm border border-red-100" title="Hapus Baris">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -2500,37 +2664,125 @@ export default function RegisterDesignPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isShareDashboardOpen} onOpenChange={setIsShareDashboardOpen}>
+      <Dialog open={isShareOpen} onOpenChange={setIsShareOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Share Dashboard Summary</DialogTitle>
+            <DialogTitle>Share Link Publik ({shareType === 'dashboard' ? 'Dashboard' : shareType === 'table' ? 'Tabel' : 'Gallery'})</DialogTitle>
             <DialogDescription>
-              Buat passcode untuk membatasi akses pada link publik.
+              Buat link yang bisa diakses publik tanpa login.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-1 block">Passcode (minimal 4 karakter)</label>
+              <Input 
+                type="text" 
+                value={sharePasscode} 
+                onChange={e => setSharePasscode(e.target.value)} 
+                placeholder="Contoh: 123456"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-1 block">Durasi Validitas</label>
+              <Select value={shareDuration} onValueChange={setShareDuration}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih Durasi" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1 Jam</SelectItem>
+                  <SelectItem value="24">24 Jam (1 Hari)</SelectItem>
+                  <SelectItem value="168">7 Hari</SelectItem>
+                  <SelectItem value="0">Selamanya</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsShareOpen(false)}>Batal</Button>
+            <Button 
+              disabled={sharePasscode.length < 4}
+              className="bg-blue-600 hover:bg-blue-700" 
+              onClick={async () => {
+                try {
+                  const hashed = await hashString(sharePasscode);
+                  let expiresAt = null;
+                  if (shareDuration !== "0") {
+                    const date = new Date();
+                    date.setHours(date.getHours() + parseInt(shareDuration));
+                    expiresAt = date.toISOString();
+                  }
+
+                  const docRef = await addDoc(collection(db, "shared_links"), {
+                    hashedPasscode: hashed,
+                    expiresAt,
+                    type: shareType,
+                    createdAt: serverTimestamp()
+                  });
+
+                  let targetPath = '';
+                  if (shareType === 'dashboard') targetPath = '/public/dashboard-design';
+                  if (shareType === 'table') targetPath = '/register-design';
+                  if (shareType === 'gallery') targetPath = '/register-design/gallery';
+
+                  const url = window.location.origin + targetPath + '?shareId=' + docRef.id;
+                  
+                  const durasiText = shareDuration === "0" ? "selamanya" : `${shareDuration} jam`;
+                  const templateText = `Berikut adalah link akses publik:\n${url}\n\nLink ini berlaku: ${durasiText}.\nPassword: ${sharePasscode}`;
+                  
+                  try {
+                    if (navigator.share) {
+                      await navigator.share({
+                        title: `Share ${shareType === 'dashboard' ? 'Dashboard' : shareType === 'table' ? 'Tabel' : 'Gallery'} Register Design`,
+                        text: `Berikut adalah link akses publik.\n\nLink ini berlaku: ${durasiText}.\nPassword: ${sharePasscode}`,
+                        url: url
+                      });
+                      toast({ title: "Berhasil!", description: "Pesan berhasil dibagikan." });
+                    } else {
+                      await navigator.clipboard.writeText(templateText);
+                      toast({ title: "Disalin!", description: "Browser tidak mendukung Share langsung. Link disalin ke clipboard." });
+                    }
+                  } catch (err: any) {
+                    // Fallback to clipboard if user cancels or share fails
+                    if (err.name !== 'AbortError') {
+                      await navigator.clipboard.writeText(templateText);
+                      toast({ title: "Disalin!", description: "Link disalin ke clipboard." });
+                    }
+                  }
+                  
+                  setIsShareOpen(false);
+                } catch (e: any) {
+                  toast({ title: "Gagal membuat link", description: e.message, variant: "destructive" });
+                }
+              }}
+            >
+              Buat & Copy Link
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isPublicAuthOpen} onOpenChange={setIsPublicAuthOpen}>
+        <DialogContent className="max-w-md" onInteractOutside={e => e.preventDefault()} onEscapeKeyDown={e => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle>Masukkan Passcode</DialogTitle>
+            <DialogDescription>
+              Link ini dilindungi oleh passcode. Silakan masukkan passcode untuk melihat data.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <label className="text-sm font-medium text-slate-700 mb-1 block">Passcode (minimal 4 karakter)</label>
             <Input 
-              type="text" 
-              value={dashboardPasscode} 
-              onChange={e => setDashboardPasscode(e.target.value)} 
-              placeholder="Contoh: Ahlisoftware77"
+              type="password" 
+              value={publicPasscode} 
+              onChange={e => setPublicPasscode(e.target.value)} 
+              placeholder="Passcode..."
+              onKeyDown={e => {
+                if (e.key === 'Enter') handlePublicLogin();
+              }}
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsShareDashboardOpen(false)}>Batal</Button>
-            <Button 
-              disabled={dashboardPasscode.length < 4}
-              className="bg-blue-600 hover:bg-blue-700" 
-              onClick={async () => {
-                const hashed = await hashString(dashboardPasscode);
-                const url = window.location.origin + '/public/dashboard-design?k=' + hashed;
-                navigator.clipboard.writeText(url);
-                toast({ title: "Link Dashboard Disalin!", description: "Link beserta passcode sudah dibuat." });
-                setIsShareDashboardOpen(false);
-              }}
-            >
-              Copy Link Share
+            <Button onClick={handlePublicLogin} className="w-full bg-blue-600 hover:bg-blue-700">
+              Masuk
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2619,6 +2871,10 @@ export default function RegisterDesignPage() {
                   placeholder="Cari berdasarkan No Design, Item, Customer, atau DAR..."
                   value={trashSearch}
                   onChange={(e) => setTrashSearch(e.target.value)}
+                  autoComplete="new-password"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  name="trash_search_query"
                   className="pl-9 bg-slate-50 border-slate-200"
                 />
               </div>
@@ -2654,7 +2910,11 @@ export default function RegisterDesignPage() {
                              (item.customer || '').toLowerCase().includes(q) ||
                              (item.darNo || '').toLowerCase().includes(q);
                     })
-                    .sort((a,b) => new Date(b.deletedAt || 0).getTime() - new Date(a.deletedAt || 0).getTime())
+                    .sort((a,b) => {
+                      const tB = b.deletedAt?.seconds ? b.deletedAt.seconds * 1000 : (b.deletedAt?.toDate ? b.deletedAt.toDate().getTime() : new Date(b.deletedAt || 0).getTime());
+                      const tA = a.deletedAt?.seconds ? a.deletedAt.seconds * 1000 : (a.deletedAt?.toDate ? a.deletedAt.toDate().getTime() : new Date(a.deletedAt || 0).getTime());
+                      return tB - tA;
+                    })
                     .map((item) => (
                     <div key={item.id} className={`bg-white p-3 rounded-lg border shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors ${selectedTrashIds.has(item.id) ? 'border-blue-400 bg-blue-50/30' : 'border-slate-200'}`}>
                       <div className="flex items-center gap-3 flex-1 overflow-hidden">
@@ -2671,7 +2931,7 @@ export default function RegisterDesignPage() {
                             {item.deletedAt && (
                               <span className="text-[11px] text-red-500 bg-red-50 px-2 py-0.5 rounded-full font-medium ml-auto sm:ml-0 flex items-center">
                                 <Calendar className="w-3 h-3 mr-1" />
-                                Dihapus: {new Date(item.deletedAt).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute:'2-digit' })}
+                                Dihapus: {new Date(item.deletedAt?.seconds ? item.deletedAt.seconds * 1000 : (item.deletedAt?.toDate ? item.deletedAt.toDate().getTime() : item.deletedAt)).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute:'2-digit' })}
                               </span>
                             )}
                           </div>
@@ -2723,6 +2983,32 @@ export default function RegisterDesignPage() {
           </div>
         </DialogContent>
       </Dialog>
+      
+      {deleteProgress !== null && (
+        <div className="fixed bottom-4 right-4 z-[9999] bg-white rounded-xl shadow-2xl border border-slate-200 p-4 w-80 animate-in slide-in-from-bottom-5">
+          <div className="flex items-center gap-3 mb-3">
+            {deleteProgress.isDeleting ? (
+              <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+            ) : (
+              <Check className="w-5 h-5 text-emerald-500" />
+            )}
+            <div className="flex-1">
+              <h4 className="text-sm font-bold text-slate-800">
+                {deleteProgress.isDeleting ? "Menghapus Data & File..." : "Selesai"}
+              </h4>
+              <p className="text-xs text-slate-500">
+                {deleteProgress.current} dari {deleteProgress.total} baris diproses
+              </p>
+            </div>
+          </div>
+          <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+            <div 
+              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${Math.round((deleteProgress.current / (deleteProgress.total || 1)) * 100)}%` }}
+            ></div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

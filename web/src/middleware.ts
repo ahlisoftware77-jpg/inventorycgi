@@ -22,10 +22,10 @@ try {
       analytics: true,
     });
 
-    // 5 requests per hour for email (very strict to prevent spam)
+    // 500 requests per hour for email (very strict to prevent spam)
     emailLimiter = new Ratelimit({
       redis,
-      limiter: Ratelimit.slidingWindow(5, '1 h'),
+      limiter: Ratelimit.slidingWindow(500, '1 h'),
       analytics: true,
     });
 
@@ -59,22 +59,22 @@ export async function middleware(request: NextRequest) {
 
       if (limitResult && !limitResult.success) {
         return new NextResponse(
-          JSON.stringify({ 
+          JSON.stringify({
             error: 'Terlalu banyak permintaan (Too Many Requests). Silakan tunggu beberapa saat.',
-            status: 429 
+            status: 429
           }),
-          { 
-            status: 429, 
-            headers: { 
+          {
+            status: 429,
+            headers: {
               'Content-Type': 'application/json',
               'X-RateLimit-Limit': limitResult.limit.toString(),
               'X-RateLimit-Remaining': limitResult.remaining.toString(),
               'X-RateLimit-Reset': limitResult.reset.toString(),
-            } 
+            }
           }
         );
       }
-      
+
       // Inject rate limit headers for successful requests
       const response = NextResponse.next();
       if (limitResult) {
@@ -83,7 +83,7 @@ export async function middleware(request: NextRequest) {
         response.headers.set('X-RateLimit-Reset', limitResult.reset.toString());
       }
       return response;
-      
+
     } catch (e) {
       console.error("Rate limiting error:", e);
       // Fallback: biarkan request lolos jika Redis/RateLimiter mengalami masalah
