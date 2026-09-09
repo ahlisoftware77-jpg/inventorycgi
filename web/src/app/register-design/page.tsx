@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { db, auth } from '@/lib/firebase/config';
 import { collection, getDocs, doc, setDoc, deleteDoc, updateDoc, query, orderBy, serverTimestamp, where, addDoc, getDoc } from 'firebase/firestore';
-import { Trash2, Plus, Save, Layers, CheckSquare, Search, ChevronDown, Check, Eye, X, Pencil, Share2, ChevronUp, BarChart2, Download, Upload, FileSpreadsheet, Lock, Unlock, Loader2, MoreHorizontal, ChevronLeft, ChevronRight, Calendar, Image as ImageIcon } from 'lucide-react';
+import { Trash2, Plus, Save, Layers, CheckSquare, Search, ChevronDown, Check, Eye, X, Pencil, Share2, ChevronUp, BarChart2, Download, Upload, FileSpreadsheet, Lock, Unlock, Loader2, MoreHorizontal, ChevronLeft, ChevronRight, Calendar, Image as ImageIcon, Printer } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
@@ -2644,10 +2644,18 @@ export default function RegisterDesignPage() {
         <DialogContent className="sm:max-w-4xl max-w-[95vw] h-[95vh] p-0 border-none rounded-xl shadow-2xl overflow-hidden bg-slate-200 flex flex-col">
           <div className="flex items-center justify-between p-4 bg-white border-b shadow-sm z-10">
             <DialogTitle className="text-lg font-bold">Preview Form DAR: {previewDarNo}</DialogTitle>
-            <DialogClose asChild><Button variant="ghost" size="icon"><X className="h-5 w-5" /></Button></DialogClose>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" className="hidden sm:flex" onClick={() => {
+                window.open(`/form-app/preview?darNo=${previewDarNo}&print=true`, '_blank');
+              }}>
+                <Printer className="w-4 h-4 mr-2" />
+                Print
+              </Button>
+              <DialogClose asChild><Button variant="ghost" size="icon"><X className="h-5 w-5" /></Button></DialogClose>
+            </div>
           </div>
           <div className="flex-1 w-full bg-slate-200 relative overflow-hidden">
-            {previewDarNo && <iframe src={`/form-app/preview?darNo=${previewDarNo}`} className="w-full h-full border-none absolute inset-0" />}
+            {previewDarNo && <iframe id="preview-dar-iframe" src={`/form-app/preview?darNo=${previewDarNo}`} className="w-full h-full border-none absolute inset-0" />}
           </div>
         </DialogContent>
       </Dialog>

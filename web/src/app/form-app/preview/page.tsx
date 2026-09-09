@@ -9,6 +9,8 @@ function PreviewContent() {
     const id = searchParams.get('id');
     const darNoParam = searchParams.get('darNo');
     const [report, setReport] = useState<any>(null);
+    const [images, setImages] = useState<{ id: string; name: string }[]>([]);
+    const [imagesLoaded, setImagesLoaded] = useState(false);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -37,6 +39,36 @@ function PreviewContent() {
         fetchReport();
     }, [id, darNoParam]);
 
+    useEffect(() => {
+        const fetchImages = async () => {
+            if (!report?.darNo) return;
+            try {
+                const { collection, query, where, getDocs } = await import('firebase/firestore');
+                const q = query(collection(db, "register_design"), where("darNo", "==", report.darNo));
+                const snap = await getDocs(q);
+                const fetchedImages = snap.docs.map((doc, idx) => ({
+                    id: doc.data().designImage,
+                    name: doc.data().designImageName || `Gambar ${doc.data().designNo || idx + 1}`
+                })).filter(img => img.id);
+                setImages(fetchedImages);
+            } catch (e) {
+                console.error("Gagal memuat gambar", e);
+            } finally {
+                setImagesLoaded(true);
+            }
+        };
+        fetchImages();
+    }, [report?.darNo]);
+
+    useEffect(() => {
+        if (searchParams.get('print') === 'true' && report && imagesLoaded) {
+            const timer = setTimeout(() => {
+                window.print();
+            }, 500); // Wait for DOM to paint
+            return () => clearTimeout(timer);
+        }
+    }, [searchParams, report, imagesLoaded]);
+
     if (loading) return <div className="flex items-center justify-center h-screen bg-slate-100">Memuat preview...</div>;
     if (!report) return <div className="flex items-center justify-center h-screen bg-slate-100">Form tidak ditemukan</div>;
 
@@ -50,7 +82,7 @@ function PreviewContent() {
     } = report;
 
     return (
-        <div className="min-h-screen bg-slate-200 flex sm:justify-center py-6 sm:py-10 w-full overflow-auto">
+        <div className="min-h-screen bg-slate-200 print:bg-white py-6 sm:py-10 print:py-0 w-full">
             <style dangerouslySetInnerHTML={{__html: `
                 @font-face {
                     font-family: 'CGIFont';
@@ -71,11 +103,39 @@ function PreviewContent() {
                         transform: scale(0.5); 
                     } 
                 }
+                @media print {
+                    @page { size: A4 portrait; margin: 10mm; }
+                    body, html { 
+                        background: white !important; 
+                        margin: 0 !important; 
+                        padding: 0 !important; 
+                        height: auto !important; 
+                        min-height: auto !important;
+                        overflow: visible !important;
+                        overflow-x: visible !important;
+                        overflow-y: visible !important;
+                    }
+                    .print-section {
+                        transform: none !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        box-shadow: none !important;
+                        width: 100% !important;
+                        max-width: 100% !important;
+                        min-height: auto !important;
+                        height: auto !important;
+                    }
+                    .attachment-page {
+                        page-break-before: always !important;
+                        break-before: page !important;
+                    }
+                }
             `}} />
             
-            <div className="print-section bg-white shadow-2xl text-black w-[210mm] min-h-[297mm] text-[11px] leading-tight font-serif shrink-0" style={{ padding: "0" }}>
-                {/* PAPER */}
-              <div className="" style={{ padding: "20px 40px" }}>
+            <div className="max-w-[210mm] w-full mx-auto">
+              <div className="print-section bg-white shadow-2xl text-black w-[210mm] min-h-[297mm] text-[11px] leading-tight font-serif shrink-0" style={{ padding: "0" }}>
+                  {/* PAPER */}
+                <div className="px-[40px] py-[20px] print:pt-0 print:pb-[20px]">
                 
                 {/* HEADER LOGO & TITLE */}
                 <div className="text-center mb-4">
@@ -437,8 +497,42 @@ function PreviewContent() {
                     </div>
                 </div>
             
+              </div>
+              {images.length > 0 && (
+                <div className="attachment-page pt-10 px-[40px] pb-[20px] print:pt-0">
+                    <div className="text-center mb-8">
+                        <div className="font-bold text-xl tracking-widest text-[#0033A0] flex justify-center items-center gap-2" style={{ fontFamily: "'CGIFont', serif" }}>
+                            LAMPIRAN GAMBAR
+                        </div>
+                        <div className="font-bold text-[14px]">
+                            DAR - {darNo}
+                        </div>
+                    </div>
+                    
+                    <div className="flex flex-col gap-10 items-center justify-center">
+                        {images.map((img, idx) => (
+                            <div key={idx} className="w-full flex flex-col items-center min-h-[350px] justify-center" style={{ pageBreakInside: "avoid" }}>
+                                <img 
+                                    src={`https://drive.google.com/thumbnail?id=${img.id}&sz=s1000`} 
+                                    alt={`Lampiran ${img.name}`} 
+                                    className="max-w-[80%] max-h-[350px] object-contain border border-slate-200 p-2" 
+                                    onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        if (target.src.includes('thumbnail')) {
+                                            target.src = `https://drive.google.com/uc?id=${img.id}`;
+                                        } else {
+                                            target.src = 'https://placehold.co/1000x1000/png?text=Preview+Tidak+Tersedia';
+                                        }
+                                    }}
+                                />
+                                <div className="mt-2 text-[14px] font-bold">{img.name}</div>
+                            </div>
+                        ))}
+                    </div>
+                  </div>
+              )}
+              </div>
             </div>
-        </div>
         </div>
     );
 }

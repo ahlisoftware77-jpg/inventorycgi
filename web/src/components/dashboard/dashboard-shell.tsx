@@ -40,6 +40,12 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // PENTING: Untuk halaman cetak (print preview), kita tidak boleh menggunakan wrapper h-screen atau overflow-hidden.
+  // Jika tidak, Chrome print engine hanya akan mencetak 1 halaman saja dengan scrollbar!
+  if (pathname.startsWith('/form-app/preview')) {
+    return <>{children}</>;
+  }
+
   return (
     <SidebarProvider defaultOpen={showSidebar}>
       <div className="flex flex-col h-screen w-full overflow-hidden bg-background">
