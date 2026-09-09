@@ -713,7 +713,7 @@ export default function RegisterDesignPage() {
   const [redoStack, setRedoStack] = useState<HistoryAction[]>([]);
 
   const [isShareOpen, setIsShareOpen] = useState(false);
-  const [shareType, setShareType] = useState<'dashboard' | 'table' | 'gallery'>('table');
+  const [shareType, setShareType] = useState<string>('table');
   const [sharePasscode, setSharePasscode] = useState("123456");
   const [shareDuration, setShareDuration] = useState("24");
 
@@ -993,40 +993,25 @@ export default function RegisterDesignPage() {
   };
 
   const [isSharing, setIsSharing] = useState(false);
-  const handleSharePublicLink = async (darNo: string) => {
-    setIsSharing(true);
+  const handleSharePublicLink = async (darNo: string, isPreview: boolean = false) => {
     try {
       const q = query(collection(db, "form_dar"), where("darNo", "==", darNo));
       const snap = await getDocs(q);
       if (snap.empty) {
         toast({ title: "Gagal", description: "Form DAR ini belum dibuat/disimpan di database.", variant: "destructive" });
-        setIsSharing(false);
         return;
       }
       const targetId = snap.docs[0].id;
-      const publicUrl = `${window.location.origin}/public/form-dar?id=${targetId}`;
-      if (navigator.share) {
-        try {
-          await navigator.share({
-            title: `Form DAR #${darNo}`,
-            text: `Mohon isi tanda tangan pada Form DAR #${darNo}`,
-            url: publicUrl,
-          });
-        } catch (err: any) {
-          if (err.name !== 'AbortError') {
-            await navigator.clipboard.writeText(publicUrl);
-            toast({ title: "Tersalin", description: "Link disalin ke clipboard karena share dialog gagal." });
-          }
-        }
+      if (isPreview) {
+        setShareType(`preview-${darNo}`);
       } else {
-        await navigator.clipboard.writeText(publicUrl);
-        toast({ title: "Tersalin", description: "Link disalin ke clipboard." });
+        setShareType(`dar-${targetId}`);
       }
+      setIsShareOpen(true);
     } catch(e) {
       console.error(e);
       toast({ title: "Error", description: "Gagal membagikan link.", variant: "destructive" });
     }
-    setIsSharing(false);
   };
 
   const logAction = async (action: string, description: string) => {
@@ -2623,9 +2608,6 @@ export default function RegisterDesignPage() {
                                 <Button variant="ghost" size="icon" onClick={() => setPreviewDarNo(row.darNo)} className="h-6 w-6 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 shadow-sm border border-blue-100" title="Preview Form DAR">
                                   <Eye className="w-3.5 h-3.5" />
                                 </Button>
-                                <Button variant="ghost" size="icon" onClick={() => handleSharePublicLink(row.darNo)} className="h-6 w-6 bg-purple-50 text-purple-600 hover:bg-purple-100 hover:text-purple-700 shadow-sm border border-purple-100" title="Bagikan Link Public Form DAR" disabled={isSharing}>
-                                  <Share2 className="w-3.5 h-3.5" />
-                                </Button>
                               </>
                             )}
                             <Button variant="ghost" size="icon" onClick={() => handleDeleteRow(row.id)} className="h-6 w-6 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 shadow-sm border border-red-100" title="Hapus Baris">
@@ -2680,6 +2662,15 @@ export default function RegisterDesignPage() {
                 <Printer className="w-4 h-4 mr-2" />
                 Print
               </Button>
+              <Button variant="outline" size="sm" onClick={() => {
+                if (previewDarNo) {
+                  setPreviewDarNo(null); // Optional: close the preview dialog when sharing
+                  handleSharePublicLink(previewDarNo, true);
+                }
+              }}>
+                <Share2 className="w-4 h-4 mr-2" />
+                Share
+              </Button>
               <DialogClose asChild><Button variant="ghost" size="icon"><X className="h-5 w-5" /></Button></DialogClose>
             </div>
           </div>
@@ -2693,7 +2684,18 @@ export default function RegisterDesignPage() {
         <DialogContent className="sm:max-w-6xl max-w-[98vw] h-[95vh] p-0 border-none rounded-xl shadow-2xl overflow-hidden bg-slate-200 flex flex-col">
           <div className="flex items-center justify-between p-4 bg-white border-b shadow-sm z-10">
             <DialogTitle className="text-lg font-bold">Isi Tanda Tangan: {signDarNo}</DialogTitle>
-            <DialogClose asChild><Button variant="ghost" size="icon"><X className="h-5 w-5" /></Button></DialogClose>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => {
+                if (signDarNo) {
+                  setSignDarNo(null);
+                  handleSharePublicLink(signDarNo);
+                }
+              }}>
+                <Share2 className="w-4 h-4 mr-2" />
+                Share Form TTD
+              </Button>
+              <DialogClose asChild><Button variant="ghost" size="icon"><X className="h-5 w-5" /></Button></DialogClose>
+            </div>
           </div>
           <div className="flex-1 w-full bg-slate-200 relative overflow-hidden">
             {signId && <iframe src={`/public/form-dar?id=${signId}`} className="w-full h-full border-none absolute inset-0" />}
@@ -2704,7 +2706,7 @@ export default function RegisterDesignPage() {
       <Dialog open={isShareOpen} onOpenChange={setIsShareOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Share Link Publik ({shareType === 'dashboard' ? 'Dashboard' : shareType === 'table' ? 'Tabel' : 'Gallery'})</DialogTitle>
+            <DialogTitle>Share Link Publik ({shareType === 'dashboard' ? 'Dashboard' : shareType === 'table' ? 'Tabel' : shareType === 'gallery' ? 'Gallery' : shareType.startsWith('preview-') ? 'Preview DAR' : 'Form DAR'})</DialogTitle>
             <DialogDescription>
               Buat link yang bisa diakses publik tanpa login.
             </DialogDescription>
@@ -2758,10 +2760,23 @@ export default function RegisterDesignPage() {
 
                   let targetPath = '';
                   if (shareType === 'dashboard') targetPath = '/public/dashboard-design';
-                  if (shareType === 'table') targetPath = '/register-design';
-                  if (shareType === 'gallery') targetPath = '/register-design/gallery';
+                  else if (shareType === 'table') targetPath = '/register-design';
+                  else if (shareType === 'gallery') targetPath = '/register-design/gallery';
+                  else if (shareType.startsWith('dar-')) {
+                    const targetId = shareType.replace('dar-', '');
+                    targetPath = `/public/form-dar?id=${targetId}`;
+                  }
+                  else if (shareType.startsWith('preview-')) {
+                    const darNoForShare = shareType.replace('preview-', '');
+                    targetPath = `/form-app/preview?darNo=${darNoForShare}`;
+                  }
 
-                  const url = window.location.origin + targetPath + '?shareId=' + docRef.id;
+                  let url = window.location.origin + targetPath;
+                  if (url.includes('?')) {
+                     url += '&shareId=' + docRef.id;
+                  } else {
+                     url += '?shareId=' + docRef.id;
+                  }
                   
                   const durasiText = shareDuration === "0" ? "selamanya" : `${shareDuration} jam`;
                   const templateText = `Berikut adalah link akses publik:\n${url}\n\nLink ini berlaku: ${durasiText}.\nPassword: ${sharePasscode}`;
@@ -2769,7 +2784,7 @@ export default function RegisterDesignPage() {
                   try {
                     if (navigator.share) {
                       await navigator.share({
-                        title: `Share ${shareType === 'dashboard' ? 'Dashboard' : shareType === 'table' ? 'Tabel' : 'Gallery'} Register Design`,
+                        title: `Share ${shareType === 'dashboard' ? 'Dashboard' : shareType === 'table' ? 'Tabel' : shareType === 'gallery' ? 'Gallery' : shareType.startsWith('preview-') ? 'Preview DAR' : 'Form DAR'} Register Design`,
                         text: `Berikut adalah link akses publik.\n\nLink ini berlaku: ${durasiText}.\nPassword: ${sharePasscode}`,
                         url: url
                       });

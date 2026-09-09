@@ -13,6 +13,58 @@ function PreviewContent() {
     const [imagesLoaded, setImagesLoaded] = useState(false);
     const [loading, setLoading] = useState(true);
 
+    const shareId = searchParams.get('shareId');
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [passcode, setPasscode] = useState('');
+    const [error, setError] = useState(false);
+    const [isChecking, setIsChecking] = useState(false);
+    const [initialCheckDone, setInitialCheckDone] = useState(false);
+
+    useEffect(() => {
+        if (!shareId) {
+            setIsAuthenticated(true);
+            setInitialCheckDone(true);
+        } else {
+            setInitialCheckDone(true);
+        }
+    }, [shareId]);
+
+    const handleLogin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!shareId) return;
+        setIsChecking(true);
+        setError(false);
+        try {
+            const docRef = doc(db, "shared_links", shareId);
+            const snap = await getDoc(docRef);
+            if (!snap.exists()) {
+                setError(true);
+                setIsChecking(false);
+                return;
+            }
+            const data = snap.data();
+            if (data.expiresAt && new Date() > new Date(data.expiresAt)) {
+                alert("Link Kedaluwarsa");
+                setIsChecking(false);
+                return;
+            }
+            const msgBuffer = new TextEncoder().encode(passcode);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashedInput = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            
+            if (hashedInput === data.hashedPasscode) {
+                setIsAuthenticated(true);
+            } else {
+                setError(true);
+            }
+        } catch (err) {
+            console.error(err);
+            setError(true);
+        }
+        setIsChecking(false);
+    };
+
     useEffect(() => {
         const fetchReport = async () => {
             if (!id && !darNoParam) return;
@@ -68,6 +120,46 @@ function PreviewContent() {
             return () => clearTimeout(timer);
         }
     }, [searchParams, report, imagesLoaded]);
+
+    if (!initialCheckDone) return null;
+    
+    if (!isAuthenticated) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+                <div className="w-full max-w-md bg-white rounded-xl shadow-xl border border-slate-200 p-6">
+                    <div className="space-y-1 text-center pb-6">
+                        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-blue-600"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                        </div>
+                        <h2 className="text-2xl font-bold tracking-tight">Preview DAR Terkunci</h2>
+                        <p className="text-slate-500">Silakan masukkan passcode untuk melihat dokumen ini.</p>
+                    </div>
+                    <div>
+                        <form onSubmit={handleLogin} className="space-y-4">
+                            <div className="space-y-2">
+                                <input 
+                                    type="password" 
+                                    placeholder="Masukkan passcode" 
+                                    value={passcode}
+                                    onChange={(e) => {
+                                        setPasscode(e.target.value);
+                                        setError(false);
+                                    }}
+                                    className={`flex h-10 w-full rounded-md border bg-transparent px-3 py-2 text-sm text-center text-lg tracking-widest outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${error ? 'border-red-500 focus-visible:ring-red-500' : 'border-input'}`}
+                                />
+                                {error && <p className="text-sm text-red-500 text-center font-medium">Passcode salah atau link tidak valid.</p>}
+                            </div>
+                            <button type="submit" disabled={isChecking || !passcode} className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 w-full bg-blue-600 hover:bg-blue-700 h-11 text-base text-white">
+                                {isChecking ? <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 animate-spin"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg> : (
+                                    <>Buka Preview <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 ml-2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></>
+                                )}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     if (loading) return <div className="flex items-center justify-center h-screen bg-slate-100">Memuat preview...</div>;
     if (!report) return <div className="flex items-center justify-center h-screen bg-slate-100">Form tidak ditemukan</div>;
@@ -525,7 +617,9 @@ function PreviewContent() {
                                         }
                                     }}
                                 />
-                                <div className="mt-2 text-[14px] font-bold">{img.name}</div>
+                                <a href={`https://drive.google.com/file/d/${img.id}/view`} target="_blank" rel="noopener noreferrer" className="mt-2 text-[14px] font-bold text-blue-600 hover:underline hover:text-blue-800 transition-colors">
+                                    {img.name}
+                                </a>
                             </div>
                         ))}
                     </div>
