@@ -1332,7 +1332,7 @@ export default function RegisterDesignPage() {
         if (!snapDar.empty) {
           const updatedItemsArr = data
             .filter(d => d.darNo === currentRow.darNo && d.id !== id)
-            .map(d => d.itemName)
+            .map(d => d.version ? `${d.itemName}-${d.version}` : d.itemName)
             .filter(Boolean);
             
           await updateDoc(doc(db, "form_dar", snapDar.docs[0].id), { items: updatedItemsArr });
@@ -1364,16 +1364,29 @@ export default function RegisterDesignPage() {
       setRedoStack([]);
     }
 
+    if (field === "itemName" && value.trim() !== "") {
+      const typeDesignToUse = currentRow.typeDesign || "";
+      if (typeDesignToUse) {
+        const existing = data.find(d => d.id !== id && d.typeDesign === typeDesignToUse && d.itemName === value.trim());
+        if (existing && existing.designNo) {
+          generatedDesignNo = existing.designNo;
+          updatePayload.designNo = generatedDesignNo;
+        }
+      }
+    }
+
     if (field === "designNo" && value.trim() !== "") {
       if ((window as any).designNoTimeout) clearTimeout((window as any).designNoTimeout);
       (window as any).designNoTimeout = setTimeout(() => {
-        const existingDuplicate = data.find(d => d.id !== id && d.designNo === value.trim());
-        if (existingDuplicate) {
+        const existingDuplicate = data.find(d => d.id !== id && d.designNo === value.trim() && d.typeDesign === currentRow.typeDesign);
+        if (existingDuplicate && existingDuplicate.itemName !== currentRow.itemName) {
           let maxNo = 0;
           data.forEach(d => {
-            const num = parseInt(d.designNo || "0", 10);
-            if (!isNaN(num) && num > maxNo) {
-              maxNo = num;
+            if (d.typeDesign === currentRow.typeDesign) {
+              const num = parseInt(d.designNo || "0", 10);
+              if (!isNaN(num) && num > maxNo) {
+                maxNo = num;
+              }
             }
           });
           const suggestion = (maxNo + 1).toString();
@@ -1410,17 +1423,30 @@ export default function RegisterDesignPage() {
     }
 
     if (field === "typeDesign" && value.trim() !== "") {
-      let maxNo = 0;
-      data.forEach(d => {
-        if (d.typeDesign === value && d.id !== id) {
-          const num = parseInt(d.designNo || "0", 10);
-          if (!isNaN(num) && num > maxNo) {
-            maxNo = num;
-          }
+      const itemNameToUse = currentRow.itemName || "";
+      let foundExisting = false;
+      if (itemNameToUse) {
+        const existing = data.find(d => d.id !== id && d.typeDesign === value.trim() && d.itemName === itemNameToUse);
+        if (existing && existing.designNo) {
+          generatedDesignNo = existing.designNo;
+          updatePayload.designNo = generatedDesignNo;
+          foundExisting = true;
         }
-      });
-      generatedDesignNo = (maxNo + 1).toString();
-      updatePayload.designNo = generatedDesignNo;
+      }
+
+      if (!foundExisting) {
+        let maxNo = 0;
+        data.forEach(d => {
+          if (d.typeDesign === value && d.id !== id) {
+            const num = parseInt(d.designNo || "0", 10);
+            if (!isNaN(num) && num > maxNo) {
+              maxNo = num;
+            }
+          }
+        });
+        generatedDesignNo = (maxNo + 1).toString();
+        updatePayload.designNo = generatedDesignNo;
+      }
     }
 
     const infoAndNoteFields = ["benefit", "generalNote", "note2", "lastTimeReq", "benefitText", "feedbackDetails", "lastDesignSupp", "requiredDate", "closingDate", "technician", "designer", "customer"];
@@ -1471,14 +1497,17 @@ export default function RegisterDesignPage() {
         }
       }
 
-      if (field === 'itemName' && currentRow?.darNo) {
+      if ((field === 'itemName' || field === 'version') && currentRow?.darNo) {
         const qDar = query(collection(db, "form_dar"), where("darNo", "==", currentRow.darNo));
         const snapDar = await getDocs(qDar);
         if (!snapDar.empty) {
           // Rebuild the items array from local data (incorporating the current change)
           const updatedItemsArr = data
             .filter(d => d.darNo === currentRow.darNo)
-            .map(d => d.id === id ? value : d.itemName)
+            .map(d => {
+              const itemToUse = d.id === id ? { ...d, [field]: value } : d;
+              return itemToUse.version ? `${itemToUse.itemName}-${itemToUse.version}` : itemToUse.itemName;
+            })
             .filter(Boolean);
             
           promises.push(updateDoc(doc(db, "form_dar", snapDar.docs[0].id), { items: updatedItemsArr }));
@@ -1652,7 +1681,7 @@ export default function RegisterDesignPage() {
         lastDesignSupp: parseGrid(firstItem.lastDesignSupp)
       };
 
-      const newItems = selectedItems.map(i => i.itemName).filter(Boolean);
+      const newItems = selectedItems.map(i => i.version ? `${i.itemName}-${i.version}` : i.itemName).filter(Boolean);
 
       if (snapDar.empty) {
         await addDoc(collection(db, "form_dar"), {
