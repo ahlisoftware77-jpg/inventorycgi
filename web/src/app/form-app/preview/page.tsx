@@ -98,10 +98,30 @@ function PreviewContent() {
                 const { collection, query, where, getDocs } = await import('firebase/firestore');
                 const q = query(collection(db, "register_design"), where("darNo", "==", report.darNo));
                 const snap = await getDocs(q);
-                const fetchedImages = snap.docs.map((doc, idx) => ({
-                    id: doc.data().designImage,
-                    name: doc.data().designImageName || `Gambar ${doc.data().designNo || idx + 1}`
-                })).filter(img => img.id);
+                const fetchedImages = snap.docs.map((doc, idx) => {
+                    const data = doc.data();
+                    let sizeStr = "";
+                    if (data.sizeChecks) {
+                        sizeStr = data.sizeChecks.split(',').map((s: string) => {
+                            const trimmed = s.trim();
+                            if (trimmed === 'Custom cm') return `Size ${data.sizeCm1 || 0}x${data.sizeCm2 || 0}`;
+                            if (trimmed === 'Faces') return `Faces ${data.sizeFaces || ''}`;
+                            return trimmed;
+                        }).join(', ');
+                    }
+                    
+                    let name = data.designImageName || `Gambar ${data.designNo || idx + 1}`;
+                    name = name.replace(/\.(jpg|jpeg|png)$/i, '');
+                    
+                    if (sizeStr) {
+                        name = `${sizeStr} ${name}`;
+                    }
+
+                    return {
+                        id: data.designImage,
+                        name: name
+                    };
+                }).filter(img => img.id);
                 setImages(fetchedImages);
             } catch (e) {
                 console.error("Gagal memuat gambar", e);
@@ -601,13 +621,13 @@ function PreviewContent() {
                         </div>
                     </div>
                     
-                    <div className="flex flex-col gap-10 items-center justify-center">
+                    <div className="grid grid-cols-2 gap-8 items-start justify-items-center w-full">
                         {images.map((img, idx) => (
-                            <div key={idx} className="w-full flex flex-col items-center min-h-[350px] justify-center" style={{ pageBreakInside: "avoid" }}>
+                            <div key={idx} className="w-full flex flex-col items-center justify-start" style={{ pageBreakInside: "avoid" }}>
                                 <img 
                                     src={`https://drive.google.com/thumbnail?id=${img.id}&sz=s1000`} 
                                     alt={`Lampiran ${img.name}`} 
-                                    className="max-w-[80%] max-h-[350px] object-contain border border-slate-200 p-2" 
+                                    className="max-w-full max-h-[350px] object-contain border border-slate-200 p-2 bg-white" 
                                     onError={(e) => {
                                         const target = e.target as HTMLImageElement;
                                         if (target.src.includes('thumbnail')) {
@@ -617,7 +637,7 @@ function PreviewContent() {
                                         }
                                     }}
                                 />
-                                <a href={`https://drive.google.com/file/d/${img.id}/view`} target="_blank" rel="noopener noreferrer" className="mt-2 text-[14px] font-bold text-blue-600 hover:underline hover:text-blue-800 transition-colors">
+                                <a href={`https://drive.google.com/file/d/${img.id}/view`} target="_blank" rel="noopener noreferrer" className="mt-2 text-[14px] font-bold text-blue-600 hover:underline hover:text-blue-800 transition-colors text-center break-words max-w-full px-2">
                                     {img.name}
                                 </a>
                             </div>
