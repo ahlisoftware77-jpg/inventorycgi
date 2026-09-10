@@ -98,8 +98,15 @@ function PreviewContent() {
                 const { collection, query, where, getDocs } = await import('firebase/firestore');
                 const q = query(collection(db, "register_design"), where("darNo", "==", report.darNo));
                 const snap = await getDocs(q);
+                const targetStatus = searchParams.get('status');
+
                 const fetchedImages = snap.docs.map((doc, idx) => {
                     const data = doc.data();
+                    
+                    if (targetStatus && targetStatus !== "Semua" && targetStatus !== "null" && targetStatus !== "undefined") {
+                        if (data.status !== targetStatus) return null;
+                    }
+
                     let sizeStr = "";
                     if (data.sizeChecks) {
                         sizeStr = data.sizeChecks.split(',').map((s: string) => {
@@ -121,7 +128,7 @@ function PreviewContent() {
                         id: data.designImage,
                         name: name
                     };
-                }).filter(img => img.id);
+                }).filter(img => img !== null && img.id);
                 setImages(fetchedImages);
             } catch (e) {
                 console.error("Gagal memuat gambar", e);
@@ -130,7 +137,7 @@ function PreviewContent() {
             }
         };
         fetchImages();
-    }, [report?.darNo]);
+    }, [report?.darNo, searchParams]);
 
     useEffect(() => {
         if (searchParams.get('print') === 'true' && report && imagesLoaded) {

@@ -873,6 +873,7 @@ export default function RegisterDesignPage() {
 
   const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
   const [previewDarNo, setPreviewDarNo] = useState<string | null>(null);
+  const [previewStatusFilter, setPreviewStatusFilter] = useState<string>("Semua");
   const [signDarNo, setSignDarNo] = useState<string | null>(null);
   const [signId, setSignId] = useState<string | null>(null);
   
@@ -2656,8 +2657,23 @@ export default function RegisterDesignPage() {
           <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 dark:bg-slate-100 border-b shadow-sm z-10">
             <DialogTitle className="text-lg font-bold">Preview Form DAR: {previewDarNo}</DialogTitle>
             <div className="flex items-center gap-2">
+              <Select value={previewStatusFilter} onValueChange={setPreviewStatusFilter}>
+                <SelectTrigger className="w-[120px] h-9 text-xs font-semibold bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Semua">Semua Status</SelectItem>
+                  <SelectItem value="FREE">FREE</SelectItem>
+                  <SelectItem value="IN USE">IN USE</SelectItem>
+                  <SelectItem value="IN LOCK">IN LOCK</SelectItem>
+                  <SelectItem value="ARCHIVE">ARCHIVE</SelectItem>
+                  <SelectItem value="PENDING">PENDING</SelectItem>
+                  <SelectItem value="COMPLETED">COMPLETED</SelectItem>
+                  <SelectItem value="REJECTED">REJECTED</SelectItem>
+                </SelectContent>
+              </Select>
               <Button variant="outline" size="sm" className="hidden sm:flex" onClick={() => {
-                window.open(`/form-app/preview?darNo=${previewDarNo}&print=true`, '_blank');
+                window.open(`/form-app/preview?darNo=${previewDarNo}&status=${previewStatusFilter}&print=true`, '_blank');
               }}>
                 <Printer className="w-4 h-4 mr-2" />
                 Print
@@ -2675,7 +2691,7 @@ export default function RegisterDesignPage() {
             </div>
           </div>
           <div className="flex-1 w-full bg-slate-200 dark:bg-slate-950 relative overflow-hidden">
-            {previewDarNo && <iframe id="preview-dar-iframe" src={`/form-app/preview?darNo=${previewDarNo}`} className="w-full h-full border-none absolute inset-0" />}
+            {previewDarNo && <iframe id="preview-dar-iframe" src={`/form-app/preview?darNo=${previewDarNo}&status=${previewStatusFilter}`} className="w-full h-full border-none absolute inset-0" />}
           </div>
         </DialogContent>
       </Dialog>
