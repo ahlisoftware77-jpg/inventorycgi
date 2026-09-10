@@ -1004,7 +1004,7 @@ export default function RegisterDesignPage() {
       }
       const targetId = snap.docs[0].id;
       if (isPreview) {
-        setShareType(`preview-${darNo}`);
+        setShareType(`preview-${darNo}&status=${previewStatusFilter}`);
       } else {
         setShareType(`dar-${targetId}`);
       }
