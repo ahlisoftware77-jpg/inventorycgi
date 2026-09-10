@@ -292,21 +292,21 @@ const CellImageUpload = ({
     const viewUrl = `https://drive.google.com/file/d/${row.designImage}/view`;
     return (
       <div className="relative group flex items-center justify-center w-full h-full" onMouseLeave={handleMouseLeave}>
-        <a href={viewUrl} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline flex items-center gap-1">
+        <a href={viewUrl} target="_blank" rel="noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1">
           <Eye className="w-3 h-3" />
           <span className="text-[10px]">Lihat</span>
         </a>
         
         {/* Hover Preview Box */}
-        <div className={`absolute ${isHiddenByEscape ? "hidden" : "hidden group-hover:block"} top-full left-1/2 -translate-x-1/2 mt-2 z-50 bg-white p-3 rounded-xl shadow-2xl border border-slate-200`}>
+        <div className={`absolute ${isHiddenByEscape ? "hidden" : "hidden group-hover:block"} top-full left-1/2 -translate-x-1/2 mt-2 z-50 bg-white dark:bg-slate-900 dark:bg-slate-100 p-3 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700`}>
           {row.designImageName && (
-            <div className="flex items-center justify-between gap-2 text-xs font-bold text-slate-900 bg-slate-200 py-1.5 px-3 mb-2 w-full max-w-[256px] rounded-md border border-slate-300 shadow-sm">
+            <div className="flex items-center justify-between gap-2 text-xs font-bold text-slate-900 dark:text-slate-100 bg-slate-200 dark:bg-slate-950 py-1.5 px-3 mb-2 w-full max-w-[256px] rounded-md border border-slate-300 dark:border-slate-600 shadow-sm">
               <span className="truncate flex-1 text-left">{row.designImageName}</span>
               <div className="flex gap-1 shrink-0">
                 <a 
                   href="/register-design/gallery" 
                   title="Buka Gallery" 
-                  className="text-blue-600 hover:text-blue-800 bg-white hover:bg-blue-50 rounded p-1 transition-colors"
+                  className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 bg-white dark:bg-slate-900 dark:bg-slate-100 hover:bg-blue-50 dark:bg-blue-900/30 rounded p-1 transition-colors"
                 >
                   <ImageIcon className="w-3.5 h-3.5" />
                 </a>
@@ -315,7 +315,7 @@ const CellImageUpload = ({
                     onClick={handleDeleteImage} 
                     disabled={isUploading} 
                     title="Hapus Gambar" 
-                    className="text-red-500 hover:text-red-700 bg-white hover:bg-red-50 rounded p-1 transition-colors"
+                    className="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 bg-white dark:bg-slate-900 dark:bg-slate-100 hover:bg-red-50 dark:bg-red-900/30 rounded p-1 transition-colors"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -323,7 +323,7 @@ const CellImageUpload = ({
               </div>
             </div>
           )}
-          <div className="relative w-48 h-48 sm:w-64 sm:h-64 rounded-lg overflow-hidden flex items-center justify-center bg-slate-100">
+          <div className="relative w-48 h-48 sm:w-64 sm:h-64 rounded-lg overflow-hidden flex items-center justify-center bg-slate-100 dark:bg-slate-800">
              <img 
                src={imgUrl} 
                alt="Preview" 
@@ -332,17 +332,17 @@ const CellImageUpload = ({
              />
           </div>
 
-          <div className="mt-3 text-[10px] sm:text-xs bg-slate-50 p-2 rounded-lg border border-slate-200 shadow-inner w-full space-y-1.5 text-slate-700 font-medium">
+          <div className="mt-3 text-[10px] sm:text-xs bg-slate-50 dark:bg-slate-800 p-2 rounded-lg border border-slate-200 dark:border-slate-700 shadow-inner w-full space-y-1.5 text-slate-700 dark:text-slate-300 font-medium">
             <div className="flex justify-between items-center gap-2">
-              <span className="font-bold text-slate-500 uppercase tracking-wider text-[8px] sm:text-[9px]">Desainer</span> 
+              <span className="font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-[8px] sm:text-[9px]">Desainer</span> 
               <span className="truncate max-w-[120px] sm:max-w-[150px]">{row.designer || '-'}</span>
             </div>
-            <div className="flex justify-between items-center gap-2 border-t border-slate-100 pt-1.5">
-              <span className="font-bold text-slate-500 uppercase tracking-wider text-[8px] sm:text-[9px]">Teknisi</span> 
+            <div className="flex justify-between items-center gap-2 border-t border-slate-100 dark:border-slate-700 pt-1.5">
+              <span className="font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-[8px] sm:text-[9px]">Teknisi</span> 
               <span className="truncate max-w-[120px] sm:max-w-[150px]">{row.technician || '-'}</span>
             </div>
-            <div className="flex justify-between items-start gap-2 border-t border-slate-100 pt-1.5">
-              <span className="font-bold text-slate-500 uppercase tracking-wider text-[8px] sm:text-[9px] mt-0.5">Spesifikasi</span> 
+            <div className="flex justify-between items-start gap-2 border-t border-slate-100 dark:border-slate-700 pt-1.5">
+              <span className="font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-[8px] sm:text-[9px] mt-0.5">Spesifikasi</span> 
               <span className="text-right whitespace-normal break-words leading-tight max-w-[120px] sm:max-w-[160px]">
                 {[
                   row.version, 
@@ -354,25 +354,25 @@ const CellImageUpload = ({
               </span>
             </div>
             {row.designImageSize && (
-              <div className="flex justify-between items-center gap-2 border-t border-slate-100 pt-1.5 pb-0.5">
-                <span className="font-bold text-slate-500 uppercase tracking-wider text-[8px] sm:text-[9px]">Ukuran File</span>
-                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">{row.designImageSize}</span>
+              <div className="flex justify-between items-center gap-2 border-t border-slate-100 dark:border-slate-700 pt-1.5 pb-0.5">
+                <span className="font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-[8px] sm:text-[9px]">Ukuran File</span>
+                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded border border-emerald-100 dark:border-emerald-800">{row.designImageSize}</span>
               </div>
             )}
-            <div className="flex justify-between items-center gap-2 border-t border-slate-100 pt-1.5 pb-0.5">
-              <span className="font-bold text-slate-500 uppercase tracking-wider text-[8px] sm:text-[9px]">Status</span>
+            <div className="flex justify-between items-center gap-2 border-t border-slate-100 dark:border-slate-700 pt-1.5 pb-0.5">
+              <span className="font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-[8px] sm:text-[9px]">Status</span>
               <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase shadow-sm border ${
-                row.status === 'IN LOCK' ? 'bg-rose-500 text-white border-rose-600' :
-                row.status === 'IN USE' ? 'bg-emerald-500 text-white border-emerald-600' :
-                row.status === 'FREE' ? 'bg-blue-500 text-white border-blue-600' :
-                row.status === 'ARCHIVE' ? 'bg-sky-400 text-white border-sky-500' :
-                'bg-slate-100 text-slate-600 border-slate-200'
+                row.status === 'IN LOCK' ? 'bg-rose-500 text-white dark:text-slate-900 dark:text-slate-900 border-rose-600' :
+                row.status === 'IN USE' ? 'bg-emerald-500 text-white dark:text-slate-900 dark:text-slate-900 border-emerald-600' :
+                row.status === 'FREE' ? 'bg-blue-500 text-white dark:text-slate-900 dark:text-slate-900 border-blue-600' :
+                row.status === 'ARCHIVE' ? 'bg-sky-400 text-white dark:text-slate-900 dark:text-slate-900 border-sky-500' :
+                'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
               }`}>{row.status || '-'}</span>
             </div>
           </div>
           <button 
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsHiddenByEscape(true); }} 
-            className="absolute top-0 right-0 text-white bg-slate-800 hover:bg-slate-900 rounded-full p-1 -mt-2 -mr-2 shadow-sm transition-colors"
+            className="absolute top-0 right-0 text-white dark:text-slate-900 dark:text-slate-900 bg-slate-800 hover:bg-slate-900 dark:bg-slate-100 dark:bg-slate-100 rounded-full p-1 -mt-2 -mr-2 shadow-sm transition-colors"
             title="Tutup Preview"
           >
              <X className="w-3 h-3" />
@@ -399,12 +399,12 @@ const CellImageUpload = ({
       }}
     >
       {isUploading ? (
-        <span className="text-[10px] text-slate-500 animate-pulse">Uploading...</span>
+        <span className="text-[10px] text-slate-500 dark:text-slate-400 animate-pulse">Uploading...</span>
       ) : (
         <>
           <input type="file" accept="image/*" onChange={handleFileChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" title="Upload Gambar" />
-          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 rounded-full bg-slate-100 hover:bg-slate-200 pointer-events-none">
-            <Upload className="w-3 h-3 text-slate-500" />
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 dark:bg-slate-950 pointer-events-none">
+            <Upload className="w-3 h-3 text-slate-500 dark:text-slate-400" />
           </Button>
         </>
       )}
@@ -454,13 +454,13 @@ const CellMultiSelect = ({
     const displayVal = getSummary();
 
     if (row.isLocked) {
-      return <div tabIndex={0} onKeyDown={(e) => handleCellNavigation(e)} className={`focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-600 focus:bg-blue-100 w-full px-1.5 py-1 text-[11px] truncate text-slate-500 bg-slate-50/50 ${width}`} title={displayVal}>{displayVal || "-"}</div>;
+      return <div tabIndex={0} onKeyDown={(e) => handleCellNavigation(e)} className={`focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-600 focus:bg-blue-100 w-full px-1.5 py-1 text-[11px] truncate text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 ${width}`} title={displayVal}>{displayVal || "-"}</div>;
     }
 
     return (
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
-          <div onDoubleClick={() => setIsOpen(true)} onClick={(e) => e.preventDefault()} tabIndex={0} onKeyDown={(e) => handleCellNavigation(e, () => setIsOpen(true), () => { if(!row.isLocked) handleUpdateCell(row.id, field, ""); })} className={`focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-600 focus:bg-blue-100 border border-transparent hover:border-slate-300 rounded p-1 text-[11px] cursor-pointer flex justify-between items-center bg-transparent truncate ${width}`} title={displayVal}>
+          <div onDoubleClick={() => setIsOpen(true)} onClick={(e) => e.preventDefault()} tabIndex={0} onKeyDown={(e) => handleCellNavigation(e, () => setIsOpen(true), () => { if(!row.isLocked) handleUpdateCell(row.id, field, ""); })} className={`focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-600 focus:bg-blue-100 border border-transparent hover:border-slate-300 dark:border-slate-600 rounded p-1 text-[11px] cursor-pointer flex justify-between items-center bg-transparent truncate ${width}`} title={displayVal}>
             <span className="truncate">{displayVal || "--"}</span>
             <ChevronDown className="w-3 h-3 text-slate-400 shrink-0 ml-1" />
           </div>
@@ -468,25 +468,25 @@ const CellMultiSelect = ({
         <PopoverContent className="w-72 p-2 z-[9999]" align="start">
           <div className="flex flex-col gap-1 max-h-64 overflow-y-auto">
             {options.map(opt => (
-              <label key={opt} className="flex items-center gap-2 p-1 hover:bg-slate-50 rounded cursor-pointer text-xs">
+              <label key={opt} className="flex items-center gap-2 p-1 hover:bg-slate-50 dark:hover:bg-slate-700/50 dark:bg-slate-800 rounded cursor-pointer text-xs">
                 <input type="checkbox" checked={selected.includes(opt)} onChange={() => toggleOption(opt)} className="w-3 h-3 cursor-pointer accent-red-600" />
-                <span className="text-slate-700">{opt}</span>
+                <span className="text-slate-700 dark:text-slate-300">{opt}</span>
               </label>
             ))}
             {customOptions.map(co => {
               const isChecked = selected.includes(co.label);
               return (
-                <div key={co.label} className="flex flex-col gap-1 p-1 hover:bg-slate-50 rounded">
+                <div key={co.label} className="flex flex-col gap-1 p-1 hover:bg-slate-50 dark:hover:bg-slate-700/50 dark:bg-slate-800 rounded">
                   <label className="flex items-center gap-2 cursor-pointer text-xs">
                     <input type="checkbox" checked={isChecked} onChange={() => toggleOption(co.label)} className="w-3 h-3 cursor-pointer accent-red-600" />
-                    <span className="text-slate-700">{co.label}</span>
+                    <span className="text-slate-700 dark:text-slate-300">{co.label}</span>
                   </label>
                   {isChecked && (
                     <div className="flex items-center gap-1 pl-5 mt-1 flex-wrap">
                       {co.fields.map((f, i) => (
                         <React.Fragment key={f.key}>
                           {i > 0 && co.separator && <span className="text-xs text-slate-400">{co.separator}</span>}
-                          <input type="text" placeholder={f.placeholder} value={(row[f.key] as string) || ""} onChange={(e) => handleUpdateCell(row.id, f.key, e.target.value)} className={`border border-slate-300 rounded px-1.5 py-0.5 text-xs outline-none focus:border-blue-500 ${f.width || "w-16"}`} />
+                          <input type="text" placeholder={f.placeholder} value={(row[f.key] as string) || ""} onChange={(e) => handleUpdateCell(row.id, f.key, e.target.value)} className={`border border-slate-300 dark:border-slate-600 rounded px-1.5 py-0.5 text-xs outline-none focus:border-blue-500 ${f.width || "w-16"}`} />
                         </React.Fragment>
                       ))}
                     </div>
@@ -509,11 +509,11 @@ const CellMultiSelect = ({
     const val = row[field] as string || "";
 
     if (row.isLocked) {
-      return <div tabIndex={0} onKeyDown={(e) => handleCellNavigation(e)} className={`focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-600 focus:bg-blue-100 w-full px-1.5 py-1 text-[11px] truncate text-slate-500 bg-slate-50/50 ${width}`} title={val}>{val || "-"}</div>;
+      return <div tabIndex={0} onKeyDown={(e) => handleCellNavigation(e)} className={`focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-600 focus:bg-blue-100 w-full px-1.5 py-1 text-[11px] truncate text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 ${width}`} title={val}>{val || "-"}</div>;
     }
 
     if (!isEditing) {
-      return <div tabIndex={0} onDoubleClick={() => setIsEditing(true)} onKeyDown={(e) => handleCellNavigation(e, () => setIsEditing(true), () => { if(!row.isLocked) handleUpdateCell(row.id, field, ""); })} className={`w-full px-1.5 py-1 text-[11px] truncate cursor-pointer hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-600 focus:bg-blue-100 ${colorFn ? colorFn(val) : ''} ${width}`} title={val}>{type === 'date' && val ? val : val || "-"}</div>;
+      return <div tabIndex={0} onDoubleClick={() => setIsEditing(true)} onKeyDown={(e) => handleCellNavigation(e, () => setIsEditing(true), () => { if(!row.isLocked) handleUpdateCell(row.id, field, ""); })} className={`w-full px-1.5 py-1 text-[11px] truncate cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-600 focus:bg-blue-100 ${colorFn ? colorFn(val) : ''} ${width}`} title={val}>{type === 'date' && val ? val : val || "-"}</div>;
     }
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -562,17 +562,17 @@ const CellMultiSelect = ({
             setHighlightedIndex(-1);
           }} 
           onKeyDown={handleKeyDown} 
-          className={`w-full border border-blue-500 rounded p-1 text-[11px] outline-none bg-white pr-6 ${type === 'date' ? 'uppercase' : ''}`} 
+          className={`w-full border border-blue-500 rounded p-1 text-[11px] outline-none bg-white dark:bg-slate-900 dark:bg-slate-100 pr-6 ${type === 'date' ? 'uppercase' : ''}`} 
           placeholder="-" 
         />
         {val && (
-          <button onMouseDown={(e) => { e.preventDefault(); handleUpdateCell(row.id, field, ""); }} className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 hover:bg-slate-100 rounded text-slate-400 hover:text-red-500 transition-colors z-10" title="Hapus">
+          <button onMouseDown={(e) => { e.preventDefault(); handleUpdateCell(row.id, field, ""); }} className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 hover:bg-slate-100 dark:hover:bg-slate-700 dark:bg-slate-800 rounded text-slate-400 hover:text-red-500 dark:text-red-400 transition-colors z-10" title="Hapus">
             <X className="w-3 h-3" />
           </button>
         )}
         
         {options && options.length > 0 && (
-          <div className="absolute left-0 top-full mt-1 w-max min-w-[120px] max-w-[200px] max-h-48 overflow-y-auto bg-white border border-slate-200 rounded-md shadow-lg z-[9999] py-1">
+          <div className="absolute left-0 top-full mt-1 w-max min-w-[120px] max-w-[200px] max-h-48 overflow-y-auto bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-700 rounded-md shadow-lg z-[9999] py-1">
             {options.map((opt, idx) => (
               <div 
                 key={opt}
@@ -581,7 +581,7 @@ const CellMultiSelect = ({
                   handleUpdateCell(row.id, field, opt); 
                   setIsEditing(false); 
                 }}
-                className={`px-3 py-1.5 text-[11px] cursor-pointer truncate transition-colors ${idx === highlightedIndex ? 'bg-blue-600 text-white font-medium' : 'text-slate-700 hover:bg-blue-50'}`}
+                className={`px-3 py-1.5 text-[11px] cursor-pointer truncate transition-colors ${idx === highlightedIndex ? 'bg-blue-600 text-white dark:text-slate-900 dark:text-slate-900 font-medium' : 'text-slate-700 dark:text-slate-300 hover:bg-blue-50 dark:bg-blue-900/30'}`}
                 title={opt}
               >
                 {opt}
@@ -598,21 +598,21 @@ const CellMultiSelect = ({
     const val = row[field] as string || "";
 
     if (row.isLocked) {
-      return <div tabIndex={0} onKeyDown={(e) => handleCellNavigation(e)} className={`focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-600 focus:bg-blue-100 w-full px-1.5 py-1 text-[11px] truncate text-slate-500 bg-slate-50/50 ${width}`} title={val}>{val || "-"}</div>;
+      return <div tabIndex={0} onKeyDown={(e) => handleCellNavigation(e)} className={`focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-600 focus:bg-blue-100 w-full px-1.5 py-1 text-[11px] truncate text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 ${width}`} title={val}>{val || "-"}</div>;
     }
 
     if (!isEditing) {
-      return <div tabIndex={0} onDoubleClick={() => setIsEditing(true)} onKeyDown={(e) => handleCellNavigation(e, () => setIsEditing(true), () => { if(!row.isLocked) handleUpdateCell(row.id, field, ""); })} className={`w-full px-1.5 py-1 text-[11px] truncate cursor-pointer hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-600 focus:bg-blue-100 ${colorFn ? colorFn(val) : ''} ${width}`} title={val}>{val || "-"}</div>;
+      return <div tabIndex={0} onDoubleClick={() => setIsEditing(true)} onKeyDown={(e) => handleCellNavigation(e, () => setIsEditing(true), () => { if(!row.isLocked) handleUpdateCell(row.id, field, ""); })} className={`w-full px-1.5 py-1 text-[11px] truncate cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-600 focus:bg-blue-100 ${colorFn ? colorFn(val) : ''} ${width}`} title={val}>{val || "-"}</div>;
     }
 
     return (
       <div className={`relative w-full ${width}`}>
-        <select autoFocus onBlur={() => setIsEditing(false)} value={val} onChange={(e) => { handleUpdateCell(row.id, field, e.target.value); setIsEditing(false); }} onKeyDown={(e) => { if(e.key === 'Enter') setIsEditing(false); else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') handleCellKeyDown(e); }} className={`w-full border border-blue-500 rounded p-1 text-[11px] outline-none cursor-pointer bg-white pr-6`}>
+        <select autoFocus onBlur={() => setIsEditing(false)} value={val} onChange={(e) => { handleUpdateCell(row.id, field, e.target.value); setIsEditing(false); }} onKeyDown={(e) => { if(e.key === 'Enter') setIsEditing(false); else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') handleCellKeyDown(e); }} className={`w-full border border-blue-500 rounded p-1 text-[11px] outline-none cursor-pointer bg-white dark:bg-slate-900 dark:bg-slate-100 pr-6`}>
           <option value="">-</option>
           {options.map(o => <option key={o} value={o}>{o}</option>)}
         </select>
         {val && (
-          <button onMouseDown={(e) => { e.preventDefault(); handleUpdateCell(row.id, field, ""); }} className="absolute right-5 top-1/2 -translate-y-1/2 p-0.5 hover:bg-slate-100 rounded text-slate-400 hover:text-red-500 transition-colors z-10" title="Hapus">
+          <button onMouseDown={(e) => { e.preventDefault(); handleUpdateCell(row.id, field, ""); }} className="absolute right-5 top-1/2 -translate-y-1/2 p-0.5 hover:bg-slate-100 dark:hover:bg-slate-700 dark:bg-slate-800 rounded text-slate-400 hover:text-red-500 dark:text-red-400 transition-colors z-10" title="Hapus">
             <X className="w-3 h-3" />
           </button>
         )}
@@ -653,18 +653,18 @@ const CellGridInput = ({ row, field, title, rowsCount, handleUpdateCell }: { row
   const [isOpen, setIsOpen] = useState(false);
 
   if (row.isLocked) {
-    return <div tabIndex={0} onKeyDown={(e) => handleCellNavigation(e)} className="focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-600 focus:bg-blue-100 w-24 px-1.5 py-1 text-[11px] truncate text-slate-500 bg-slate-50/50">{title}</div>;
+    return <div tabIndex={0} onKeyDown={(e) => handleCellNavigation(e)} className="focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-600 focus:bg-blue-100 w-24 px-1.5 py-1 text-[11px] truncate text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50">{title}</div>;
   }
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <Button tabIndex={0} onKeyDown={(e) => handleCellNavigation(e, () => setIsOpen(true), () => { if(!row.isLocked) handleUpdateCell(row.id, field, ""); })} onDoubleClick={() => setIsOpen(true)} onClick={(e) => e.preventDefault()} variant="ghost" size="sm" className="focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-600 focus:bg-blue-100 w-24 justify-between text-[10px] h-6 px-2 border border-transparent hover:border-blue-200">
+        <Button tabIndex={0} onKeyDown={(e) => handleCellNavigation(e, () => setIsOpen(true), () => { if(!row.isLocked) handleUpdateCell(row.id, field, ""); })} onDoubleClick={() => setIsOpen(true)} onClick={(e) => e.preventDefault()} variant="ghost" size="sm" className="focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-600 focus:bg-blue-100 w-24 justify-between text-[10px] h-6 px-2 border border-transparent hover:border-blue-200 dark:border-blue-700">
            {title} <ChevronDown className="w-3 h-3 ml-1" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-64 p-3 z-50">
-        <h4 className="font-bold text-xs mb-2 text-slate-800">{title}</h4>
+        <h4 className="font-bold text-xs mb-2 text-slate-800 dark:text-slate-200">{title}</h4>
         <div className="space-y-1">
           {rows.map((r, i) => (
              <div key={i} className="flex gap-2">
@@ -1703,11 +1703,11 @@ export default function RegisterDesignPage() {
 
   const getStatusColor = (val: string) => {
     switch(val) {
-      case 'IN LOCK': return 'bg-rose-500 text-white border-rose-600';
-      case 'IN USE': return 'bg-emerald-500 text-white border-emerald-600';
-      case 'FREE': return 'bg-blue-500 text-white border-blue-600';
-      case 'ARCHIVE': return 'bg-sky-400 text-white border-sky-500';
-      default: return 'bg-white text-slate-900 border-slate-200';
+      case 'IN LOCK': return 'bg-rose-500 text-white dark:text-slate-900 dark:text-slate-900 border-rose-600';
+      case 'IN USE': return 'bg-emerald-500 text-white dark:text-slate-900 dark:text-slate-900 border-emerald-600';
+      case 'FREE': return 'bg-blue-500 text-white dark:text-slate-900 dark:text-slate-900 border-blue-600';
+      case 'ARCHIVE': return 'bg-sky-400 text-white dark:text-slate-900 dark:text-slate-900 border-sky-500';
+      default: return 'bg-white dark:bg-slate-900 dark:bg-slate-100 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-700';
     }
   };
 
@@ -1717,9 +1717,9 @@ export default function RegisterDesignPage() {
       case 'CGI': return 'bg-yellow-200 text-yellow-900 border-yellow-300';
       case 'CGI-A': return 'bg-orange-200 text-orange-900 border-orange-300';
       case 'ST': return 'bg-emerald-200 text-emerald-900 border-emerald-300';
-      case 'CGL': return 'bg-slate-200 text-slate-900 border-slate-300';
+      case 'CGL': return 'bg-slate-200 dark:bg-slate-950 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-600';
       case 'CO': return 'bg-purple-200 text-purple-900 border-purple-300';
-      default: return 'bg-white text-slate-900 border-slate-200';
+      default: return 'bg-white dark:bg-slate-900 dark:bg-slate-100 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-700';
     }
   };
 
@@ -1729,7 +1729,7 @@ export default function RegisterDesignPage() {
       case 'D2 Diaz': return 'bg-[#156e47] text-emerald-50 border-emerald-900 font-medium'; // Dark green
       case 'D3 Rian': return 'bg-[#7a3b00] text-amber-50 border-amber-950 font-medium'; // Dark brown
       case 'D4 Darmawan': return 'bg-[#b30000] text-red-50 border-red-900 font-medium'; // Dark red
-      default: return 'bg-white text-slate-900 border-slate-200';
+      default: return 'bg-white dark:bg-slate-900 dark:bg-slate-100 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-700';
     }
   };
 
@@ -1739,7 +1739,7 @@ export default function RegisterDesignPage() {
       case 'T2 Kardani': return 'bg-[#d4edda] text-emerald-900 border-[#c3e6cb] font-medium'; // Light green
       case 'T3 Rafli': return 'bg-[#ffe8cc] text-orange-900 border-[#ffdfb3] font-medium'; // Light orange
       case 'T4 Cepi': return 'bg-[#fff3cd] text-yellow-900 border-[#ffeeba] font-medium'; // Light yellow
-      default: return 'bg-white text-slate-900 border-slate-200';
+      default: return 'bg-white dark:bg-slate-900 dark:bg-slate-100 text-slate-900 dark:text-slate-100 border-slate-200 dark:border-slate-700';
     }
   };
 
@@ -2088,21 +2088,21 @@ export default function RegisterDesignPage() {
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col h-[calc(100vh-90px)] bg-white rounded-xl shadow-sm border border-slate-200">
+      <div className="flex flex-col h-[calc(100vh-90px)] bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
         
         {/* Header */}
-        <div className="flex flex-col xl:flex-row xl:items-center justify-between p-4 border-b border-slate-200 bg-slate-50 gap-4 rounded-t-xl">
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 gap-4 rounded-t-xl">
           <div>
-            <h1 className="text-xl font-black text-slate-800 flex items-center gap-2">
-              <Layers className="text-blue-600" />
+            <h1 className="text-xl font-black text-slate-800 dark:text-slate-200 flex items-center gap-2">
+              <Layers className="text-blue-600 dark:text-blue-400" />
               Register Design
             </h1>
-            <p className="text-xs text-slate-500 mt-1 font-medium">Input desain individual bergaya Excel dan kelompokkan ke dalam Form DAR.</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">Input desain individual bergaya Excel dan kelompokkan ke dalam Form DAR.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <div className="relative w-full sm:w-auto flex items-center bg-white border border-slate-200 rounded-md overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500">
+            <div className="relative w-full sm:w-auto flex items-center bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-700 rounded-md overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500">
               <Select value={searchCategory} onValueChange={setSearchCategory}>
-                <SelectTrigger className="w-[130px] border-none shadow-none focus:ring-0 bg-slate-50 text-xs font-semibold text-slate-700 h-9 rounded-none border-r border-slate-200">
+                <SelectTrigger className="w-[130px] border-none shadow-none focus:ring-0 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 h-9 rounded-none border-r border-slate-200 dark:border-slate-700">
                   <SelectValue placeholder="Kategori" />
                 </SelectTrigger>
                 <SelectContent>
@@ -2136,7 +2136,7 @@ export default function RegisterDesignPage() {
 
             <div className="flex items-center gap-2">
               <Select value={selectedYear} onValueChange={setSelectedYear}>
-                <SelectTrigger className="w-[100px] h-9 text-xs font-semibold bg-white border-slate-200">
+                <SelectTrigger className="w-[100px] h-9 text-xs font-semibold bg-white dark:bg-slate-900 dark:bg-slate-100 border-slate-200 dark:border-slate-700">
                   <SelectValue placeholder="Tahun" />
                 </SelectTrigger>
                 <SelectContent>
@@ -2147,7 +2147,7 @@ export default function RegisterDesignPage() {
                 </SelectContent>
               </Select>
               <Select value={rowLimit.toString()} onValueChange={(v) => setRowLimit(parseInt(v))}>
-                <SelectTrigger className="w-[110px] h-9 text-xs font-semibold bg-white border-slate-200">
+                <SelectTrigger className="w-[110px] h-9 text-xs font-semibold bg-white dark:bg-slate-900 dark:bg-slate-100 border-slate-200 dark:border-slate-700">
                   <SelectValue placeholder="Baris" />
                 </SelectTrigger>
                 <SelectContent>
@@ -2160,33 +2160,33 @@ export default function RegisterDesignPage() {
             
             <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto mt-2 xl:mt-0">
               {selectedIds.size > 0 && (
-                <Button variant="outline" size="sm" onClick={handleOpenGroupDialog} className="font-semibold text-slate-700 hover:bg-slate-100 flex-1 sm:flex-none transition-colors border-slate-300">
+                <Button variant="outline" size="sm" onClick={handleOpenGroupDialog} className="font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 dark:bg-slate-800 flex-1 sm:flex-none transition-colors border-slate-300 dark:border-slate-600">
                   <CheckSquare className="w-4 h-4 mr-2" /> Group to DAR ({selectedIds.size})
                 </Button>
               )}
 
               {!isReadOnly && (
-                <Button onClick={handleAddRow} size="sm" className="font-semibold bg-slate-900 hover:bg-slate-800 text-white flex-1 sm:flex-none transition-colors shadow-sm">
+                <Button onClick={handleAddRow} size="sm" className="font-semibold bg-slate-900 dark:bg-slate-100 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-slate-200 dark:hover:bg-slate-200 text-white dark:text-slate-900 dark:text-slate-900 flex-1 sm:flex-none transition-colors shadow-sm">
                   <Plus className="w-4 h-4 mr-1 hidden sm:inline" /> Baris Baru (F8)
                 </Button>
               )}
             </div>
             
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => router.push('/register-design/dashboard')} className="font-semibold text-slate-700 hover:bg-slate-100 border-slate-300">
+              <Button variant="outline" size="sm" onClick={() => router.push('/register-design/dashboard')} className="font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 dark:bg-slate-800 border-slate-300 dark:border-slate-600">
                 <BarChart2 className="w-4 h-4 mr-2 hidden sm:inline" /> Dashboard
               </Button>
 
               {!isReadOnly && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="font-semibold text-slate-700 hover:bg-slate-100 border-slate-300">
+                  <Button variant="outline" size="sm" className="font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 dark:bg-slate-800 border-slate-300 dark:border-slate-600">
                     Lainnya <ChevronDown className="w-4 h-4 ml-2" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48 bg-white border-slate-200 shadow-md">
+                <DropdownMenuContent align="end" className="w-48 bg-white dark:bg-slate-900 dark:bg-slate-100 border-slate-200 dark:border-slate-700 shadow-md">
                   <DropdownMenuSub>
-                    <DropdownMenuSubTrigger className="cursor-pointer text-slate-700 focus:bg-slate-50">
+                    <DropdownMenuSubTrigger className="cursor-pointer text-slate-700 dark:text-slate-300 focus:bg-slate-50 dark:bg-slate-800">
                       <Share2 className="w-4 h-4 mr-2" /> Share Public Link
                     </DropdownMenuSubTrigger>
                     <DropdownMenuPortal>
@@ -2204,14 +2204,14 @@ export default function RegisterDesignPage() {
                     </DropdownMenuPortal>
                   </DropdownMenuSub>
                   
-                  <DropdownMenuSeparator className="bg-slate-100" />
+                  <DropdownMenuSeparator className="bg-slate-100 dark:bg-slate-800" />
                   
-                  <DropdownMenuItem onClick={handleDownloadTemplate} className="cursor-pointer text-slate-700 focus:bg-slate-50">
+                  <DropdownMenuItem onClick={handleDownloadTemplate} className="cursor-pointer text-slate-700 dark:text-slate-300 focus:bg-slate-50 dark:bg-slate-800">
                     <Download className="w-4 h-4 mr-2" /> Template Excel
                   </DropdownMenuItem>
                   
                   <DropdownMenuSub>
-                    <DropdownMenuSubTrigger className="cursor-pointer text-slate-700 focus:bg-slate-50">
+                    <DropdownMenuSubTrigger className="cursor-pointer text-slate-700 dark:text-slate-300 focus:bg-slate-50 dark:bg-slate-800">
                       <FileSpreadsheet className="w-4 h-4 mr-2" /> Export Excel
                     </DropdownMenuSubTrigger>
                     <DropdownMenuPortal>
@@ -2228,20 +2228,20 @@ export default function RegisterDesignPage() {
                       </DropdownMenuSubContent>
                     </DropdownMenuPortal>
                   </DropdownMenuSub>
-                  <DropdownMenuItem onClick={() => fileInputRef.current?.click()} className="cursor-pointer text-slate-700 focus:bg-slate-50">
+                  <DropdownMenuItem onClick={() => fileInputRef.current?.click()} className="cursor-pointer text-slate-700 dark:text-slate-300 focus:bg-slate-50 dark:bg-slate-800">
                     <Upload className="w-4 h-4 mr-2" /> Import Excel
                   </DropdownMenuItem>
 
                   {isAdmin && (
                     <>
-                      <DropdownMenuSeparator className="bg-slate-100" />
-                      <DropdownMenuItem onClick={() => setIsMassDeleteOpen(true)} className="cursor-pointer text-red-600 focus:text-red-700 focus:bg-red-50">
+                      <DropdownMenuSeparator className="bg-slate-100 dark:bg-slate-800" />
+                      <DropdownMenuItem onClick={() => setIsMassDeleteOpen(true)} className="cursor-pointer text-red-600 dark:text-red-400 focus:text-red-700 focus:bg-red-50 dark:bg-red-900/30">
                         <Trash2 className="w-4 h-4 mr-2" /> Hapus Masal
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => { setIsTrashOpen(true); fetchTrashData(); }} className="cursor-pointer text-red-600 focus:text-red-700 focus:bg-red-50">
+                      <DropdownMenuItem onClick={() => { setIsTrashOpen(true); fetchTrashData(); }} className="cursor-pointer text-red-600 dark:text-red-400 focus:text-red-700 focus:bg-red-50 dark:bg-red-900/30">
                         <Trash2 className="w-4 h-4 mr-2" /> Tempat Sampah
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={handleCleanExpiredLinks} className="cursor-pointer text-red-600 focus:text-red-700 focus:bg-red-50">
+                      <DropdownMenuItem onClick={handleCleanExpiredLinks} className="cursor-pointer text-red-600 dark:text-red-400 focus:text-red-700 focus:bg-red-50 dark:bg-red-900/30">
                         <Trash2 className="w-4 h-4 mr-2" /> Bersihkan Link Basi
                       </DropdownMenuItem>
                     </>
@@ -2252,12 +2252,12 @@ export default function RegisterDesignPage() {
 
               <input type="file" ref={fileInputRef} accept=".xlsx, .xls" onChange={handleImportExcel} className="hidden" title="Import Excel" />
 
-              <Button onClick={() => router.push('/register-design/gallery')} size="sm" variant="outline" className="font-semibold text-slate-700 bg-white shadow-sm hover:bg-slate-50 hover:text-blue-600 transition-colors flex flex-1 sm:flex-none border-slate-200">
+              <Button onClick={() => router.push('/register-design/gallery')} size="sm" variant="outline" className="font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 dark:bg-slate-100 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700/50 dark:bg-slate-800 hover:text-blue-600 dark:hover:text-blue-400 dark:text-blue-400 transition-colors flex flex-1 sm:flex-none border-slate-200 dark:border-slate-700">
                 <Layers className="w-4 h-4 mr-1.5 text-blue-500" /> Gallery
               </Button>
 
               {!isReadOnly && (
-                <Button onClick={handleAddRow} size="sm" className="font-semibold bg-slate-900 hover:bg-slate-800 text-white flex-1 sm:flex-none transition-colors shadow-sm">
+                <Button onClick={handleAddRow} size="sm" className="font-semibold bg-slate-900 dark:bg-slate-100 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-slate-200 dark:hover:bg-slate-200 text-white dark:text-slate-900 dark:text-slate-900 flex-1 sm:flex-none transition-colors shadow-sm">
                   <Plus className="w-4 h-4 mr-1 hidden sm:inline" /> Baris Baru (F8)
                 </Button>
               )}
@@ -2265,16 +2265,16 @@ export default function RegisterDesignPage() {
 
             {/* Pagination UI - Header Version */}
             {!search && rowLimit > 0 && totalPages > 1 && (
-              <div className="flex items-center gap-3 ml-auto xl:ml-2 bg-white border border-slate-200 rounded-md shadow-sm px-2 py-1">
-                <div className="text-xs text-slate-600 font-semibold hidden sm:block">
+              <div className="flex items-center gap-3 ml-auto xl:ml-2 bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-700 rounded-md shadow-sm px-2 py-1">
+                <div className="text-xs text-slate-600 dark:text-slate-400 font-semibold hidden sm:block">
                   <span className="text-slate-400 font-medium mr-1">Halaman</span>
                   {currentPage} <span className="text-slate-400 font-medium mx-1">dari</span> {totalPages}
                 </div>
-                <div className="flex items-center gap-1 sm:border-l sm:border-slate-200 sm:pl-2">
+                <div className="flex items-center gap-1 sm:border-l sm:border-slate-200 dark:border-slate-700 sm:pl-2">
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="h-6 w-6 rounded text-slate-600 hover:text-blue-600 hover:bg-blue-50"
+                    className="h-6 w-6 rounded text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 dark:text-blue-400 hover:bg-blue-50 dark:bg-blue-900/30"
                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
                     disabled={currentPage === 1}
                     title="Sebelumnya"
@@ -2284,7 +2284,7 @@ export default function RegisterDesignPage() {
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="h-6 w-6 rounded text-slate-600 hover:text-blue-600 hover:bg-blue-50"
+                    className="h-6 w-6 rounded text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 dark:text-blue-400 hover:bg-blue-50 dark:bg-blue-900/30"
                     onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
                     disabled={currentPage === totalPages}
                     title="Selanjutnya"
@@ -2300,17 +2300,17 @@ export default function RegisterDesignPage() {
         {/* Excel Grid Container */}
         <div 
           ref={scrollContainerRef}
-          className={`flex-1 overflow-auto bg-slate-50 relative pb-4 rounded-b-xl ${isDragging ? 'cursor-grabbing select-none' : ''}`}
+          className={`flex-1 overflow-auto bg-slate-50 dark:bg-slate-800 relative pb-4 rounded-b-xl ${isDragging ? 'cursor-grabbing select-none' : ''}`}
           onMouseDown={handleMouseDown}
           onMouseLeave={handleMouseLeave}
           onMouseUp={handleMouseUp}
           onMouseMove={handleMouseMove}
         >
-          <table className="w-max min-w-full text-left text-[11px] border-collapse bg-white">
-            <thead className="sticky top-0 z-40 bg-slate-100 shadow-sm border-b-2 border-slate-300 text-slate-700 font-bold uppercase tracking-wider">
+          <table className="w-max min-w-full text-left text-[11px] border-collapse bg-white dark:bg-slate-900 dark:bg-slate-100">
+            <thead className="sticky top-0 z-40 bg-slate-100 dark:bg-slate-800 shadow-sm border-b-2 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider">
               <tr>
                 {!isReadOnly && (
-                  <th className="w-10 min-w-[40px] max-w-[40px] p-0 border-r text-center sticky top-0 left-0 bg-slate-100 z-40">
+                  <th className="w-10 min-w-[40px] max-w-[40px] p-0 border-r text-center sticky top-0 left-0 bg-slate-100 dark:bg-slate-800 z-40">
                     <input 
                       type="checkbox" 
                       className="w-4 h-4 cursor-pointer accent-red-600 mx-auto block" 
@@ -2319,7 +2319,7 @@ export default function RegisterDesignPage() {
                     />
                   </th>
                 )}
-                <th className="p-2 border-r bg-blue-50 text-blue-800 cursor-pointer hover:bg-slate-200 transition-colors select-none group sticky top-0 left-10 z-40 shadow-[4px_0_8px_rgba(0,0,0,0.02)]" onClick={() => handleSort("darNo")}>
+                <th className="p-2 border-r bg-blue-50 dark:bg-blue-900/30 text-blue-800 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 dark:bg-slate-950 transition-colors select-none group sticky top-0 left-10 z-40 shadow-[4px_0_8px_rgba(0,0,0,0.02)]" onClick={() => handleSort("darNo")}>
                   <div className="flex items-center gap-1">
                     DAR No
                     {sortConfig?.key === "darNo" ? (
@@ -2327,7 +2327,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("entryDate")}>
+                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 dark:bg-slate-950 transition-colors select-none group" onClick={() => handleSort("entryDate")}>
                   <div className="flex items-center gap-1">
                     Tgl Input
                     {sortConfig?.key === "entryDate" ? (
@@ -2335,15 +2335,15 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("createdBy")}>
-                  <div className="flex items-center gap-1 text-slate-500">
+                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 dark:bg-slate-800 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 dark:bg-slate-950 transition-colors select-none group" onClick={() => handleSort("createdBy")}>
+                  <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
                     Dibuat Oleh
                     {sortConfig?.key === "createdBy" ? (
                       sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("itemName")}>
+                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 dark:bg-slate-950 transition-colors select-none group" onClick={() => handleSort("itemName")}>
                   <div className="flex items-center gap-1">
                     Nama Item
                     {sortConfig?.key === "itemName" ? (
@@ -2351,7 +2351,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("customer")}>
+                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 dark:bg-slate-950 transition-colors select-none group" onClick={() => handleSort("customer")}>
                   <div className="flex items-center gap-1">
                     Customer
                     {sortConfig?.key === "customer" ? (
@@ -2359,7 +2359,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("designer")}>
+                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 dark:bg-slate-950 transition-colors select-none group" onClick={() => handleSort("designer")}>
                   <div className="flex items-center gap-1">
                     Designer
                     {sortConfig?.key === "designer" ? (
@@ -2367,7 +2367,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("technician")}>
+                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 dark:bg-slate-950 transition-colors select-none group" onClick={() => handleSort("technician")}>
                   <div className="flex items-center gap-1">
                     Technician
                     {sortConfig?.key === "technician" ? (
@@ -2375,7 +2375,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("purpose")}>
+                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 dark:bg-slate-800 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 dark:bg-slate-950 transition-colors select-none group" onClick={() => handleSort("purpose")}>
                   <div className="flex items-center gap-1">
                     Tujuan
                     {sortConfig?.key === "purpose" ? (
@@ -2383,10 +2383,10 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 text-center select-none w-20">
+                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 dark:bg-slate-800 text-center select-none w-20">
                   <div className="flex items-center justify-center gap-1"><Eye className="w-3 h-3 text-slate-400" /> Gambar</div>
                 </th>
-                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("version")}>
+                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 dark:bg-slate-950 transition-colors select-none group" onClick={() => handleSort("version")}>
                   <div className="flex items-center gap-1">
                     Versi
                     {sortConfig?.key === "version" ? (
@@ -2394,7 +2394,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("status")}>
+                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 dark:bg-slate-950 transition-colors select-none group" onClick={() => handleSort("status")}>
                   <div className="flex items-center gap-1">
                     Status
                     {sortConfig?.key === "status" ? (
@@ -2402,7 +2402,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("typeDesign")}>
+                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 dark:bg-slate-950 transition-colors select-none group" onClick={() => handleSort("typeDesign")}>
                   <div className="flex items-center gap-1">
                     Tipe Desain
                     {sortConfig?.key === "typeDesign" ? (
@@ -2410,7 +2410,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("designSource")}>
+                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 dark:bg-slate-950 transition-colors select-none group" onClick={() => handleSort("designSource")}>
                   <div className="flex items-center gap-1">
                     Sumber Desain
                     {sortConfig?.key === "designSource" ? (
@@ -2418,7 +2418,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("designNo")}>
+                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 dark:bg-slate-950 transition-colors select-none group" onClick={() => handleSort("designNo")}>
                   <div className="flex items-center gap-1">
                     Design No
                     {sortConfig?.key === "designNo" ? (
@@ -2426,7 +2426,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("requiredDate")}>
+                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 dark:bg-slate-950 transition-colors select-none group" onClick={() => handleSort("requiredDate")}>
                   <div className="flex items-center gap-1">
                     Req Date
                     {sortConfig?.key === "requiredDate" ? (
@@ -2434,7 +2434,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("closingDate")}>
+                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 dark:bg-slate-950 transition-colors select-none group" onClick={() => handleSort("closingDate")}>
                   <div className="flex items-center gap-1">
                     Closing Date
                     {sortConfig?.key === "closingDate" ? (
@@ -2442,7 +2442,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("type")}>
+                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 dark:bg-slate-800 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 dark:bg-slate-950 transition-colors select-none group" onClick={() => handleSort("type")}>
                   <div className="flex items-center gap-1">
                     Type (W/F/D)
                     {sortConfig?.key === "type" ? (
@@ -2450,7 +2450,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("sizeChecks")}>
+                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 dark:bg-slate-800 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 dark:bg-slate-950 transition-colors select-none group" onClick={() => handleSort("sizeChecks")}>
                   <div className="flex items-center gap-1">
                     Size
                     {sortConfig?.key === "sizeChecks" ? (
@@ -2458,7 +2458,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("glazeChecks")}>
+                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 dark:bg-slate-800 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 dark:bg-slate-950 transition-colors select-none group" onClick={() => handleSort("glazeChecks")}>
                   <div className="flex items-center gap-1">
                     Glaze
                     {sortConfig?.key === "glazeChecks" ? (
@@ -2466,7 +2466,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("surfaceChecks")}>
+                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 dark:bg-slate-800 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 dark:bg-slate-950 transition-colors select-none group" onClick={() => handleSort("surfaceChecks")}>
                   <div className="flex items-center gap-1">
                     Surface
                     {sortConfig?.key === "surfaceChecks" ? (
@@ -2474,7 +2474,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("guPtv")}>
+                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 dark:bg-slate-800 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 dark:bg-slate-950 transition-colors select-none group" onClick={() => handleSort("guPtv")}>
                   <div className="flex items-center gap-1">
                     GU/PTV
                     {sortConfig?.key === "guPtv" ? (
@@ -2482,7 +2482,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("inkChecks")}>
+                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 dark:bg-slate-800 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 dark:bg-slate-950 transition-colors select-none group" onClick={() => handleSort("inkChecks")}>
                   <div className="flex items-center gap-1">
                     Ink
                     {sortConfig?.key === "inkChecks" ? (
@@ -2490,7 +2490,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("sendBy")}>
+                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 dark:bg-slate-800 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 dark:bg-slate-950 transition-colors select-none group" onClick={() => handleSort("sendBy")}>
                   <div className="flex items-center gap-1">
                     Send By
                     {sortConfig?.key === "sendBy" ? (
@@ -2498,7 +2498,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 text-emerald-800 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("benefitText")}>
+                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 dark:bg-slate-800 text-emerald-800 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 dark:bg-slate-950 transition-colors select-none group" onClick={() => handleSort("benefitText")}>
                   <div className="flex items-center gap-1">
                     Benefit
                     {sortConfig?.key === "benefitText" ? (
@@ -2506,7 +2506,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 text-emerald-800 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("generalNote")}>
+                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 dark:bg-slate-800 text-emerald-800 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 dark:bg-slate-950 transition-colors select-none group" onClick={() => handleSort("generalNote")}>
                   <div className="flex items-center gap-1">
                     Note 1
                     {sortConfig?.key === "generalNote" ? (
@@ -2514,7 +2514,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 text-emerald-800 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("lastTimeReq")}>
+                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 dark:bg-slate-800 text-emerald-800 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 dark:bg-slate-950 transition-colors select-none group" onClick={() => handleSort("lastTimeReq")}>
                   <div className="flex items-center gap-1">
                     Last Time Req
                     {sortConfig?.key === "lastTimeReq" ? (
@@ -2522,7 +2522,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 text-emerald-800 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("feedbackDetails")}>
+                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 dark:bg-slate-800 text-emerald-800 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 dark:bg-slate-950 transition-colors select-none group" onClick={() => handleSort("feedbackDetails")}>
                   <div className="flex items-center gap-1">
                     Feedback (Rows)
                     {sortConfig?.key === "feedbackDetails" ? (
@@ -2530,7 +2530,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 text-emerald-800 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("lastDesignSupp")}>
+                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 dark:bg-slate-800 text-emerald-800 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 dark:bg-slate-950 transition-colors select-none group" onClick={() => handleSort("lastDesignSupp")}>
                   <div className="flex items-center gap-1">
                     Last Design Supp
                     {sortConfig?.key === "lastDesignSupp" ? (
@@ -2538,7 +2538,7 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 text-emerald-800 cursor-pointer hover:bg-slate-200 transition-colors select-none group" onClick={() => handleSort("note2")}>
+                <th className="sticky top-0 z-10 p-2 border-r bg-slate-50 dark:bg-slate-800 text-emerald-800 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 dark:bg-slate-950 transition-colors select-none group" onClick={() => handleSort("note2")}>
                   <div className="flex items-center gap-1">
                     Note 2
                     {sortConfig?.key === "note2" ? (
@@ -2547,36 +2547,36 @@ export default function RegisterDesignPage() {
                   </div>
                 </th>
                 {!isReadOnly && (
-                  <th className="p-2 text-center sticky top-0 right-0 bg-slate-100 z-40 shadow-[-4px_0_12px_rgba(0,0,0,0.05)]">Aksi</th>
+                  <th className="p-2 text-center sticky top-0 right-0 bg-slate-100 dark:bg-slate-800 z-40 shadow-[-4px_0_12px_rgba(0,0,0,0.05)]">Aksi</th>
                 )}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={24} className="p-8 text-center text-slate-500 font-bold">Memuat data...</td></tr>
+                <tr><td colSpan={24} className="p-8 text-center text-slate-500 dark:text-slate-400 font-bold">Memuat data...</td></tr>
               ) : filteredData.length === 0 ? (
-                <tr><td colSpan={24} className="p-8 text-center text-slate-500 font-bold">Tidak ada data desain.</td></tr>
+                <tr><td colSpan={24} className="p-8 text-center text-slate-500 dark:text-slate-400 font-bold">Tidak ada data desain.</td></tr>
               ) : (
                 paginatedData.map((origRow, idx) => {
                   const row = { ...origRow, isLocked: origRow.isLocked || isReadOnly };
                   return (
-                    <tr key={row.id} className="border-b border-slate-200 hover:bg-blue-50/50 group transition-colors">
+                    <tr key={row.id} className="border-b border-slate-200 dark:border-slate-700 hover:bg-blue-50 dark:bg-blue-900/30/50 group transition-colors">
                       {!isReadOnly && (
-                        <td className="w-10 min-w-[40px] max-w-[40px] p-0 border-r text-center sticky left-0 bg-white group-hover:bg-blue-50 z-20">
+                        <td className="w-10 min-w-[40px] max-w-[40px] p-0 border-r text-center sticky left-0 bg-white dark:bg-slate-900 dark:bg-slate-100 group-hover:bg-blue-50 dark:bg-blue-900/30 z-20">
                           <input type="checkbox" checked={selectedIds.has(row.id)} onChange={() => toggleSelect(row.id)} className="w-4 h-4 cursor-pointer accent-red-600" />
                         </td>
                       )}
-                      <td className={`p-1 border-r font-black text-blue-700 bg-[#f4f8ff] group-hover:bg-blue-50 z-10 ${!isReadOnly ? 'sticky left-10' : ''} shadow-[4px_0_8px_rgba(0,0,0,0.02)]`}>
+                      <td className={`p-1 border-r font-black text-blue-700 bg-[#f4f8ff] group-hover:bg-blue-50 dark:bg-blue-900/30 z-10 ${!isReadOnly ? 'sticky left-10' : ''} shadow-[4px_0_8px_rgba(0,0,0,0.02)]`}>
                         <CellInput handleUpdateCell={handleUpdateCell} row={row} field="darNo" width="w-24" />
                       </td>
                       <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="entryDate" width="w-28" type="date" /></td>
-                      <td className="p-1 border-r text-[10px] text-slate-500 bg-slate-50/50 text-center">{row.createdBy || '-'}</td>
+                      <td className="p-1 border-r text-[10px] text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 text-center">{row.createdBy || '-'}</td>
                       <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="itemName" width="w-40" /></td>
                       <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="customer" options={customerOptions} width="w-32" /></td>
                       <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="designer" options={designerOptions} colorFn={getDesignerColor} width="w-28" /></td>
                       <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="technician" options={technicianOptions} colorFn={getTechnicianColor} width="w-28" /></td>
-                      <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="benefit" options={baseTujuanOptions} width="w-32" /></td>
-                      <td className="p-1 border-r bg-slate-50/50"><CellImageUpload handleUpdateCell={handleUpdateCell} row={row} /></td>
+                      <td className="p-1 border-r bg-slate-50 dark:bg-slate-800/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="benefit" options={baseTujuanOptions} width="w-32" /></td>
+                      <td className="p-1 border-r bg-slate-50 dark:bg-slate-800/50"><CellImageUpload handleUpdateCell={handleUpdateCell} row={row} /></td>
                       <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="version" width="w-20" /></td>
                       <td className="p-1 border-r"><CellSelect handleUpdateCell={handleUpdateCell} row={row} field="status" options={["IN LOCK", "IN USE", "FREE", "ARCHIVE"]} colorFn={getStatusColor} width="w-24" /></td>
                       <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="typeDesign" options={typeDesignOptions} colorFn={getTypeDesignColor} width="w-20" /></td>
@@ -2584,33 +2584,33 @@ export default function RegisterDesignPage() {
                       <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="designNo" width="w-24" /></td>
                       <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="requiredDate" width="w-28" type="date" /></td>
                       <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="closingDate" width="w-28" type="date" /></td>
-                      <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="type" options={baseTypeOptions} width="w-24" /></td>
-                      <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="sizeChecks" options={baseSizeOptions} customOptions={sizeCustomOptions} width="w-32" /></td>
-                      <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="glazeChecks" options={baseGlazeOptions} customOptions={glazeCustomOptions} width="w-32" /></td>
-                      <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="surfaceChecks" options={baseSurfaceOptions} customOptions={surfaceCustomOptions} width="w-32" /></td>
-                      <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="guPtvChecks" options={baseGuPtvOptions} customOptions={guPtvCustomOptions} width="w-32" /></td>
-                      <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="inkChecks" options={baseInkOptions} customOptions={inkCustomOptions} width="w-32" /></td>
-                      <td className="p-1 border-r bg-slate-50/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="sendBy" options={baseSendByOptions} width="w-24" /></td>
+                      <td className="p-1 border-r bg-slate-50 dark:bg-slate-800/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="type" options={baseTypeOptions} width="w-24" /></td>
+                      <td className="p-1 border-r bg-slate-50 dark:bg-slate-800/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="sizeChecks" options={baseSizeOptions} customOptions={sizeCustomOptions} width="w-32" /></td>
+                      <td className="p-1 border-r bg-slate-50 dark:bg-slate-800/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="glazeChecks" options={baseGlazeOptions} customOptions={glazeCustomOptions} width="w-32" /></td>
+                      <td className="p-1 border-r bg-slate-50 dark:bg-slate-800/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="surfaceChecks" options={baseSurfaceOptions} customOptions={surfaceCustomOptions} width="w-32" /></td>
+                      <td className="p-1 border-r bg-slate-50 dark:bg-slate-800/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="guPtvChecks" options={baseGuPtvOptions} customOptions={guPtvCustomOptions} width="w-32" /></td>
+                      <td className="p-1 border-r bg-slate-50 dark:bg-slate-800/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="inkChecks" options={baseInkOptions} customOptions={inkCustomOptions} width="w-32" /></td>
+                      <td className="p-1 border-r bg-slate-50 dark:bg-slate-800/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="sendBy" options={baseSendByOptions} width="w-24" /></td>
                       <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="benefitText" width="w-40" /></td>
-                      <td className="p-1 border-r bg-slate-50/50"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="generalNote" width="w-48" /></td>
+                      <td className="p-1 border-r bg-slate-50 dark:bg-slate-800/50"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="generalNote" width="w-48" /></td>
                       <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="lastTimeReq" width="w-28" type="date" /></td>
                       <td className="p-1 border-r"><CellGridInput handleUpdateCell={handleUpdateCell} row={row} field="feedbackDetails" title="Feedback" rowsCount={4} /></td>
                       <td className="p-1 border-r"><CellGridInput handleUpdateCell={handleUpdateCell} row={row} field="lastDesignSupp" title="Support" rowsCount={6} /></td>
                       <td className="p-1 border-r"><CellGridInput handleUpdateCell={handleUpdateCell} row={row} field="note2" title="Note 2" rowsCount={3} /></td>
                       {!isReadOnly && (
-                        <td className="p-1 text-center sticky right-0 bg-white group-hover:bg-blue-50 z-10 shadow-[-4px_0_12px_rgba(0,0,0,0.02)]">
+                        <td className="p-1 text-center sticky right-0 bg-white dark:bg-slate-900 dark:bg-slate-100 group-hover:bg-blue-50 dark:bg-blue-900/30 z-10 shadow-[-4px_0_12px_rgba(0,0,0,0.02)]">
                           <div className="flex items-center justify-center gap-1">
                             {row.darNo && (
                               <>
-                                <Button variant="ghost" size="icon" onClick={() => handleOpenSign(row.darNo)} className="h-6 w-6 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 shadow-sm border border-emerald-100" title="Isi Tanda Tangan">
+                                <Button variant="ghost" size="icon" onClick={() => handleOpenSign(row.darNo)} className="h-6 w-6 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 shadow-sm border border-emerald-100 dark:border-emerald-800" title="Isi Tanda Tangan">
                                   <Pencil className="w-3.5 h-3.5" />
                                 </Button>
-                                <Button variant="ghost" size="icon" onClick={() => setPreviewDarNo(row.darNo)} className="h-6 w-6 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 shadow-sm border border-blue-100" title="Preview Form DAR">
+                                <Button variant="ghost" size="icon" onClick={() => setPreviewDarNo(row.darNo)} className="h-6 w-6 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 hover:text-blue-700 dark:hover:text-blue-300 shadow-sm border border-blue-100 dark:border-blue-800" title="Preview Form DAR">
                                   <Eye className="w-3.5 h-3.5" />
                                 </Button>
                               </>
                             )}
-                            <Button variant="ghost" size="icon" onClick={() => handleDeleteRow(row.id)} className="h-6 w-6 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 shadow-sm border border-red-100" title="Hapus Baris">
+                            <Button variant="ghost" size="icon" onClick={() => handleDeleteRow(row.id)} className="h-6 w-6 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 hover:text-red-700 dark:hover:text-red-300 shadow-sm border border-red-100 dark:border-red-800" title="Hapus Baris">
                               <Trash2 className="w-3.5 h-3.5" />
                             </Button>
                           </div>
@@ -2637,7 +2637,7 @@ export default function RegisterDesignPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <label className="text-sm font-bold text-slate-700 block mb-2">Nomor DAR Tujuan</label>
+            <label className="text-sm font-bold text-slate-700 dark:text-slate-300 block mb-2">Nomor DAR Tujuan</label>
             <Input 
               value={targetDarNo} 
               onChange={e => setTargetDarNo(e.target.value)} 
@@ -2652,8 +2652,8 @@ export default function RegisterDesignPage() {
         </DialogContent>
       </Dialog>
       <Dialog open={!!previewDarNo} onOpenChange={(open) => !open && setPreviewDarNo(null)}>
-        <DialogContent className="sm:max-w-4xl max-w-[95vw] h-[95vh] p-0 border-none rounded-xl shadow-2xl overflow-hidden bg-slate-200 flex flex-col">
-          <div className="flex items-center justify-between p-4 bg-white border-b shadow-sm z-10">
+        <DialogContent className="sm:max-w-4xl max-w-[95vw] h-[95vh] p-0 border-none rounded-xl shadow-2xl overflow-hidden bg-slate-200 dark:bg-slate-950 flex flex-col">
+          <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 dark:bg-slate-100 border-b shadow-sm z-10">
             <DialogTitle className="text-lg font-bold">Preview Form DAR: {previewDarNo}</DialogTitle>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" className="hidden sm:flex" onClick={() => {
@@ -2674,15 +2674,15 @@ export default function RegisterDesignPage() {
               <DialogClose asChild><Button variant="ghost" size="icon"><X className="h-5 w-5" /></Button></DialogClose>
             </div>
           </div>
-          <div className="flex-1 w-full bg-slate-200 relative overflow-hidden">
+          <div className="flex-1 w-full bg-slate-200 dark:bg-slate-950 relative overflow-hidden">
             {previewDarNo && <iframe id="preview-dar-iframe" src={`/form-app/preview?darNo=${previewDarNo}`} className="w-full h-full border-none absolute inset-0" />}
           </div>
         </DialogContent>
       </Dialog>
       
       <Dialog open={!!signDarNo} onOpenChange={(open) => !open && setSignDarNo(null)}>
-        <DialogContent className="sm:max-w-6xl max-w-[98vw] h-[95vh] p-0 border-none rounded-xl shadow-2xl overflow-hidden bg-slate-200 flex flex-col">
-          <div className="flex items-center justify-between p-4 bg-white border-b shadow-sm z-10">
+        <DialogContent className="sm:max-w-6xl max-w-[98vw] h-[95vh] p-0 border-none rounded-xl shadow-2xl overflow-hidden bg-slate-200 dark:bg-slate-950 flex flex-col">
+          <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 dark:bg-slate-100 border-b shadow-sm z-10">
             <DialogTitle className="text-lg font-bold">Isi Tanda Tangan: {signDarNo}</DialogTitle>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={() => {
@@ -2697,7 +2697,7 @@ export default function RegisterDesignPage() {
               <DialogClose asChild><Button variant="ghost" size="icon"><X className="h-5 w-5" /></Button></DialogClose>
             </div>
           </div>
-          <div className="flex-1 w-full bg-slate-200 relative overflow-hidden">
+          <div className="flex-1 w-full bg-slate-200 dark:bg-slate-950 relative overflow-hidden">
             {signId && <iframe src={`/public/form-dar?id=${signId}`} className="w-full h-full border-none absolute inset-0" />}
           </div>
         </DialogContent>
@@ -2713,7 +2713,7 @@ export default function RegisterDesignPage() {
           </DialogHeader>
           <div className="py-4 space-y-4">
             <div>
-              <label className="text-sm font-medium text-slate-700 mb-1 block">Passcode (minimal 4 karakter)</label>
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 block">Passcode (minimal 4 karakter)</label>
               <Input 
                 type="text" 
                 value={sharePasscode} 
@@ -2722,7 +2722,7 @@ export default function RegisterDesignPage() {
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-slate-700 mb-1 block">Durasi Validitas</label>
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 block">Durasi Validitas</label>
               <Select value={shareDuration} onValueChange={setShareDuration}>
                 <SelectTrigger>
                   <SelectValue placeholder="Pilih Durasi" />
@@ -2843,7 +2843,7 @@ export default function RegisterDesignPage() {
       <Dialog open={isMassDeleteOpen} onOpenChange={setIsMassDeleteOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-red-600 flex items-center gap-2">
+            <DialogTitle className="text-red-600 dark:text-red-400 flex items-center gap-2">
               <Trash2 className="w-5 h-5" /> Hapus Masal per Tahun
             </DialogTitle>
             <DialogDescription>
@@ -2852,7 +2852,7 @@ export default function RegisterDesignPage() {
           </DialogHeader>
           <div className="py-4 space-y-4">
             <div>
-              <label className="text-sm font-bold text-slate-700 block mb-2">Pilih Tahun</label>
+              <label className="text-sm font-bold text-slate-700 dark:text-slate-300 block mb-2">Pilih Tahun</label>
               <Select value={massDeleteYear} onValueChange={setMassDeleteYear}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Pilih tahun yang akan dihapus" />
@@ -2866,7 +2866,7 @@ export default function RegisterDesignPage() {
             </div>
             
             {massDeleteYear && (
-              <div className="bg-red-50 p-3 rounded-md border border-red-200 text-sm text-red-800">
+              <div className="bg-red-50 dark:bg-red-900/30 p-3 rounded-md border border-red-200 text-sm text-red-800">
                 Ketik <strong>HAPUS {massDeleteYear}</strong> di bawah ini untuk mengonfirmasi:
                 <Input 
                   value={massDeleteConfirm} 
@@ -2893,11 +2893,11 @@ export default function RegisterDesignPage() {
 
       {/* Trash Bin Dialog */}
       <Dialog open={isTrashOpen} onOpenChange={setIsTrashOpen}>
-        <DialogContent className="sm:max-w-4xl p-0 overflow-hidden bg-slate-50 flex flex-col max-h-[85vh]">
-            <DialogHeader className="p-4 border-b border-slate-200 bg-white flex flex-col gap-4">
+        <DialogContent className="sm:max-w-4xl p-0 overflow-hidden bg-slate-50 dark:bg-slate-800 flex flex-col max-h-[85vh]">
+            <DialogHeader className="p-4 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 dark:bg-slate-100 flex flex-col gap-4">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                  <DialogTitle className="flex items-center gap-2 text-red-600">
+                  <DialogTitle className="flex items-center gap-2 text-red-600 dark:text-red-400">
                     <Trash2 className="w-5 h-5" /> Tempat Sampah Desain
                   </DialogTitle>
                   <DialogDescription>
@@ -2907,7 +2907,7 @@ export default function RegisterDesignPage() {
                 {trashData.length > 0 && !loadingTrash && (
                   <div className="flex items-center gap-2 w-full sm:w-auto">
                     {selectedTrashIds.size > 0 && (
-                      <Button variant="outline" onClick={handleRestoreMultipleTrash} size="sm" className="shrink-0 text-emerald-700 bg-emerald-50 border-emerald-200 hover:bg-emerald-100 font-bold">
+                      <Button variant="outline" onClick={handleRestoreMultipleTrash} size="sm" className="shrink-0 text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-700 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 font-bold">
                         <Check className="w-4 h-4 mr-2" /> Restore ({selectedTrashIds.size})
                       </Button>
                     )}
@@ -2927,21 +2927,21 @@ export default function RegisterDesignPage() {
                   autoCorrect="off"
                   spellCheck={false}
                   name="trash_search_query"
-                  className="pl-9 bg-slate-50 border-slate-200"
+                  className="pl-9 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
                 />
               </div>
             </DialogHeader>
-            <div className="flex-1 overflow-auto p-4 bg-slate-50">
+            <div className="flex-1 overflow-auto p-4 bg-slate-50 dark:bg-slate-800">
               {loadingTrash ? (
                 <div className="flex justify-center p-8"><div className="w-6 h-6 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div></div>
               ) : trashData.length === 0 ? (
-                <div className="text-center py-12 text-slate-500">Tempat sampah kosong.</div>
+                <div className="text-center py-12 text-slate-500 dark:text-slate-400">Tempat sampah kosong.</div>
               ) : (
                 <div className="space-y-3">
                   <div className="flex items-center px-2 py-1 gap-3">
                     <input 
                       type="checkbox" 
-                      className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                      className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 cursor-pointer"
                       checked={
                         (() => {
                           const q = trashSearch.toLowerCase();
@@ -2952,7 +2952,7 @@ export default function RegisterDesignPage() {
                       onChange={toggleSelectAllTrash}
                       title="Pilih Semua"
                     />
-                    <span className="text-sm font-semibold text-slate-600">Pilih Semua</span>
+                    <span className="text-sm font-semibold text-slate-600 dark:text-slate-400">Pilih Semua</span>
                   </div>
                   {[...trashData]
                     .filter(item => {
@@ -2968,26 +2968,26 @@ export default function RegisterDesignPage() {
                       return tB - tA;
                     })
                     .map((item) => (
-                    <div key={item.id} className={`bg-white p-3 rounded-lg border shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors ${selectedTrashIds.has(item.id) ? 'border-blue-400 bg-blue-50/30' : 'border-slate-200'}`}>
+                    <div key={item.id} className={`bg-white dark:bg-slate-900 dark:bg-slate-100 p-3 rounded-lg border shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors ${selectedTrashIds.has(item.id) ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/30/30' : 'border-slate-200 dark:border-slate-700'}`}>
                       <div className="flex items-center gap-3 flex-1 overflow-hidden">
                         <input 
                           type="checkbox" 
-                          className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer shrink-0"
+                          className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 cursor-pointer shrink-0"
                           checked={selectedTrashIds.has(item.id)}
                           onChange={() => toggleSelectTrash(item.id)}
                         />
                         <div className="flex-1 overflow-hidden">
                           <div className="flex flex-wrap items-center gap-2 mb-1">
-                            <span className="font-bold text-sm text-slate-800">{item.designNo || 'No Design'}</span>
-                            <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full border border-slate-200">{item.darNo || 'No DAR'}</span>
+                            <span className="font-bold text-sm text-slate-800 dark:text-slate-200">{item.designNo || 'No Design'}</span>
+                            <span className="text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">{item.darNo || 'No DAR'}</span>
                             {item.deletedAt && (
-                              <span className="text-[11px] text-red-500 bg-red-50 px-2 py-0.5 rounded-full font-medium ml-auto sm:ml-0 flex items-center">
+                              <span className="text-[11px] text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/30 px-2 py-0.5 rounded-full font-medium ml-auto sm:ml-0 flex items-center">
                                 <Calendar className="w-3 h-3 mr-1" />
                                 Dihapus: {new Date(item.deletedAt?.seconds ? item.deletedAt.seconds * 1000 : (item.deletedAt?.toDate ? item.deletedAt.toDate().getTime() : item.deletedAt)).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute:'2-digit' })}
                               </span>
                             )}
                           </div>
-                          <div className="text-xs text-slate-600 truncate flex gap-4 mt-1.5">
+                          <div className="text-xs text-slate-600 dark:text-slate-400 truncate flex gap-4 mt-1.5">
                             <span><strong>Item:</strong> {item.itemName || '-'}</span>
                             <span><strong>Tipe:</strong> {item.typeDesign || '-'}</span>
                             <span><strong>Customer:</strong> {item.customer || '-'}</span>
@@ -2995,7 +2995,7 @@ export default function RegisterDesignPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0 ml-7 sm:ml-0">
-                        <Button variant="outline" size="sm" onClick={() => handleRestoreTrash(item)} className="text-emerald-700 bg-emerald-50 border-emerald-200 hover:bg-emerald-100">
+                        <Button variant="outline" size="sm" onClick={() => handleRestoreTrash(item)} className="text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-700 hover:bg-emerald-100 dark:hover:bg-emerald-900/50">
                           <Check className="w-4 h-4 md:mr-1" /> <span className="hidden md:inline">Restore</span>
                         </Button>
                         <Button variant="destructive" size="sm" onClick={() => handlePermanentDelete(item)}>
@@ -3015,10 +3015,10 @@ export default function RegisterDesignPage() {
             <DialogTitle>{importProgress?.isParsing ? "Membaca File Excel..." : "Mengimpor Data Excel..."}</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col items-center justify-center py-6 gap-4">
-            <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
+            <Loader2 className="h-10 w-10 animate-spin text-blue-600 dark:text-blue-400" />
             
             {!importProgress?.isParsing && (
-              <div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+              <div className="w-full bg-slate-200 dark:bg-slate-950 rounded-full h-2.5 overflow-hidden">
                 <div 
                   className="bg-blue-600 h-2.5 rounded-full transition-all duration-300" 
                   style={{ width: `${importProgress ? Math.round((importProgress.current / importProgress.total) * 100) : 0}%` }}
@@ -3026,7 +3026,7 @@ export default function RegisterDesignPage() {
               </div>
             )}
             
-            <p className="text-sm font-medium text-slate-600">
+            <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
               {importProgress?.isParsing 
                 ? "Mengekstrak data dari file..." 
                 : `Memproses ${importProgress?.current} dari ${importProgress?.total} baris (${importProgress ? Math.round((importProgress.current / importProgress.total) * 100) : 0}%)`
@@ -3037,23 +3037,23 @@ export default function RegisterDesignPage() {
       </Dialog>
       
       {deleteProgress !== null && (
-        <div className="fixed bottom-4 right-4 z-[9999] bg-white rounded-xl shadow-2xl border border-slate-200 p-4 w-80 animate-in slide-in-from-bottom-5">
+        <div className="fixed bottom-4 right-4 z-[9999] bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 p-4 w-80 animate-in slide-in-from-bottom-5">
           <div className="flex items-center gap-3 mb-3">
             {deleteProgress.isDeleting ? (
-              <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+              <Loader2 className="w-5 h-5 animate-spin text-blue-600 dark:text-blue-400" />
             ) : (
               <Check className="w-5 h-5 text-emerald-500" />
             )}
             <div className="flex-1">
-              <h4 className="text-sm font-bold text-slate-800">
+              <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">
                 {deleteProgress.isDeleting ? "Menghapus Data & File..." : "Selesai"}
               </h4>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 {deleteProgress.current} dari {deleteProgress.total} baris diproses
               </p>
             </div>
           </div>
-          <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+          <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
             <div 
               className="bg-blue-600 h-2 rounded-full transition-all duration-300"
               style={{ width: `${Math.round((deleteProgress.current / (deleteProgress.total || 1)) * 100)}%` }}
