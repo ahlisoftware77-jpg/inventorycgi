@@ -32,10 +32,10 @@ export async function POST(request: Request) {
         { status: 403 }
       );
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Turnstile verification error:', error);
     return NextResponse.json(
-      { success: false, error: 'Internal server error' },
+      { success: false, error: 'Internal server error: ' + error.message, stack: error.stack },
       { status: 500 }
     );
   }
