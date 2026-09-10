@@ -758,20 +758,35 @@ export default function AssetForm({ asset, children, isOpen: isOpenProp, onOpenC
                       <div className="flex justify-between items-center mb-1">
                         <FormLabel className="sr-only">Tanggal Pembelian</FormLabel>
                         <Button type="button" variant="link" size="sm" className="p-0 h-auto text-[10px] uppercase font-black text-primary hover:no-underline" onClick={() => {
-                          const code = form.getValues('code');
-                          if (code) {
-                            const parts = code.split('-');
-                            if (parts.length >= 3 && parts[1].length === 6) {
-                              const y = parseInt(parts[1].substring(0, 4), 10);
-                              const d = parseInt(parts[1].substring(4, 6), 10);
-                              const m = parseInt(parts[2].substring(0, 3), 10);
-                              if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
-                                const parsed = new Date(y, m - 1, d);
-                                if (isValid(parsed)) {
-                                  form.setValue('purchaseDate', parsed);
-                                  toast({ title: 'Berhasil', description: `Tanggal diatur ke: ${format(parsed, "PPP", { locale: id })}` });
-                                }
-                              }
+                          const code = form.getValues('code') || '';
+                          
+                          // Cari 8 digit angka (YYYYMMDD)
+                          const match8 = code.match(/(\d{4})(\d{2})(\d{2})/);
+                          // Cari 6 digit angka (YYYYMM)
+                          const match6 = code.match(/(\d{4})(\d{2})/);
+
+                          let y, m, d;
+
+                          if (match8) {
+                            y = parseInt(match8[1], 10);
+                            m = parseInt(match8[2], 10);
+                            d = parseInt(match8[3], 10);
+                          } else if (match6) {
+                            y = parseInt(match6[1], 10);
+                            m = parseInt(match6[2], 10);
+                            d = 1; // Default tanggal 1 jika cuma ada tahun & bulan
+                          } else {
+                            toast({ title: 'Gagal', description: 'Tidak ditemukan angka tahun & bulan (YYYYMM atau YYYYMMDD) pada kode.', variant: 'destructive' });
+                            return;
+                          }
+
+                          if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+                            const parsed = new Date(y, m - 1, d);
+                            if (isValid(parsed)) {
+                              form.setValue('purchaseDate', parsed);
+                              toast({ title: 'Berhasil', description: `Tanggal diatur ke: ${format(parsed, "PPP", { locale: id })}` });
+                            } else {
+                              toast({ title: 'Gagal', description: 'Tanggal dari kode tidak valid.', variant: 'destructive' });
                             }
                           }
                         }}>
