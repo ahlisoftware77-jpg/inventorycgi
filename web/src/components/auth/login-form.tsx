@@ -6,6 +6,8 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Turnstile, TurnstileInstance } from '@marsidev/react-turnstile';
+import { useRef } from 'react';
 import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/config';
@@ -36,6 +38,8 @@ export function LoginForm() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [companyName, setCompanyName] = useState('Sistem Aset');
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileInstance>(null);
 
   useEffect(() => {
     // Listen to general settings for company name even before login
@@ -49,8 +53,32 @@ export function LoginForm() {
   }, []);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!turnstileToken) {
+      toast({
+        variant: 'destructive',
+        title: 'Verifikasi Gagal',
+        description: 'Mohon selesaikan verifikasi keamanan terlebih dahulu.',
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
+      const apiUrl = (typeof window !== 'undefined' && window.location.hostname !== 'localhost') 
+        ? 'https://inventorycgi.vercel.app/api/verify-turnstile' 
+        : '/api/verify-turnstile';
+        
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: turnstileToken })
+      });
+      const data = await res.json();
+      
+      if (!data.success) {
+        throw new Error('Validasi Anti-Bot gagal. Silakan coba lagi.');
+      }
+
       const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
       
       const userDocRef = doc(db, 'users', userCredential.user.uid);
@@ -79,8 +107,13 @@ export function LoginForm() {
 
     } catch (error: any) {
       console.error('Login error:', error);
+      turnstileRef.current?.reset();
+      setTurnstileToken(null);
       let errorMessage = 'Email atau password salah. Silakan coba lagi.';
       if (error.message.includes('Data pengguna tidak ditemukan')) {
+          errorMessage = error.message;
+      }
+      if (error.message.includes('Anti-Bot')) {
           errorMessage = error.message;
       }
       toast({
@@ -103,18 +136,48 @@ export function LoginForm() {
       });
       return;
     }
+
+    if (!turnstileToken) {
+      toast({
+        variant: 'destructive',
+        title: 'Verifikasi Gagal',
+        description: 'Mohon selesaikan verifikasi keamanan terlebih dahulu.',
+      });
+      return;
+    }
+
+    setIsLoading(true);
     try {
+      const apiUrl = (typeof window !== 'undefined' && window.location.hostname !== 'localhost') 
+        ? 'https://inventorycgi.vercel.app/api/verify-turnstile' 
+        : '/api/verify-turnstile';
+        
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: turnstileToken })
+      });
+      const data = await res.json();
+      
+      if (!data.success) {
+        throw new Error('Validasi Anti-Bot gagal. Silakan coba lagi.');
+      }
+
       await sendPasswordResetEmail(auth, email);
       toast({
         title: 'Email Terkirim',
         description: 'Tautan reset password telah dikirim ke email Anda.',
       });
-    } catch (error) {
+    } catch (error: any) {
       toast({
         variant: 'destructive',
         title: 'Gagal',
-        description: 'Gagal mengirim email reset password.',
+        description: error.message?.includes('Anti-Bot') ? error.message : 'Gagal mengirim email reset password.',
       });
+    } finally {
+      turnstileRef.current?.reset();
+      setTurnstileToken(null);
+      setIsLoading(false);
     }
   };
 
@@ -195,6 +258,23 @@ export function LoginForm() {
             />
 
             <div className="pt-2 space-y-4">
+              <div className="flex justify-center w-full min-h-[70px]">
+                <Turnstile
+                  ref={turnstileRef}
+                  siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'}
+                  onSuccess={(token) => setTurnstileToken(token)}
+                  onError={() => {
+                    setTurnstileToken(null);
+                    toast({
+                      variant: 'destructive',
+                      title: 'Widget Error',
+                      description: 'Gagal memuat sistem keamanan.',
+                    });
+                  }}
+                  options={{ theme: 'light' }}
+                />
+              </div>
+
               <Button 
                 type="submit" 
                 className="w-full h-12 bg-cyan-600 hover:bg-cyan-700 text-white font-black uppercase tracking-[0.2em] rounded-xl shadow-xl shadow-cyan-600/20 transition-all active:scale-95 flex items-center justify-center gap-2" 

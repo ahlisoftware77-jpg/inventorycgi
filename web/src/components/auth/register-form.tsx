@@ -6,6 +6,8 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Turnstile, TurnstileInstance } from '@marsidev/react-turnstile';
+import { useRef } from 'react';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/config';
@@ -47,6 +49,8 @@ export function RegisterForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [companyName, setCompanyName] = useState('Sistem Aset');
   const [departmentOptions, setDepartmentOptions] = useState<string[]>(defaultDepartments);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileInstance>(null);
 
   useEffect(() => {
     const generalDocRef = doc(db, 'settings', 'general');
@@ -71,8 +75,32 @@ export function RegisterForm() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!turnstileToken) {
+      toast({
+        variant: 'destructive',
+        title: 'Verifikasi Gagal',
+        description: 'Mohon selesaikan verifikasi keamanan terlebih dahulu.',
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
+      const apiUrl = (typeof window !== 'undefined' && window.location.hostname !== 'localhost') 
+        ? 'https://inventorycgi.vercel.app/api/verify-turnstile' 
+        : '/api/verify-turnstile';
+        
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: turnstileToken })
+      });
+      const data = await res.json();
+      
+      if (!data.success) {
+        throw new Error('Validasi Anti-Bot gagal. Silakan coba lagi.');
+      }
+
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
 
@@ -97,9 +125,14 @@ export function RegisterForm() {
       router.push('/login');
     } catch (error: any) {
       console.error('Registration error:', error);
+      turnstileRef.current?.reset();
+      setTurnstileToken(null);
       let description = 'Terjadi kesalahan. Silakan coba lagi.';
       if (error.code === 'auth/email-already-in-use') {
         description = 'Email ini sudah terdaftar. Silakan gunakan email lain atau login.';
+      }
+      if (error.message.includes('Anti-Bot')) {
+        description = error.message;
       }
       
       toast({
@@ -217,6 +250,23 @@ export function RegisterForm() {
             />
             
             <div className="pt-4 space-y-4">
+              <div className="flex justify-center w-full min-h-[70px]">
+                <Turnstile
+                  ref={turnstileRef}
+                  siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'}
+                  onSuccess={(token) => setTurnstileToken(token)}
+                  onError={() => {
+                    setTurnstileToken(null);
+                    toast({
+                      variant: 'destructive',
+                      title: 'Widget Error',
+                      description: 'Gagal memuat sistem keamanan.',
+                    });
+                  }}
+                  options={{ theme: 'light' }}
+                />
+              </div>
+
               <Button 
                 type="submit" 
                 className="w-full h-12 bg-cyan-600 hover:bg-cyan-700 text-white font-black uppercase tracking-[0.2em] rounded-xl shadow-xl shadow-cyan-600/20 transition-all active:scale-95" 
