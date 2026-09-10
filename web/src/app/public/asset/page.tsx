@@ -56,7 +56,11 @@ function PublicAssetContent() {
                 setIsVerifying(true);
                 setError(null);
                 try {
-                  const res = await fetch('/api/verify-turnstile', {
+                  const apiUrl = (typeof window !== 'undefined' && window.location.hostname !== 'localhost') 
+                    ? 'https://inventorycgi.vercel.app/api/verify-turnstile' 
+                    : '/api/verify-turnstile';
+                    
+                  const res = await fetch(apiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ token })

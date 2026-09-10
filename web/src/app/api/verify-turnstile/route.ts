@@ -1,5 +1,15 @@
 import { NextResponse } from 'next/server';
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: corsHeaders });
+}
+
 export async function POST(request: Request) {
   try {
     const { token } = await request.json();
@@ -7,7 +17,7 @@ export async function POST(request: Request) {
     if (!token) {
       return NextResponse.json(
         { success: false, error: 'Token missing' },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -25,18 +35,18 @@ export async function POST(request: Request) {
     const data = await verifyResponse.json();
 
     if (data.success) {
-      return NextResponse.json({ success: true });
+      return NextResponse.json({ success: true }, { headers: corsHeaders });
     } else {
       return NextResponse.json(
         { success: false, error: data['error-codes'] || 'Validation failed' },
-        { status: 403 }
+        { status: 403, headers: corsHeaders }
       );
     }
   } catch (error: any) {
     console.error('Turnstile verification error:', error);
     return NextResponse.json(
       { success: false, error: 'Internal server error: ' + error.message, stack: error.stack },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
