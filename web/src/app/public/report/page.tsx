@@ -21,6 +21,8 @@ function PublicReportViewerWrapper() {
   return <PublicReportViewer reportId={reportId} />;
 }
 
+import TurnstileGate from '@/components/auth/turnstile-gate';
+
 export default function PublicReportPage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
@@ -30,7 +32,9 @@ export default function PublicReportPage() {
           <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">Menyiapkan Laporan Audit...</p>
         </div>
       }>
-        <PublicReportViewerWrapper />
+        <TurnstileGate>
+          <PublicReportViewerWrapper />
+        </TurnstileGate>
       </Suspense>
     </div>
   );

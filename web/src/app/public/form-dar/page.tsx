@@ -134,16 +134,20 @@ function PublicFormDarContent() {
  * @fileOverview Halaman publik untuk Form DAR.
  * Memungkinkan pihak eksternal untuk mengisi tanda tangan tanpa login (dilengkapi dengan proteksi passcode).
  */
+import TurnstileGate from '@/components/auth/turnstile-gate';
+
 export default function PublicFormDarPage() {
   return (
     <DashboardLayout>
       <Suspense fallback={
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-            <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
-            <p className="text-xs font-black uppercase tracking-widest text-slate-500 animate-pulse">Menyiapkan Dokumen DAR...</p>
+            <Loader2 className="h-10 h-10 animate-spin text-primary" />
+            <p className="text-xs font-black uppercase tracking-widest text-muted-foreground animate-pulse">Menyiapkan Form DAR...</p>
         </div>
       }>
-        <PublicFormDarContent />
+        <TurnstileGate>
+          <PublicFormDarContent />
+        </TurnstileGate>
       </Suspense>
     </DashboardLayout>
   );

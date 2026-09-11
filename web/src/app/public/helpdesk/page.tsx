@@ -34,6 +34,8 @@ function PublicHelpdeskContent() {
   return <PublicTicketView ticketId={ticketId} />;
 }
 
+import TurnstileGate from '@/components/auth/turnstile-gate';
+
 export default function PublicHelpdeskPage() {
   return (
     <DashboardLayout>
@@ -43,7 +45,9 @@ export default function PublicHelpdeskPage() {
             <p className="text-xs font-black uppercase tracking-widest text-muted-foreground animate-pulse">Memuat Status Tiket...</p>
         </div>
       }>
-        <PublicHelpdeskContent />
+        <TurnstileGate>
+          <PublicHelpdeskContent />
+        </TurnstileGate>
       </Suspense>
     </DashboardLayout>
   );

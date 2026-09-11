@@ -4,6 +4,8 @@ import { Suspense } from 'react';
 import PublicInventoryReport from '@/components/inventory/public-inventory-report';
 import { Loader2 } from 'lucide-react';
 
+import TurnstileGate from '@/components/auth/turnstile-gate';
+
 export default function PublicInventoryReportPage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
@@ -13,7 +15,9 @@ export default function PublicInventoryReportPage() {
           <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">Memuat Dokumen Logistik...</p>
         </div>
       }>
-        <PublicInventoryReport />
+        <TurnstileGate>
+          <PublicInventoryReport />
+        </TurnstileGate>
       </Suspense>
     </div>
   );

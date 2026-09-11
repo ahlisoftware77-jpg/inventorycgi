@@ -36,6 +36,8 @@ function MaintenancePublicPageContent() {
   );
 }
 
+import TurnstileGate from '@/components/auth/turnstile-gate';
+
 export default function MaintenancePublicPage() {
   return (
     <Suspense fallback={
@@ -44,7 +46,9 @@ export default function MaintenancePublicPage() {
             <p className="text-xs font-black uppercase tracking-widest text-muted-foreground animate-pulse">Menyiapkan Lembar Pengesahan...</p>
         </div>
     }>
-      <MaintenancePublicPageContent />
+      <TurnstileGate>
+        <MaintenancePublicPageContent />
+      </TurnstileGate>
     </Suspense>
   );
 }

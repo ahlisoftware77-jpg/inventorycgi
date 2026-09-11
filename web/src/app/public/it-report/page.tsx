@@ -5,6 +5,8 @@ import DashboardLayout from '@/components/dashboard/layout';
 import { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 
+import TurnstileGate from '@/components/auth/turnstile-gate';
+
 /**
  * @fileOverview Halaman publik untuk Form IT Problem (0-32-028).
  * Memungkinkan pengisian dan tanda tangan tanpa login.
@@ -18,7 +20,9 @@ export default function PublicITReportPage() {
             <p className="text-xs font-black uppercase tracking-widest text-muted-foreground animate-pulse">Menyiapkan Formulir Resmi...</p>
         </div>
       }>
-        <ITProblemFormContent isPublic={true} />
+        <TurnstileGate>
+          <ITProblemFormContent isPublic={true} />
+        </TurnstileGate>
       </Suspense>
     </DashboardLayout>
   );
