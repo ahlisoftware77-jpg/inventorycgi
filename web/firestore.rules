@@ -31,6 +31,28 @@ service cloud.firestore {
       allow delete: if request.auth != null && getUserRole(request.auth.uid) == 'Admin';
     }
 
+    // Rules for file sharing
+    match /file_shares/{id} {
+      allow read: if request.auth != null && (
+        getUserDept(request.auth.uid) == 'IT' ||
+        getUserRole(request.auth.uid) == 'Admin' ||
+        request.auth.uid in resource.data.allowedUsers
+      );
+      allow write: if request.auth != null && (
+        getUserDept(request.auth.uid) == 'IT' || 
+        getUserRole(request.auth.uid) == 'Admin'
+      );
+    }
+
+    match /file_share_logs/{id} {
+      allow read: if request.auth != null && (
+        getUserDept(request.auth.uid) == 'IT' || 
+        getUserRole(request.auth.uid) == 'Admin'
+      );
+      allow create: if request.auth != null;
+      allow update, delete: if false; // Logs shouldn't be edited
+    }
+
     // Rules for the 'users' collection
     match /users/{userId} {
       allow read: if request.auth != null && (request.auth.uid == userId || getUserRole(request.auth.uid) == 'Admin');

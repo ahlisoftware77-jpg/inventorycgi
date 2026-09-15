@@ -43,7 +43,8 @@ import {
   AlertTriangle,
   Layers,
   GitBranch,
-  Mail
+  Mail,
+  FolderSync
 } from 'lucide-react';
 import {
   Collapsible,
@@ -66,6 +67,7 @@ const itemColorMap: Record<string, { activeIconColor: string, shadow: string, ic
   dashboard: { activeIconColor: 'text-teal-700', shadow: 'shadow-teal-900/5', iconColor: 'text-sky-305', inactiveIconBg: 'bg-teal-950/40' },
   notes: { activeIconColor: 'text-yellow-600', shadow: 'shadow-teal-900/5', iconColor: 'text-yellow-305', inactiveIconBg: 'bg-teal-950/40' },
   workflow: { activeIconColor: 'text-indigo-700', shadow: 'shadow-teal-900/5', iconColor: 'text-indigo-305', inactiveIconBg: 'bg-teal-950/40' },
+  file_sharing: { activeIconColor: 'text-blue-700', shadow: 'shadow-teal-900/5', iconColor: 'text-blue-305', inactiveIconBg: 'bg-teal-950/40' },
   announcements: { activeIconColor: 'text-purple-700', shadow: 'shadow-teal-900/5', iconColor: 'text-purple-305', inactiveIconBg: 'bg-teal-950/40' },
   assets_a: { activeIconColor: 'text-emerald-700', shadow: 'shadow-teal-900/5', iconColor: 'text-emerald-305', inactiveIconBg: 'bg-teal-950/40' },
   assets_util: { activeIconColor: 'text-teal-800', shadow: 'shadow-teal-900/5', iconColor: 'text-yellow-305', inactiveIconBg: 'bg-teal-950/40' },
@@ -254,6 +256,7 @@ export default function SidebarNav() {
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/', hide: isUserRole },
     { id: 'notes', label: 'Catatan', icon: FileText, href: '/notes', hide: isUserRole },
     { id: 'workflow', label: 'Alur Sistem', icon: GitBranch, href: '/workflow', hide: isUserRole },
+    { id: 'file_sharing', label: 'File Sharing', icon: FolderSync, href: '/file-sharing', hide: isUserRole }, 
     { id: 'announcements', label: 'Pengumuman', icon: Megaphone, href: '/announcements', badge: hasNewAnnouncement },
     { id: 'assets_a', label: 'Aset Utama', icon: Package, href: '/assets', hide: isUserRole },
     { id: 'assets_util', label: 'Utilitas & Fasilitas', icon: Lightbulb, href: '/assets?category=UTILITY', hide: isUserRole },
