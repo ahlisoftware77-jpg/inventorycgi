@@ -12,10 +12,10 @@ export default function FileSharingContent() {
   const { user } = useAuth();
   
   // Dalam AuthProvider, data dari firestore (role, department, allowedPages) dimasukkan ke dalam objek user.
+  const isAdmin = user ? (user as any).role === 'Admin' : false;
   const isITorAdmin = user ? (
     (user as any).role === 'Admin' || 
-    (user as any).department?.toUpperCase() === 'IT' ||
-    ((user as any).allowedPages || []).includes('/file-sharing')
+    (user as any).department?.toUpperCase() === 'IT'
   ) : false;
 
   return (
@@ -50,7 +50,7 @@ export default function FileSharingContent() {
           </TabsList>
           
           <TabsContent value="list" className="mt-0">
-            <FileShareList isManager={true} />
+            <FileShareList isManager={isAdmin} />
           </TabsContent>
           
           <TabsContent value="logs" className="mt-0">

@@ -25,6 +25,7 @@ export default function FileShareForm({ isOpen, onClose, onSave, initialData }: 
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
   const [allowedUsers, setAllowedUsers] = useState<string[]>([]);
+  const [allowUpload, setAllowUpload] = useState<boolean>(true);
   const [users, setUsers] = useState<User[]>([]);
 
   useEffect(() => {
@@ -34,6 +35,7 @@ export default function FileShareForm({ isOpen, onClose, onSave, initialData }: 
       setDescription(initialData?.description || '');
       setStatus(initialData?.status || 'active');
       setAllowedUsers(initialData?.allowedUsers || []);
+      setAllowUpload(initialData?.allowUpload !== false); // default true if undefined
       
       // Fetch users
       const fetchUsers = async () => {
@@ -48,7 +50,7 @@ export default function FileShareForm({ isOpen, onClose, onSave, initialData }: 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({ name, path, description, status, allowedUsers });
+    onSave({ name, path, description, status, allowedUsers, allowUpload });
   };
 
   const handleToggleUser = (uid: string, checked: boolean) => {
@@ -113,6 +115,17 @@ export default function FileShareForm({ isOpen, onClose, onSave, initialData }: 
                 <SelectItem value="inactive">Nonaktif (Maintenance)</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          
+          <div className="flex items-center space-x-2 pt-2">
+            <Checkbox
+              id="allow-upload"
+              checked={allowUpload}
+              onCheckedChange={(checked) => setAllowUpload(!!checked)}
+            />
+            <Label htmlFor="allow-upload" className="text-sm font-medium leading-none cursor-pointer">
+              Izinkan Upload File pada Folder Ini
+            </Label>
           </div>
           
           <div className="flex justify-end gap-2 pt-4">

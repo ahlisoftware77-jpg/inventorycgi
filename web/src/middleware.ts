@@ -43,6 +43,29 @@ try {
 export async function middleware(request: NextRequest) {
   const ip = request.ip ?? request.headers.get('x-forwarded-for') ?? '127.0.0.1';
   const path = request.nextUrl.pathname;
+  
+  const host = request.headers.get('host') || '';
+  const isTunnel = host.includes('trycloudflare.com') || request.headers.has('cf-ray');
+
+  // Restrict access if opened via Tunnel
+  if (isTunnel) {
+    const allowedPaths = [
+      '/file-sharing',
+      '/broadcast-email',
+      '/login',
+      '/api',
+      '/_next',
+      '/favicon.ico',
+      '/assets',
+      '/__nextjs'
+    ];
+    
+    const isAllowed = allowedPaths.some(p => path === p || path.startsWith(`${p}/`));
+    
+    if (!isAllowed) {
+      return NextResponse.redirect(new URL('/file-sharing', request.url));
+    }
+  }
 
   // Hanya terapkan rate limiting ke route /api
   if (path.startsWith('/api/') && redis) {
@@ -95,6 +118,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/api/:path*',
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 };

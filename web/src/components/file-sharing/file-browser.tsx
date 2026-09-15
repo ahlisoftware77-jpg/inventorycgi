@@ -122,6 +122,16 @@ export default function FileBrowser({ share, onClose }: FileBrowserProps) {
     if (!files || files.length === 0) return;
     
     const file = files[0];
+    
+    const isDuplicate = items.some(item => item.name === file.name && !item.isDirectory);
+    if (isDuplicate) {
+      const confirmOverwrite = window.confirm(`File "${file.name}" sudah ada di folder ini.\n\nKlik OK untuk MENIMPA (Overwrite) file tersebut, atau Batal untuk SKIP.`);
+      if (!confirmOverwrite) {
+        e.target.value = '';
+        return;
+      }
+    }
+    
     setUploading(true);
     
     try {
@@ -207,19 +217,23 @@ export default function FileBrowser({ share, onClose }: FileBrowserProps) {
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <input 
-            type="file" 
-            id="file-upload" 
-            className="hidden" 
-            onChange={handleFileChange} 
-          />
-          <Button variant="outline" size="sm" onClick={handleUploadClick} disabled={uploading || loading} className="gap-2 hidden sm:flex border-teal-200 text-teal-700 hover:bg-teal-50">
-            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-            Upload File
-          </Button>
-          <Button variant="outline" size="icon" onClick={handleUploadClick} disabled={uploading || loading} className="sm:hidden border-teal-200 text-teal-700 hover:bg-teal-50">
-            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-          </Button>
+          {share.allowUpload !== false && (
+            <>
+              <input 
+                type="file" 
+                id="file-upload" 
+                className="hidden" 
+                onChange={handleFileChange} 
+              />
+              <Button variant="outline" size="sm" onClick={handleUploadClick} disabled={uploading || loading} className="gap-2 hidden sm:flex border-teal-200 text-teal-700 hover:bg-teal-50">
+                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                Upload File
+              </Button>
+              <Button variant="outline" size="icon" onClick={handleUploadClick} disabled={uploading || loading} className="sm:hidden border-teal-200 text-teal-700 hover:bg-teal-50">
+                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+              </Button>
+            </>
+          )}
           <Button variant="ghost" size="icon" onClick={() => fetchFolder(currentPath)} disabled={loading}>
             <RefreshCw className={`h-4 w-4 ${loading && !uploading ? 'animate-spin' : ''}`} />
           </Button>
