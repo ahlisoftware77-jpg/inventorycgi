@@ -8,8 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
   Folder, File, FileText, Image as ImageIcon, FileSpreadsheet, 
-  ArrowLeft, Download, AlertCircle, RefreshCw, X
+  ArrowLeft, Download, AlertCircle, RefreshCw, X, Upload, Loader2
 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { id as localeID } from 'date-fns/locale';
 
@@ -39,7 +40,9 @@ export default function FileBrowser({ share, onClose }: FileBrowserProps) {
   const [currentPath, setCurrentPath] = useState('/');
   const [items, setItems] = useState<FileItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const fetchFolder = async (path: string) => {
     setLoading(true);
@@ -109,6 +112,57 @@ export default function FileBrowser({ share, onClose }: FileBrowserProps) {
     }
   };
 
+  const handleUploadClick = () => {
+    const fileInput = document.getElementById('file-upload') as HTMLInputElement;
+    if (fileInput) fileInput.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    const file = files[0];
+    setUploading(true);
+    
+    try {
+      const currentUser = auth.currentUser;
+      const headers: Record<string, string> = {};
+      
+      if (currentUser) {
+        const token = await currentUser.getIdToken();
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('shareId', share.id);
+      formData.append('path', currentPath);
+
+      const res = await fetch('/api/file-explorer/upload', {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
+
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.error || 'Gagal mengunggah file');
+      }
+
+      toast({ title: 'Berhasil', description: `File ${file.name} telah diunggah.` });
+      fetchFolder(currentPath); // Refresh the list
+    } catch (err: any) {
+      console.error('Upload error:', err);
+      toast({ title: 'Upload Gagal', description: err.message, variant: 'destructive' });
+    } finally {
+      setUploading(false);
+      // Reset input
+      const fileInput = document.getElementById('file-upload') as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
+    }
+  };
+
   const getFileIcon = (fileName: string) => {
     const ext = fileName.split('.').pop()?.toLowerCase();
     switch (ext) {
@@ -153,8 +207,21 @@ export default function FileBrowser({ share, onClose }: FileBrowserProps) {
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          <input 
+            type="file" 
+            id="file-upload" 
+            className="hidden" 
+            onChange={handleFileChange} 
+          />
+          <Button variant="outline" size="sm" onClick={handleUploadClick} disabled={uploading || loading} className="gap-2 hidden sm:flex border-teal-200 text-teal-700 hover:bg-teal-50">
+            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+            Upload File
+          </Button>
+          <Button variant="outline" size="icon" onClick={handleUploadClick} disabled={uploading || loading} className="sm:hidden border-teal-200 text-teal-700 hover:bg-teal-50">
+            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+          </Button>
           <Button variant="ghost" size="icon" onClick={() => fetchFolder(currentPath)} disabled={loading}>
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 ${loading && !uploading ? 'animate-spin' : ''}`} />
           </Button>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="h-5 w-5" />

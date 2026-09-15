@@ -98,7 +98,9 @@ export function LoginForm() {
             title: 'Login Berhasil',
             description: 'Selamat datang kembali!',
           });
-          router.push('/');
+          const searchParams = new URLSearchParams(window.location.search);
+          const callbackUrl = searchParams.get('callbackUrl');
+          router.push(callbackUrl || '/');
         }
       } else {
         await auth.signOut();

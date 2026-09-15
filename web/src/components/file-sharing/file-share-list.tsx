@@ -1,19 +1,21 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase/config';
 import { collection, onSnapshot, query, addDoc, updateDoc, deleteDoc, doc, getDocs, where } from 'firebase/firestore';
 import { FileShare, FileShareLog } from './types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Copy, Plus, FolderSync, Edit, Trash2, FolderOpen, ExternalLink } from 'lucide-react';
+import { Copy, Plus, FolderSync, Edit, Trash2, FolderOpen, ExternalLink, Pin } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import FileShareForm from './file-share-form';
 import { Skeleton } from '@/components/ui/skeleton';
 import FileBrowser from './file-browser';
 
 export default function FileShareList({ isManager }: { isManager: boolean }) {
+  const router = useRouter();
   const { user } = useAuth();
   const { toast } = useToast();
   const [shares, setShares] = useState<FileShare[]>([]);
@@ -42,7 +44,14 @@ export default function FileShareList({ isManager }: { isManager: boolean }) {
            fetchedShares.push({ id: doc.id, ...data });
         }
       });
-      setShares(fetchedShares.sort((a, b) => b.createdAt - a.createdAt));
+      setShares(fetchedShares.sort((a, b) => {
+        const aIsWeb = a.path.toLowerCase().startsWith('http://') || a.path.toLowerCase().startsWith('https://');
+        const bIsWeb = b.path.toLowerCase().startsWith('http://') || b.path.toLowerCase().startsWith('https://');
+        
+        if (aIsWeb && !bIsWeb) return -1;
+        if (!aIsWeb && bIsWeb) return 1;
+        return b.createdAt - a.createdAt;
+      }));
       setLoading(false);
     }, (error) => {
       console.error("Error fetching file shares:", error);
@@ -148,7 +157,11 @@ export default function FileShareList({ isManager }: { isManager: boolean }) {
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
                   <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
-                    <FolderSync className="h-5 w-5" />
+                    {share.path.toLowerCase().startsWith('http://') || share.path.toLowerCase().startsWith('https://') ? (
+                      <Pin className="h-5 w-5 text-rose-500 fill-rose-500/20" />
+                    ) : (
+                      <FolderSync className="h-5 w-5" />
+                    )}
                     <CardTitle className="text-lg">{share.name}</CardTitle>
                   </div>
                   {share.status === 'inactive' && (
@@ -165,6 +178,23 @@ export default function FileShareList({ isManager }: { isManager: boolean }) {
               <CardFooter className="pt-0 flex flex-col gap-2">
                 <Button 
                   onClick={() => {
+                    // Check logic for allowedUsers (Private Share)
+                    if (share.allowedUsers && share.allowedUsers.length > 0) {
+                      if (!user) {
+                        router.push('/login?callbackUrl=/file-sharing');
+                        return;
+                      }
+                      const isAdmin = user.role === 'Admin';
+                      if (!isAdmin && !share.allowedUsers.includes(user.uid)) {
+                        toast({ 
+                          title: 'Akses Ditolak', 
+                          description: 'Anda tidak memiliki izin untuk membuka file sharing ini.', 
+                          variant: 'destructive' 
+                        });
+                        return;
+                      }
+                    }
+
                     if (share.path.toLowerCase().startsWith('http://') || share.path.toLowerCase().startsWith('https://')) {
                       window.open(share.path, '_blank', 'noopener,noreferrer');
                     } else {

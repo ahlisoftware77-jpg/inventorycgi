@@ -49,6 +49,7 @@ const allPages = [
   { label: 'Form IT Problem', href: '/it-problem-form' },
   { label: 'Stempel', href: '/stamps' },
   { label: 'Thermal Print', href: '/thermal-print-58' },
+  { label: 'File Sharing', href: '/file-sharing' },
 ];
 
 const actionPermissions: { key: keyof UserPermissions; label: string }[] = [

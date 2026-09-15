@@ -6,6 +6,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { FileShare } from './types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { collection, query, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
+import { User } from '@/lib/types';
 
 interface FileShareFormProps {
   isOpen: boolean;
@@ -19,7 +24,8 @@ export default function FileShareForm({ isOpen, onClose, onSave, initialData }: 
   const [path, setPath] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
-  const [allowedUsersStr, setAllowedUsersStr] = useState(''); // Comma separated user IDs
+  const [allowedUsers, setAllowedUsers] = useState<string[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
 
   useEffect(() => {
     if (isOpen) {
@@ -27,14 +33,28 @@ export default function FileShareForm({ isOpen, onClose, onSave, initialData }: 
       setPath(initialData?.path || '');
       setDescription(initialData?.description || '');
       setStatus(initialData?.status || 'active');
-      setAllowedUsersStr(initialData?.allowedUsers?.join(', ') || '');
+      setAllowedUsers(initialData?.allowedUsers || []);
+      
+      // Fetch users
+      const fetchUsers = async () => {
+        const q = query(collection(db, 'users'));
+        const snap = await getDocs(q);
+        const fetchedUsers = snap.docs.map(doc => ({ uid: doc.id, ...doc.data() } as User));
+        setUsers(fetchedUsers);
+      };
+      fetchUsers();
     }
   }, [isOpen, initialData]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const allowedUsers = allowedUsersStr.split(',').map(s => s.trim()).filter(Boolean);
     onSave({ name, path, description, status, allowedUsers });
+  };
+
+  const handleToggleUser = (uid: string, checked: boolean) => {
+    setAllowedUsers(prev => 
+      checked ? [...prev, uid] : prev.filter(id => id !== uid)
+    );
   };
 
   return (
@@ -50,8 +70,8 @@ export default function FileShareForm({ isOpen, onClose, onSave, initialData }: 
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="path">Alamat (Path / IP)</Label>
-            <Input id="path" value={path} onChange={(e) => setPath(e.target.value)} required placeholder="Contoh: \\192.168.1.10\Data_HRD" dir="ltr" />
+            <Label htmlFor="path">Alamat (Path / IP / Link Web)</Label>
+            <Input id="path" value={path} onChange={(e) => setPath(e.target.value)} required placeholder="Contoh: \\192.168.1.10\Data_HRD atau https://..." dir="ltr" />
           </div>
           
           <div className="space-y-2">
@@ -60,9 +80,26 @@ export default function FileShareForm({ isOpen, onClose, onSave, initialData }: 
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="allowedUsers">ID Pengguna yang Diizinkan (Koma terpisah)</Label>
-            <Input id="allowedUsers" value={allowedUsersStr} onChange={(e) => setAllowedUsersStr(e.target.value)} placeholder="Contoh: user123, user456 (Kosongkan jika hanya IT)" />
-            <p className="text-xs text-slate-500">Selain IT dan Admin, pengguna dengan ID ini akan bisa melihat dan menyalin path ini.</p>
+            <Label>Pengguna yang Diizinkan (Pilih user)</Label>
+            <ScrollArea className="h-40 border rounded-md p-3 bg-slate-50 dark:bg-slate-900/50">
+              <div className="space-y-2">
+                {users.length > 0 ? users.map(user => (
+                  <div key={user.uid} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`user-${user.uid}`}
+                      checked={allowedUsers.includes(user.uid)}
+                      onCheckedChange={(checked) => handleToggleUser(user.uid, !!checked)}
+                    />
+                    <Label htmlFor={`user-${user.uid}`} className="text-sm font-medium leading-none cursor-pointer">
+                      {user.name} ({user.department || 'No Dept'})
+                    </Label>
+                  </div>
+                )) : (
+                  <div className="text-xs text-muted-foreground text-center pt-10">Memuat data pengguna...</div>
+                )}
+              </div>
+            </ScrollArea>
+            <p className="text-xs text-slate-500">Kosongkan semua centang jika folder ini bisa diakses **Publik** (tanpa login).</p>
           </div>
 
           <div className="space-y-2">
