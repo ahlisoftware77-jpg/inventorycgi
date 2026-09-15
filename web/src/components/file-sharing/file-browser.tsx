@@ -11,6 +11,7 @@ import {
   ArrowLeft, Download, AlertCircle, RefreshCw, X, Upload, Loader2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { format } from 'date-fns';
 import { id as localeID } from 'date-fns/locale';
 
@@ -42,6 +43,7 @@ export default function FileBrowser({ share, onClose }: FileBrowserProps) {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [previewFile, setPreviewFile] = useState<{name: string, url: string, ext: string} | null>(null);
   const { toast } = useToast();
 
   const fetchFolder = async (path: string) => {
@@ -90,6 +92,29 @@ export default function FileBrowser({ share, onClose }: FileBrowserProps) {
     parts.pop();
     const newPath = parts.length === 0 ? '/' : `/${parts.join('/')}`;
     fetchFolder(newPath);
+  };
+
+  const handlePreview = async (fileName: string) => {
+    try {
+      const currentUser = auth.currentUser;
+      let tokenParam = '';
+      if (currentUser) {
+        const token = await currentUser.getIdToken();
+        tokenParam = `&token=${token}`;
+      }
+      
+      const filePath = currentPath === '/' ? `/${fileName}` : `${currentPath}/${fileName}`;
+      const ext = fileName.split('.').pop()?.toLowerCase() || '';
+      
+      // Use window.location.origin to get the absolute URL for Office Viewer
+      const baseUrl = window.location.origin;
+      const url = `${baseUrl}/api/file-explorer/download?shareId=${share.id}&path=${encodeURIComponent(filePath)}${tokenParam}&preview=true`;
+      
+      setPreviewFile({ name: fileName, url, ext });
+    } catch (err) {
+      console.error('Preview error:', err);
+      toast({ title: 'Gagal memuat preview', variant: 'destructive' });
+    }
   };
 
   const handleDownload = async (fileName: string) => {
@@ -283,7 +308,7 @@ export default function FileBrowser({ share, onClose }: FileBrowserProps) {
                   <tr 
                     key={idx} 
                     className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group cursor-pointer"
-                    onClick={() => item.isDirectory ? handleNavigate(item.name) : handleDownload(item.name)}
+                    onClick={() => item.isDirectory ? handleNavigate(item.name) : handlePreview(item.name)}
                   >
                     <td className="px-6 py-3">
                       <div className="flex items-center gap-3">
@@ -321,6 +346,44 @@ export default function FileBrowser({ share, onClose }: FileBrowserProps) {
           </table>
         )}
       </div>
+
+      <Dialog open={!!previewFile} onOpenChange={(open) => !open && setPreviewFile(null)}>
+        <DialogContent className="sm:max-w-4xl p-0 overflow-hidden flex flex-col h-[90vh]">
+          <DialogHeader className="p-4 border-b bg-white dark:bg-slate-900 shrink-0 flex flex-row items-center justify-between">
+            <DialogTitle className="truncate pr-4">{previewFile?.name}</DialogTitle>
+            <div className="flex gap-2 mr-8">
+              <Button size="sm" onClick={() => previewFile && handleDownload(previewFile.name)}>
+                <Download className="h-4 w-4 mr-2" />
+                Unduh
+              </Button>
+            </div>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto bg-slate-100 dark:bg-slate-950 flex flex-col">
+            {previewFile && (
+              ['pdf'].includes(previewFile.ext) ? (
+                <iframe src={previewFile.url} className="w-full h-full border-0" />
+              ) : ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(previewFile.ext) ? (
+                <div className="flex-1 flex items-center justify-center p-4">
+                  <img src={previewFile.url} alt={previewFile.name} className="max-w-full max-h-full object-contain" />
+                </div>
+              ) : ['mp4', 'webm'].includes(previewFile.ext) ? (
+                <div className="flex-1 flex items-center justify-center p-4 bg-black">
+                  <video src={previewFile.url} controls className="max-w-full max-h-full" />
+                </div>
+              ) : ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(previewFile.ext) ? (
+                <iframe src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(previewFile.url)}`} className="w-full h-full border-0" />
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
+                  <File className="h-16 w-16 text-slate-400 mb-4" />
+                  <h3 className="font-medium text-lg mb-2">Preview tidak tersedia</h3>
+                  <p className="text-sm text-slate-500 mb-6">File dengan format .{previewFile.ext.toUpperCase()} tidak dapat dipreview langsung.</p>
+                  <Button onClick={() => handleDownload(previewFile.name)}>Unduh File Sekarang</Button>
+                </div>
+              )
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -10,10 +10,10 @@ export async function GET(request: Request) {
     const shareId = searchParams.get('shareId');
     const filePath = searchParams.get('path');
     
-    // Auth could be via query parameter for direct download links
     // or via headers if fetch is used. For direct browser downloads,
     // query parameter is required if we want to use <a> tags without fetch.
     let token = searchParams.get('token');
+    const isPreview = searchParams.get('preview') === 'true';
     
     if (!token) {
       const authHeader = request.headers.get('authorization');
@@ -85,6 +85,9 @@ export async function GET(request: Request) {
       '.jpg': 'image/jpeg',
       '.jpeg': 'image/jpeg',
       '.gif': 'image/gif',
+      '.webp': 'image/webp',
+      '.mp4': 'video/mp4',
+      '.webm': 'video/webm',
       '.txt': 'text/plain',
       '.csv': 'text/csv',
       '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -95,15 +98,48 @@ export async function GET(request: Request) {
     const contentType = contentTypeMap[ext] || 'application/octet-stream';
     const fileName = path.basename(targetPath);
 
-    // Create stream
-    const stream = fs.createReadStream(targetPath);
+    // Handle Range Requests for streaming video
+    const rangeHeader = request.headers.get('range');
+    const fileSize = stat.size;
     
-    // Return stream with appropriate headers
+    if (rangeHeader && isPreview) {
+      const parts = rangeHeader.replace(/bytes=/, "").split("-");
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+      
+      if (start >= fileSize || end >= fileSize) {
+        return new NextResponse(null, {
+          status: 416,
+          headers: {
+            'Content-Range': `bytes */${fileSize}`
+          }
+        });
+      }
+      
+      const chunksize = (end - start) + 1;
+      const stream = fs.createReadStream(targetPath, { start, end });
+      
+      return new NextResponse(stream as any, {
+        status: 206,
+        headers: {
+          'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+          'Accept-Ranges': 'bytes',
+          'Content-Length': chunksize.toString(),
+          'Content-Type': contentType,
+          'Content-Disposition': `inline; filename="${encodeURIComponent(fileName)}"`,
+        },
+      });
+    }
+
+    // Create full stream for standard download
+    const stream = fs.createReadStream(targetPath);
+    const disposition = isPreview ? 'inline' : 'attachment';
     return new NextResponse(stream as any, {
       headers: {
         'Content-Type': contentType,
-        'Content-Disposition': `attachment; filename="${encodeURIComponent(fileName)}"`,
-        'Content-Length': stat.size.toString(),
+        'Content-Disposition': `${disposition}; filename="${encodeURIComponent(fileName)}"`,
+        'Content-Length': fileSize.toString(),
+        'Accept-Ranges': 'bytes', // Helps with video seeking
       },
     });
     
