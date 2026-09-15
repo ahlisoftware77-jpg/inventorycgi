@@ -19,5 +19,5 @@ if (!getApps().length) {
   }
 }
 
-export const auth = getAuth();
+export const auth = getApps().length ? getAuth() : null;
 export const db = getApps().length ? require('firebase-admin/firestore').getFirestore() : null;
