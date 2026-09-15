@@ -1,217 +1,138 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Trash2, CheckCircle2, ListTodo, Plus } from 'lucide-react';
+import { ListTodo, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
-import { cn } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase/config';
-import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
-
-interface Todo {
-  id: string;
-  text: string;
-  completed: boolean;
-  createdAt: number;
-}
+import { collection, onSnapshot, query, orderBy, limit, updateDoc, doc, deleteDoc } from 'firebase/firestore';
+import { Note } from '../notes/types';
+import NoteGrid from '../notes/note-grid';
+import NoteEditor from '../notes/note-editor';
+import Link from 'next/link';
 
 export default function TodoList() {
   const { user } = useAuth();
-  const [todos, setTodos] = useState<Todo[]>([]);
-  const [inputValue, setInputValue] = useState('');
-  const [mounted, setMounted] = useState(false);
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [editingNote, setEditingNote] = useState<Note | null>(null);
 
   useEffect(() => {
     if (!user) return;
     
-    // Migrate old local storage if exists
-    const savedTodos = localStorage.getItem(`todos_${user.uid}`);
-    if (savedTodos) {
-      try {
-        const parsed = JSON.parse(savedTodos);
-        if (parsed && parsed.length > 0) {
-          const todosRef = collection(db, 'users', user.uid, 'todos');
-          parsed.forEach(async (t: Todo) => {
-            await addDoc(todosRef, {
-              text: t.text,
-              completed: t.completed,
-              createdAt: t.createdAt
-            });
-          });
-        }
-        localStorage.removeItem(`todos_${user.uid}`);
-      } catch (e) {
-        console.error("Failed to migrate todos", e);
-      }
-    }
-
-    const q = query(collection(db, 'users', user.uid, 'todos'), orderBy('createdAt', 'desc'));
+    // Fetch only 6 most recent notes for the dashboard
+    const q = query(
+      collection(db, 'users', user.uid, 'notes'), 
+      orderBy('createdAt', 'desc'),
+      limit(6)
+    );
+    
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetchedTodos: Todo[] = [];
+      const fetchedNotes: Note[] = [];
       snapshot.forEach((doc) => {
-        fetchedTodos.push({ id: doc.id, ...doc.data() } as Todo);
+        fetchedNotes.push({ id: doc.id, ...doc.data() } as Note);
       });
-      setTodos(fetchedTodos);
+      setNotes(fetchedNotes);
+      setLoading(false);
     });
 
-    setMounted(true);
     return () => unsubscribe();
   }, [user]);
 
-  const addTodo = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputValue.trim() || !user) return;
-    
-    const newTodo = {
-      text: inputValue.trim(),
-      completed: false,
-      createdAt: Date.now()
-    };
-    
-    setInputValue('');
-    await addDoc(collection(db, 'users', user.uid, 'todos'), newTodo);
-  };
-
-  const toggleTodo = async (id: string) => {
-    if (!user) return;
-    const todo = todos.find(t => t.id === id);
-    if (todo) {
-      const todoRef = doc(db, 'users', user.uid, 'todos', id);
-      await updateDoc(todoRef, { completed: !todo.completed });
-    }
-  };
-
-  const deleteTodo = async (id: string) => {
-    if (!user) return;
-    const todoRef = doc(db, 'users', user.uid, 'todos', id);
-    await deleteDoc(todoRef);
-  };
-
-  const groupedTodos = useMemo(() => {
-    const groups: Record<string, Todo[]> = {};
-    const sorted = [...todos].sort((a, b) => b.createdAt - a.createdAt);
-    
-    sorted.forEach(todo => {
-      const date = new Date(todo.createdAt);
-      // Format: "Senin, 28 Agustus 2026"
-      const dateString = date.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-      
-      if (!groups[dateString]) groups[dateString] = [];
-      groups[dateString].push(todo);
+  const handleSaveNote = async (noteData: Partial<Note>) => {
+    if (!user || !editingNote) return;
+    const noteRef = doc(db, 'users', user.uid, 'notes', editingNote.id);
+    await updateDoc(noteRef, {
+      ...noteData,
+      updatedAt: Date.now()
     });
-    
-    return groups;
-  }, [todos]);
+    setIsEditorOpen(false);
+    setEditingNote(null);
+  };
 
-  if (!mounted) return null;
+  const handleDeleteNote = async (id: string) => {
+    if (!user) return;
+    await deleteDoc(doc(db, 'users', user.uid, 'notes', id));
+  };
 
-  const completedCount = todos.filter(t => t.completed).length;
+  const handleTogglePin = async (id: string, currentPin: boolean) => {
+    if (!user) return;
+    const noteRef = doc(db, 'users', user.uid, 'notes', id);
+    await updateDoc(noteRef, { isPinned: !currentPin });
+  };
+
+  const handleToggleCheck = async (noteId: string, itemId: string, currentChecked: boolean) => {
+    if (!user) return;
+    const note = notes.find(n => n.id === noteId);
+    if (!note || !note.listItems) return;
+
+    const newListItems = note.listItems.map(item => 
+      item.id === itemId ? { ...item, checked: !currentChecked } : item
+    );
+
+    const noteRef = doc(db, 'users', user.uid, 'notes', noteId);
+    await updateDoc(noteRef, { listItems: newListItems });
+  };
+
+  const openEditor = (note: Note) => {
+    setEditingNote(note);
+    setIsEditorOpen(true);
+  };
 
   return (
-    <Card className="h-full border-none shadow-lg bg-white dark:bg-slate-900 overflow-hidden rounded-[2rem] flex flex-col">
-      <CardHeader className="pb-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl">
-              <ListTodo className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-            </div>
-            <div>
-              <CardTitle className="text-base font-black uppercase tracking-widest text-slate-800 dark:text-slate-100">
-                To-Do List
-              </CardTitle>
-              <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mt-0.5">
-                {completedCount} dari {todos.length} selesai
-              </p>
-            </div>
+    <Card className="flex flex-col h-full border-teal-900/10 shadow-sm overflow-hidden bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
+      <CardHeader className="bg-white/50 dark:bg-slate-950/50 border-b border-teal-900/5 pb-4 px-6 flex flex-row items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="p-2 bg-yellow-100 dark:bg-yellow-900/50 rounded-lg text-yellow-600 dark:text-yellow-500">
+            <ListTodo className="h-5 w-5" />
           </div>
+          <CardTitle className="text-lg font-bold text-slate-800 dark:text-slate-200">Catatan & Todo</CardTitle>
         </div>
+        <Link 
+          href="/notes" 
+          className="text-xs font-semibold text-teal-600 hover:text-teal-700 dark:text-teal-400 flex items-center gap-1 group"
+        >
+          Lihat Semua
+          <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
+        </Link>
       </CardHeader>
-      
-      <CardContent className="p-0 flex-1 flex flex-col min-h-[300px] max-h-[400px]">
-        <div className="flex-1 overflow-y-auto p-4 space-y-2 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
-          <AnimatePresence>
-            {todos.length === 0 ? (
-              <motion.div 
-                initial={{ opacity: 0 }} 
-                animate={{ opacity: 1 }} 
-                className="h-full flex flex-col items-center justify-center text-center opacity-40 py-10"
-              >
-                <CheckCircle2 className="h-10 w-10 mb-3 text-slate-400" />
-                <p className="text-xs font-black uppercase tracking-widest text-slate-500">Semua tugas selesai!</p>
-              </motion.div>
-            ) : (
-              Object.entries(groupedTodos).map(([dateLabel, dayTodos]) => (
-                <div key={dateLabel} className="space-y-2 mb-6 last:mb-0">
-                  <div className="sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md py-1.5 z-10 -mx-1 px-1 flex items-center gap-2">
-                    <div className="h-px bg-slate-200 dark:bg-slate-800 flex-1" />
-                    <h4 className="text-[9px] font-black uppercase tracking-widest text-indigo-500">{dateLabel}</h4>
-                    <div className="h-px bg-slate-200 dark:bg-slate-800 flex-1" />
-                  </div>
-                  {dayTodos.map(todo => (
-                    <motion.div 
-                      key={todo.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      className={cn(
-                        "group flex items-center justify-between gap-3 p-3 rounded-xl border transition-all duration-300",
-                        todo.completed 
-                          ? "bg-slate-50 dark:bg-slate-900/50 border-transparent opacity-60" 
-                          : "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md hover:-translate-y-0.5"
-                      )}
-                    >
-                      <div className="flex items-center gap-3 overflow-hidden flex-1">
-                        <Checkbox 
-                          checked={todo.completed} 
-                          onCheckedChange={() => toggleTodo(todo.id)}
-                          className={cn("rounded-md w-5 h-5", todo.completed && "data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500")}
-                        />
-                        <div className="flex flex-col overflow-hidden">
-                          <span className={cn(
-                            "text-sm font-semibold truncate transition-all",
-                            todo.completed ? "line-through text-slate-400" : "text-slate-700 dark:text-slate-200"
-                          )}>
-                            {todo.text}
-                          </span>
-                          <span className="text-[9px] text-slate-400 font-mono mt-0.5">
-                            {new Date(todo.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        </div>
-                      </div>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => deleteTodo(todo.id)}
-                        className="h-8 w-8 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all shrink-0"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </motion.div>
-                  ))}
-                </div>
-              ))
-            )}
-          </AnimatePresence>
-        </div>
+      <CardContent className="flex-1 p-4 bg-slate-50/50 dark:bg-slate-900/20 overflow-y-auto">
+        <NoteGrid 
+          notes={notes} 
+          loading={loading} 
+          onEdit={openEditor}
+          onDelete={handleDeleteNote}
+          onTogglePin={handleTogglePin}
+          onToggleCheck={handleToggleCheck}
+          isDashboardWidget={true}
+        />
         
-        <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 mt-auto">
-          <form onSubmit={addTodo} className="flex gap-2">
-            <Input 
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              placeholder="Tambah tugas baru..."
-              className="rounded-xl h-10 bg-white dark:bg-slate-900 border-slate-200 shadow-sm"
-            />
-            <Button type="submit" disabled={!inputValue.trim()} className="rounded-xl h-10 w-10 p-0 bg-indigo-600 hover:bg-indigo-700 text-white shrink-0 shadow-md">
-              <Plus className="h-5 w-5" />
-            </Button>
-          </form>
-        </div>
+        {!loading && notes.length === 0 && (
+          <div className="h-full flex flex-col items-center justify-center text-center p-6 gap-3">
+            <div className="p-4 bg-yellow-100 dark:bg-yellow-900/30 rounded-full text-yellow-600 dark:text-yellow-500">
+              <ListTodo className="h-8 w-8" />
+            </div>
+            <div className="space-y-1">
+              <p className="font-medium text-slate-700 dark:text-slate-300">Belum ada catatan</p>
+              <p className="text-sm text-slate-500">Buat catatan baru melalui menu Catatan.</p>
+            </div>
+            <Link 
+              href="/notes" 
+              className="mt-2 text-sm font-medium px-4 py-2 bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 rounded-lg hover:bg-teal-100 dark:hover:bg-teal-900/50 transition-colors"
+            >
+              Buat Catatan Pertama
+            </Link>
+          </div>
+        )}
       </CardContent>
+
+      <NoteEditor 
+        isOpen={isEditorOpen} 
+        onClose={() => setIsEditorOpen(false)} 
+        onSave={handleSaveNote} 
+        initialData={editingNote} 
+      />
     </Card>
   );
 }

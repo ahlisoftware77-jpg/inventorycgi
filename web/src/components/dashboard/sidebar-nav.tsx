@@ -64,6 +64,7 @@ import { cn } from '@/lib/utils';
 
 const itemColorMap: Record<string, { activeIconColor: string, shadow: string, iconColor: string, inactiveIconBg: string }> = {
   dashboard: { activeIconColor: 'text-teal-700', shadow: 'shadow-teal-900/5', iconColor: 'text-sky-305', inactiveIconBg: 'bg-teal-950/40' },
+  notes: { activeIconColor: 'text-yellow-600', shadow: 'shadow-teal-900/5', iconColor: 'text-yellow-305', inactiveIconBg: 'bg-teal-950/40' },
   workflow: { activeIconColor: 'text-indigo-700', shadow: 'shadow-teal-900/5', iconColor: 'text-indigo-305', inactiveIconBg: 'bg-teal-950/40' },
   announcements: { activeIconColor: 'text-purple-700', shadow: 'shadow-teal-900/5', iconColor: 'text-purple-305', inactiveIconBg: 'bg-teal-950/40' },
   assets_a: { activeIconColor: 'text-emerald-700', shadow: 'shadow-teal-900/5', iconColor: 'text-emerald-305', inactiveIconBg: 'bg-teal-950/40' },
@@ -251,6 +252,7 @@ export default function SidebarNav() {
 
   const mainMenuItems = useMemo(() => [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/', hide: isUserRole },
+    { id: 'notes', label: 'Catatan', icon: FileText, href: '/notes', hide: isUserRole },
     { id: 'workflow', label: 'Alur Sistem', icon: GitBranch, href: '/workflow', hide: isUserRole },
     { id: 'announcements', label: 'Pengumuman', icon: Megaphone, href: '/announcements', badge: hasNewAnnouncement },
     { id: 'assets_a', label: 'Aset Utama', icon: Package, href: '/assets', hide: isUserRole },
