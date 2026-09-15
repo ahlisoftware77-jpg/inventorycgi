@@ -328,6 +328,7 @@ export function FormAppContent({ isPublic = false }: { isPublic?: boolean }) {
             if (first.type) setType(first.type.split(',').map((s:string)=>s.trim()).filter(Boolean));
             if (first.sendBy) setSendBy(first.sendBy.split(',').map((s:string)=>s.trim()).filter(Boolean));
             if (first.benefit) setPurpose(first.benefit.split(',').map((s:string)=>s.trim()).filter(Boolean));
+            if (first.benefitText) setBenefit(first.benefitText);
             
             // Populate basic custom text inputs
             if (first.sizeFaces) setSizeFaces(first.sizeFaces);

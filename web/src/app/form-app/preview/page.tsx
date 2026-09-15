@@ -79,9 +79,35 @@ function PreviewContent() {
                     const { collection, query, where, getDocs } = await import('firebase/firestore');
                     const qDar = query(collection(db, "form_dar"), where("darNo", "==", darNoParam));
                     const snapDar = await getDocs(qDar);
+                    
+                    let reportData: any = null;
                     if (!snapDar.empty) {
-                        setReport(snapDar.docs[0].data());
+                        reportData = snapDar.docs[0].data();
+                    } else {
+                        reportData = { darNo: darNoParam };
                     }
+
+                    // Attempt to merge latest data from register_design
+                    try {
+                        const qReg = query(collection(db, "register_design"), where("darNo", "==", darNoParam));
+                        const snapReg = await getDocs(qReg);
+                        if (!snapReg.empty) {
+                            const first = snapReg.docs[0].data();
+                            if (first.benefitText) reportData.benefit = first.benefitText;
+                            if (first.benefit) reportData.purpose = first.benefit.split(',').map((s:string)=>s.trim()).filter(Boolean);
+                            if (first.sendBy) reportData.sendBy = first.sendBy.split(',').map((s:string)=>s.trim()).filter(Boolean);
+                            if (first.requiredDate) reportData.requiredDate = first.requiredDate;
+                            if (first.closingDate) reportData.closingDate = first.closingDate;
+                            if (first.technician) reportData.technician = first.technician;
+                            if (first.designer) reportData.designer = first.designer;
+                            if (first.customer) reportData.customer = first.customer;
+                            if (first.generalNote) reportData.generalNote = first.generalNote;
+                        }
+                    } catch (err) {
+                        console.error("Error merging register_design data:", err);
+                    }
+
+                    setReport(reportData);
                 }
             } catch (e) {
                 console.error(e);
