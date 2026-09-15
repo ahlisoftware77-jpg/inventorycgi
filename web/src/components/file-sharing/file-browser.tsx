@@ -42,17 +42,19 @@ export default function FileBrowser({ share, onClose }: FileBrowserProps) {
   const [error, setError] = useState<string | null>(null);
 
   const fetchFolder = async (path: string) => {
-    if (!user) return;
     setLoading(true);
     setError(null);
     try {
       const currentUser = auth.currentUser;
-      if (!currentUser) throw new Error('User not authenticated');
-      const token = await currentUser.getIdToken();
+      const headers: Record<string, string> = {};
+      
+      if (currentUser) {
+        const token = await currentUser.getIdToken();
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
       const res = await fetch(`/api/file-explorer/list?shareId=${share.id}&path=${encodeURIComponent(path)}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers
       });
       
       const data = await res.json();
@@ -88,13 +90,16 @@ export default function FileBrowser({ share, onClose }: FileBrowserProps) {
   };
 
   const handleDownload = async (fileName: string) => {
-    if (!user) return;
     try {
       const currentUser = auth.currentUser;
-      if (!currentUser) throw new Error('User not authenticated');
-      const token = await currentUser.getIdToken();
+      let tokenParam = '';
+      if (currentUser) {
+        const token = await currentUser.getIdToken();
+        tokenParam = `&token=${token}`;
+      }
+      
       const filePath = currentPath === '/' ? `/${fileName}` : `${currentPath}/${fileName}`;
-      const url = `/api/file-explorer/download?shareId=${share.id}&path=${encodeURIComponent(filePath)}&token=${token}`;
+      const url = `/api/file-explorer/download?shareId=${share.id}&path=${encodeURIComponent(filePath)}${tokenParam}`;
       
       // Buka di tab baru / trigger download
       window.open(url, '_blank');

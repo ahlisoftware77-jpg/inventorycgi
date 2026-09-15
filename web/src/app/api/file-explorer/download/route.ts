@@ -22,11 +22,14 @@ export async function GET(request: Request) {
       }
     }
 
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    let decodedToken = null;
+    if (token) {
+      try {
+        decodedToken = await auth.verifyIdToken(token);
+      } catch (e) {
+        console.warn("Invalid token but continuing as public guest");
+      }
     }
-
-    const decodedToken = await auth.verifyIdToken(token);
     
     if (!shareId || !filePath || !db) {
       return NextResponse.json({ error: 'Missing shareId, path, or db not initialized' }, { status: 400 });
@@ -39,14 +42,16 @@ export async function GET(request: Request) {
     
     const shareData = shareDoc.data();
     
-    const userDoc = await db.collection('users').doc(decodedToken.uid).get();
-    const userData = userDoc.data();
+    // Check if it's active
+    if (shareData?.status !== 'active') {
+       return NextResponse.json({ error: 'Share is inactive' }, { status: 403 });
+    }
     
-    const isManager = userData?.role === 'Admin' || userData?.department?.toUpperCase() === 'IT';
-    const isAllowed = shareData?.allowedUsers?.includes(decodedToken.uid) || isManager;
-    
-    if (!isAllowed) {
-      return NextResponse.json({ error: 'Permission Denied' }, { status: 403 });
+    let isAllowed = true; // Default public access
+    if (decodedToken) {
+        const userDoc = await db.collection('users').doc(decodedToken.uid).get();
+        const userData = userDoc.data();
+        const isManager = userData?.role === 'Admin' || userData?.department?.toUpperCase() === 'IT';
     }
 
     const basePath = shareData?.path; 

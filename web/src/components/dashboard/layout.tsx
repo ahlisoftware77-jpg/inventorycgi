@@ -24,7 +24,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     if (loading) return;
 
     const hasShareId = searchParams?.get('shareId') !== null;
-    const isPublicPath = pathname.startsWith('/public/') || pathname === '/login' || pathname === '/register' || pathname === '/help' || hasShareId;
+    const isPublicPath = pathname.startsWith('/public/') || pathname.startsWith('/file-sharing') || pathname === '/login' || pathname === '/register' || pathname === '/help' || hasShareId;
 
     if (!user) {
       if (!isPublicPath) {
@@ -84,7 +84,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   // Cek akses secara sinkron saat render untuk menghindari kedipan layout
   const hasShareId = searchParams?.get('shareId') !== null;
-  const isPublicPath = pathname.startsWith('/public/') || pathname === '/login' || pathname === '/register' || pathname === '/help' || hasShareId;
+  const isPublicPath = pathname.startsWith('/public/') || pathname.startsWith('/file-sharing') || pathname === '/login' || pathname === '/register' || pathname === '/help' || hasShareId;
   if (user) {
     if (user.role === 'Pending') return null;
     if (user.role !== 'Admin') {

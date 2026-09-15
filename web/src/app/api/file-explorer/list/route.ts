@@ -10,11 +10,15 @@ export async function GET(request: Request) {
     const folderPath = searchParams.get('path') || '/';
     
     const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    let decodedToken = null;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.split('Bearer ')[1];
+        decodedToken = await auth.verifyIdToken(token);
+      } catch (e) {
+        console.warn("Invalid token but continuing as public guest");
+      }
     }
-    const token = authHeader.split('Bearer ')[1];
-    const decodedToken = await auth.verifyIdToken(token);
     
     if (!shareId || !db) {
       return NextResponse.json({ error: 'Missing shareId or db not initialized' }, { status: 400 });
@@ -27,14 +31,19 @@ export async function GET(request: Request) {
     
     const shareData = shareDoc.data();
     
-    const userDoc = await db.collection('users').doc(decodedToken.uid).get();
-    const userData = userDoc.data();
+    // Check if it's active
+    if (shareData?.status !== 'active') {
+       return NextResponse.json({ error: 'Share is inactive' }, { status: 403 });
+    }
     
-    const isManager = userData?.role === 'Admin' || userData?.department?.toUpperCase() === 'IT';
-    const isAllowed = shareData?.allowedUsers?.includes(decodedToken.uid) || isManager;
-    
-    if (!isAllowed) {
-      return NextResponse.json({ error: 'Permission Denied' }, { status: 403 });
+    let isAllowed = true; // Default public access
+    if (decodedToken) {
+        const userDoc = await db.collection('users').doc(decodedToken.uid).get();
+        const userData = userDoc.data();
+        const isManager = userData?.role === 'Admin' || userData?.department?.toUpperCase() === 'IT';
+        // Note: For public access, we don't really need to restrict by allowedUsers anymore, 
+        // but if you want to keep restriction for non-managers, you can toggle this.
+        // For now, it's public.
     }
 
     const basePath = shareData?.path; 

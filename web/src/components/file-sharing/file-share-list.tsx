@@ -23,12 +23,14 @@ export default function FileShareList({ isManager }: { isManager: boolean }) {
   const [activeBrowseShare, setActiveBrowseShare] = useState<FileShare | null>(null);
 
   useEffect(() => {
-    if (!user) return;
-    
     let q = query(collection(db, 'file_shares'));
     
-    if (!isManager) {
-      q = query(collection(db, 'file_shares'), where('allowedUsers', 'array-contains', user.uid));
+    // If not manager and user is logged in, we COULD filter by allowedUsers.
+    // However, since it's public now, non-managers and guests see all 'active' shares.
+    if (!isManager && user) {
+      // Opt-in: keep it open to all active for public, or filter if logged in but not manager
+      // Actually, if it's public, everyone sees everything. So we don't need array-contains.
+      // But let's leave the query open for all active shares in the snapshot filter below.
     }
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -51,8 +53,6 @@ export default function FileShareList({ isManager }: { isManager: boolean }) {
   }, [user, isManager]);
 
   const handleCopyPath = async (share: FileShare) => {
-    if (!user) return;
-    
     try {
       await navigator.clipboard.writeText(share.path);
       toast({ title: 'Alamat berhasil disalin! Silakan Paste di Windows Explorer.' });
@@ -61,8 +61,8 @@ export default function FileShareList({ isManager }: { isManager: boolean }) {
       await addDoc(collection(db, 'file_share_logs'), {
         shareId: share.id,
         shareName: share.name,
-        userId: user.uid,
-        userName: (user as any).name || user.email || 'Unknown',
+        userId: user ? user.uid : 'public-guest',
+        userName: user ? ((user as any).name || user.email || 'Unknown') : 'Tamu (Publik)',
         accessedAt: Date.now()
       } as Omit<FileShareLog, 'id'>);
       

@@ -11,19 +11,19 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 export default function FileSharingContent() {
   const { user } = useAuth();
   
-  if (!user) return null;
-
   // Dalam AuthProvider, data dari firestore (role, department, allowedPages) dimasukkan ke dalam objek user.
-  const isITorAdmin = (user as any).role === 'Admin' || 
-                      (user as any).department?.toUpperCase() === 'IT' ||
-                      ((user as any).allowedPages || []).includes('/file-sharing');
+  const isITorAdmin = user ? (
+    (user as any).role === 'Admin' || 
+    (user as any).department?.toUpperCase() === 'IT' ||
+    ((user as any).allowedPages || []).includes('/file-sharing')
+  ) : false;
 
   return (
     <div className="p-4 md:p-8 space-y-8 min-h-screen">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Portal File Sharing</h1>
-          <p className="text-slate-500">Akses direktori server lokal dan pantau log penggunaannya. (Debug: Role Anda = {(user as any).role || 'Kosong'})</p>
+          <p className="text-slate-500">Akses direktori server lokal dan pantau log penggunaannya. (Akses: {user ? (user as any).role || 'Terdaftar' : 'Tamu / Publik'})</p>
         </div>
       </div>
 
