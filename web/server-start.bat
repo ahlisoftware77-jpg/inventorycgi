@@ -1,6 +1,6 @@
 @echo off
 echo Menjalankan Aplikasi Inventory di Latar Belakang (Port 9003)...
-call pm2 start npm --name "inventory-app" -- run start -- -p 9003
+call pm2 start node_modules\next\dist\bin\next --name "inventory-app" -- dev -p 9003
 echo.
 echo Menyimpan konfigurasi PM2...
 call pm2 save

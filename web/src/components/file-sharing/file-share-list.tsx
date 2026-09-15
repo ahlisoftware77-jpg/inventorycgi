@@ -7,7 +7,7 @@ import { collection, onSnapshot, query, addDoc, updateDoc, deleteDoc, doc, getDo
 import { FileShare, FileShareLog } from './types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Copy, Plus, FolderSync, Edit, Trash2, FolderOpen } from 'lucide-react';
+import { Copy, Plus, FolderSync, Edit, Trash2, FolderOpen, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import FileShareForm from './file-share-form';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -164,12 +164,27 @@ export default function FileShareList({ isManager }: { isManager: boolean }) {
               </CardContent>
               <CardFooter className="pt-0 flex flex-col gap-2">
                 <Button 
-                  onClick={() => setActiveBrowseShare(share)} 
+                  onClick={() => {
+                    if (share.path.toLowerCase().startsWith('http://') || share.path.toLowerCase().startsWith('https://')) {
+                      window.open(share.path, '_blank', 'noopener,noreferrer');
+                    } else {
+                      setActiveBrowseShare(share);
+                    }
+                  }} 
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                   disabled={share.status === 'inactive'}
                 >
-                  <FolderOpen className="h-4 w-4 mr-2" />
-                  Buka Folder di Web
+                  {(share.path.toLowerCase().startsWith('http://') || share.path.toLowerCase().startsWith('https://')) ? (
+                    <>
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Buka Tautan di Tab Baru
+                    </>
+                  ) : (
+                    <>
+                      <FolderOpen className="h-4 w-4 mr-2" />
+                      Buka Folder di Web
+                    </>
+                  )}
                 </Button>
                 
                 <div className="flex gap-2 w-full">
