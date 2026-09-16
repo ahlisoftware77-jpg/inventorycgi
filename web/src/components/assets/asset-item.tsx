@@ -81,7 +81,7 @@ export const getAlertStyles = (status: AssetStatus, condition: string) => {
     };
 };
 
-export default function AssetItem({ asset, isExpanded, onToggle, isSelected, onSelect, isSelectionMode }: AssetItemProps) {
+const AssetItem = React.memo(function AssetItem({ asset, isExpanded, onToggle, isSelected, onSelect, isSelectionMode }: AssetItemProps) {
   const styles = getAlertStyles(asset.status, asset.condition);
   const StatusIcon = styles.icon;
   
@@ -229,4 +229,6 @@ export default function AssetItem({ asset, isExpanded, onToggle, isSelected, onS
       </div>
     </div>
   );
-}
+});
+
+export default AssetItem;

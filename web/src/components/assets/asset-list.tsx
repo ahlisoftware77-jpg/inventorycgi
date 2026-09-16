@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { type Asset, type AssetStatus, type AssetCondition } from '@/lib/types';
 import AssetDetailCard from './asset-detail-card';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -421,15 +421,15 @@ export default function AssetList({ assets, initialSearchTerm = '', initialCateg
     setOwnershipFilter('ALL');
   }
 
-  const handleToggle = (id: string) => {
+  const handleToggle = useCallback((id: string) => {
     setExpandedId(prevId => (prevId === id ? null : id));
-  };
+  }, []);
 
-  const handleSelectOne = (assetId: string, checked: boolean) => {
+  const handleSelectOne = useCallback((assetId: string, checked: boolean) => {
     setSelectedAssetIds(prev => 
       checked ? [...prev, assetId] : prev.filter(id => id !== assetId)
     );
-  };
+  }, []);
 
   const handleSelectAll = (checked: boolean | 'indeterminate') => {
     if (checked === true) {
