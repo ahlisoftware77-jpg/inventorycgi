@@ -82,6 +82,27 @@ export async function POST(request: Request) {
     
     await fs.writeFile(targetFilePath, buffer);
 
+    // Logging
+    try {
+      const userData = decodedToken ? (await db.collection('users').doc(decodedToken.uid).get()).data() : null;
+      const userName = userData?.name || 'Tamu (Public)';
+      const userDept = userData?.department || '-';
+      
+      await db.collection('system_logs').add({
+        type: 'FILE_SHARING',
+        action: 'UPLOAD',
+        description: `Mengunggah file: ${file.name}`,
+        targetId: shareId,
+        targetCode: shareData?.name || 'Share Folder',
+        userId: decodedToken?.uid || 'guest',
+        userName,
+        userDept,
+        timestamp: new Date()
+      });
+    } catch (logErr) {
+      console.error('Failed to write log:', logErr);
+    }
+
     return NextResponse.json({ success: true, message: 'File uploaded successfully' });
   } catch (error: any) {
     console.error('Upload Error:', error);

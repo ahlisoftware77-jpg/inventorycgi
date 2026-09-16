@@ -311,7 +311,7 @@ export interface InventoryTransaction {
 
 export interface SystemLog {
   id: string;
-  type: 'ASSET' | 'INVENTORY' | 'USER' | 'MAINTENANCE' | 'HELPDESK';
+  type: 'ASSET' | 'INVENTORY' | 'USER' | 'MAINTENANCE' | 'HELPDESK' | 'FILE_SHARING';
   action: string;
   description: string;
   targetId?: string;

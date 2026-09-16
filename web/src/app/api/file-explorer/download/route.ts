@@ -108,6 +108,27 @@ export async function GET(request: Request) {
     const contentType = isPdfJs ? 'application/octet-stream' : (contentTypeMap[ext] || 'application/octet-stream');
     const fileName = path.basename(targetPath);
 
+    // Logging (Fire and forget)
+    try {
+      const userData = decodedToken ? (await db.collection('users').doc(decodedToken.uid).get()).data() : null;
+      const userName = userData?.name || 'Tamu (Public)';
+      const userDept = userData?.department || '-';
+      
+      db.collection('system_logs').add({
+        type: 'FILE_SHARING',
+        action: isPreview ? 'PREVIEW' : 'DOWNLOAD',
+        description: `${isPreview ? 'Melihat' : 'Mengunduh'} file: ${fileName}`,
+        targetId: shareId,
+        targetCode: shareData?.name || 'Share Folder',
+        userId: decodedToken?.uid || 'guest',
+        userName,
+        userDept,
+        timestamp: new Date()
+      }).catch(err => console.error('Failed to log download:', err));
+    } catch (logErr) {
+      console.error('Failed to prepare log:', logErr);
+    }
+
     // Handle Range Requests for streaming video
     const rangeHeader = request.headers.get('range');
     const fileSize = stat.size;

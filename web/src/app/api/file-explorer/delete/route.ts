@@ -87,6 +87,27 @@ export async function POST(request: Request) {
       throw err;
     }
 
+    // Logging
+    try {
+      const userName = userData?.name || 'User Terhapus';
+      const userDept = userData?.department || '-';
+      const itemName = path.basename(fullPath);
+      
+      await db.collection('system_logs').add({
+        type: 'FILE_SHARING',
+        action: 'DELETE',
+        description: `Menghapus file/folder: ${itemName}`,
+        targetId: shareId,
+        targetCode: shareData?.name || 'Share Folder',
+        userId: decodedToken.uid,
+        userName,
+        userDept,
+        timestamp: new Date()
+      });
+    } catch (logErr) {
+      console.error('Failed to write log:', logErr);
+    }
+
     return NextResponse.json({ success: true, message: 'File berhasil dihapus' });
     
   } catch (error: any) {

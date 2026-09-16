@@ -216,6 +216,7 @@ export default function LogTable() {
       case 'INVENTORY': return 'secondary';
       case 'USER': return 'outline';
       case 'MAINTENANCE': return 'warning';
+      case 'FILE_SHARING': return 'info'; // Assuming 'info' variant exists or it falls back to a default styled variant
       default: return 'outline';
     }
   };
