@@ -268,40 +268,52 @@ export default function RegisterDesignGalleryPage() {
         </div>
 
         {/* Header & Controls */}
-        <div className="sticky top-0 z-40 shrink-0 bg-white/70 backdrop-blur-xl border-b border-[#d4af37]/30 p-4 md:p-6 shadow-sm">
+        <div className="sticky top-0 z-40 shrink-0 bg-white/70 backdrop-blur-xl border-b border-[#d4af37]/30 p-3 shadow-sm">
           <div className="absolute inset-0 bg-gradient-to-r from-[#d4af37]/5 via-transparent to-[#00c6ff]/5 -z-10" />
-          <div className="max-w-7xl mx-auto space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#d4af37] to-[#b8860b] flex items-center justify-center shadow-lg shadow-[#d4af37]/30 text-white shrink-0">
-                <Layers className="w-6 h-6" />
+          <div className="max-w-[1400px] mx-auto flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 flex items-center justify-center shrink-0 drop-shadow-[0_2px_4px_rgba(212,175,55,0.3)]">
+                <div 
+                  className="w-9 h-9 bg-gradient-to-r from-[#8b6508] to-[#d4af37]"
+                  style={{
+                    maskImage: 'url(/cgi2.png)',
+                    maskSize: 'contain',
+                    maskRepeat: 'no-repeat',
+                    maskPosition: 'center',
+                    WebkitMaskImage: 'url(/cgi2.png)',
+                    WebkitMaskSize: 'contain',
+                    WebkitMaskRepeat: 'no-repeat',
+                    WebkitMaskPosition: 'center',
+                  }}
+                />
               </div>
               <div>
-                <h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#8b6508] to-[#d4af37] tracking-tight">Design Gallery</h1>
-                <p className="text-sm text-[#8b6508]/80 font-medium mt-0.5">Eksplorasi visual seluruh desain yang terdaftar</p>
+                <h1 className="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-[#8b6508] to-[#d4af37] tracking-tight leading-tight">Design Gallery</h1>
+                <p className="text-[11px] text-[#8b6508]/80 font-medium leading-tight">Eksplorasi visual seluruh desain</p>
               </div>
             </div>
             
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="relative flex-1 min-w-[200px] max-w-sm">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#8b6508]/60" />
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative flex-1 min-w-[180px] max-w-xs">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#8b6508]/60" />
                 <Input 
-                  placeholder="Cari Nama Desain / Design No..." 
+                  placeholder="Cari Nama/Design No..." 
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   autoComplete="new-password"
                   autoCorrect="off"
                   spellCheck={false}
                   name="gallery_search_query"
-                  className="pl-9 bg-white/80 border-[#d4af37]/40 text-slate-700 placeholder:text-slate-400 focus-visible:ring-[#d4af37] transition-shadow shadow-sm"
+                  className="pl-8 h-9 text-sm bg-white/80 border-[#d4af37]/40 text-slate-700 placeholder:text-slate-400 focus-visible:ring-[#d4af37] transition-shadow shadow-sm"
                 />
               </div>
               
-              <div className="w-32">
+              <div className="w-[110px]">
                 <Select value={selectedYear} onValueChange={setSelectedYear}>
-                  <SelectTrigger className="bg-white/80 border-[#d4af37]/40 text-slate-700 focus:ring-[#d4af37] font-medium shadow-sm">
+                  <SelectTrigger className="h-9 text-xs bg-white/80 border-[#d4af37]/40 text-slate-700 focus:ring-[#d4af37] font-medium shadow-sm">
                     <SelectValue placeholder="Tahun" />
                   </SelectTrigger>
-                  <SelectContent className="bg-white border-[#d4af37]/30 text-slate-700">
+                  <SelectContent className="bg-white border-[#d4af37]/30 text-slate-700 text-xs">
                     <SelectItem value="all" className="font-medium text-[#8b6508] focus:bg-amber-50">Semua Tahun</SelectItem>
                     {yearOptions.map(y => (
                       <SelectItem key={y} value={y} className="focus:bg-amber-50 focus:text-slate-900">{y}</SelectItem>
@@ -310,12 +322,12 @@ export default function RegisterDesignGalleryPage() {
                 </Select>
               </div>
 
-              <div className="w-40">
+              <div className="w-[130px]">
                 <Select value={selectedType} onValueChange={setSelectedType}>
-                  <SelectTrigger className="bg-white/80 border-[#d4af37]/40 text-slate-700 focus:ring-[#d4af37] font-medium shadow-sm">
+                  <SelectTrigger className="h-9 text-xs bg-white/80 border-[#d4af37]/40 text-slate-700 focus:ring-[#d4af37] font-medium shadow-sm">
                     <SelectValue placeholder="Tipe Desain" />
                   </SelectTrigger>
-                  <SelectContent className="bg-white border-[#d4af37]/30 text-slate-700">
+                  <SelectContent className="bg-white border-[#d4af37]/30 text-slate-700 text-xs">
                     <SelectItem value="all" className="font-medium text-[#8b6508] focus:bg-amber-50">Semua Tipe</SelectItem>
                     {typeOptions.map(t => (
                       <SelectItem key={t} value={t} className="focus:bg-amber-50 focus:text-slate-900">{t}</SelectItem>
@@ -324,12 +336,12 @@ export default function RegisterDesignGalleryPage() {
                 </Select>
               </div>
 
-              <div className="w-40">
+              <div className="w-[130px]">
                 <Select value={selectedDesigner} onValueChange={setSelectedDesigner}>
-                  <SelectTrigger className="bg-white/80 border-[#d4af37]/40 text-slate-700 focus:ring-[#d4af37] font-medium shadow-sm">
+                  <SelectTrigger className="h-9 text-xs bg-white/80 border-[#d4af37]/40 text-slate-700 focus:ring-[#d4af37] font-medium shadow-sm">
                     <SelectValue placeholder="Desainer" />
                   </SelectTrigger>
-                  <SelectContent className="bg-white border-[#d4af37]/30 text-slate-700">
+                  <SelectContent className="bg-white border-[#d4af37]/30 text-slate-700 text-xs">
                     <SelectItem value="all" className="font-medium text-[#8b6508] focus:bg-amber-50">Semua Desainer</SelectItem>
                     {designerOptions.map(d => (
                       <SelectItem key={d} value={d} className="focus:bg-amber-50 focus:text-slate-900">{d}</SelectItem>
@@ -338,12 +350,12 @@ export default function RegisterDesignGalleryPage() {
                 </Select>
               </div>
 
-              <div className="w-36">
+              <div className="w-[120px]">
                 <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                  <SelectTrigger className="bg-white/80 border-[#d4af37]/40 text-slate-700 focus:ring-[#d4af37] font-medium shadow-sm">
+                  <SelectTrigger className="h-9 text-xs bg-white/80 border-[#d4af37]/40 text-slate-700 focus:ring-[#d4af37] font-medium shadow-sm">
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
-                  <SelectContent className="bg-white border-[#d4af37]/30 text-slate-700">
+                  <SelectContent className="bg-white border-[#d4af37]/30 text-slate-700 text-xs">
                     <SelectItem value="all" className="font-medium text-[#8b6508] focus:bg-amber-50">Semua Status</SelectItem>
                     {statusOptions.map(s => (
                       <SelectItem key={s} value={s} className="focus:bg-amber-50 focus:text-slate-900">{s}</SelectItem>
@@ -352,7 +364,7 @@ export default function RegisterDesignGalleryPage() {
                 </Select>
               </div>
               
-              <div className="ml-auto text-sm font-semibold text-[#8b6508] bg-white/80 px-3 py-1.5 rounded-md border border-[#d4af37]/40 shadow-sm">
+              <div className="ml-auto xl:ml-0 text-xs font-semibold text-[#8b6508] bg-white/80 px-2.5 py-1.5 rounded-md border border-[#d4af37]/40 shadow-sm shrink-0">
                 {filteredData.length} Desain
               </div>
             </div>

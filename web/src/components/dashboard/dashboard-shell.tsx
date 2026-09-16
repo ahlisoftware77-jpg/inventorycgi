@@ -60,7 +60,7 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
               side="left" 
               variant="sidebar" 
               collapsible="icon"
-              className="top-16 !h-[calc(100vh-64px)] pt-0 pb-3 pl-3 pr-0 bg-transparent border-none [&>[data-sidebar=sidebar]]:rounded-b-[24px] [&>[data-sidebar=sidebar]]:rounded-t-none [&>[data-sidebar=sidebar]]:overflow-hidden [&>[data-sidebar=sidebar]]:border-b [&>[data-sidebar=sidebar]]:border-l [&>[data-sidebar=sidebar]]:border-teal-850/30"
+              className="top-16 !h-[calc(100vh-64px)] pt-0 pb-3 pl-0 pr-0 bg-transparent border-none [&>[data-sidebar=sidebar]]:rounded-b-[24px] [&>[data-sidebar=sidebar]]:rounded-t-none [&>[data-sidebar=sidebar]]:overflow-hidden [&>[data-sidebar=sidebar]]:border-b [&>[data-sidebar=sidebar]]:border-l [&>[data-sidebar=sidebar]]:border-amber-850/30"
             >
               <SidebarNav />
             </Sidebar>
@@ -68,7 +68,7 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
 
           <SidebarInset className={cn(
             "flex-1 flex flex-col overflow-hidden bg-slate-50 dark:bg-slate-900 transition-colors duration-300 relative",
-            !isStandalonePage && "bg-teal-700 dark:bg-teal-900"
+            !isStandalonePage && "bg-amber-700 dark:bg-amber-900"
           )}>
             <div 
               ref={scrollContainerRef}

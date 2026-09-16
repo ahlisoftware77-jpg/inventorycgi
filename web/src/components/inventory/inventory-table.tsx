@@ -252,7 +252,7 @@ export default function InventoryTable() {
                         ))
                     ) : items.length > 0 ? (
                         items.map((item) => (
-                            <TableRow key={item.id} className="group h-16 hover:bg-slate-50/80 dark:hover:bg-slate-850/30 transition-colors border-slate-50 dark:border-slate-800">
+                            <TableRow key={item.id} className="group h-16 even:bg-slate-100/50 dark:even:bg-slate-800/30 hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition-colors border-slate-200/30 dark:border-slate-800">
                                 <TableCell className="pl-4">
                                     <div 
                                         className="relative h-9 w-9 rounded-lg overflow-hidden border border-slate-100 dark:border-slate-800 shadow-sm bg-white cursor-zoom-in hover:scale-105 transition-transform active:scale-95"
@@ -364,24 +364,27 @@ export default function InventoryTable() {
   );
 
   return (
-    <div className="space-y-6 max-w-full overflow-hidden pb-10 text-black">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-1">
-        <div className="text-left">
-          <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white uppercase text-left">Inventaris Perusahaan</h1>
-          <p className="text-xs text-slate-500 font-medium text-left">Pantau pergerakan stok ATK, Sparepart, dan perlengkapan lainnya.</p>
-        </div>
+    <div className="relative max-w-full overflow-hidden p-4 sm:p-6 md:p-8 rounded-[32px] pb-10 bg-gradient-to-br from-green-300 via-emerald-400 to-teal-500 shadow-2xl shadow-emerald-500/20">
+      <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 mix-blend-overlay pointer-events-none" />
+      
+      <div className="relative z-10 space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-1">
+          <div className="text-left">
+            <h1 className="text-2xl font-black tracking-tight text-white uppercase text-left drop-shadow-md">Inventaris Perusahaan</h1>
+            <p className="text-xs text-white/90 font-semibold text-left">Pantau pergerakan stok ATK, Sparepart, dan perlengkapan lainnya.</p>
+          </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button onClick={handleSharePublicLink} variant="outline" disabled={isSharing} className="rounded-xl h-10 px-4 bg-white border-indigo-100 text-indigo-700 hover:bg-indigo-50 font-bold uppercase text-[9px] tracking-wider transition-all">
+          <Button onClick={handleSharePublicLink} variant="outline" disabled={isSharing} className="rounded-xl h-10 px-4 bg-white/90 border-transparent text-emerald-800 hover:bg-white font-bold uppercase text-[9px] tracking-wider transition-all shadow-lg shadow-black/5">
               {isSharing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Share2 className="mr-2 h-4 w-4" />} 
               Link Publik
           </Button>
-          <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 p-1 rounded-xl border border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-1.5 bg-white/80 backdrop-blur-sm p-1 rounded-xl border border-white/40 shadow-lg shadow-black/5">
             {user?.role === 'Admin' && <ImportInventoryDialog itemType={activeTab} />}
             <ExportInventoryButton items={filteredAndSortedItems} itemType={activeTab} />
           </div>
           {canManageInventory && (
               <InventoryForm itemType={activeTab}>
-                  <Button className="rounded-xl h-10 px-6 bg-primary hover:bg-primary/90 text-white font-black uppercase text-[9px] tracking-wider transition-all text-white">
+                  <Button className="rounded-xl h-10 px-6 bg-slate-900 hover:bg-black text-white font-black uppercase text-[9px] tracking-wider transition-all shadow-xl shadow-black/10">
                       <PlusCircle className="mr-2 h-4 w-4" /> Tambah Barang
                   </Button>
               </InventoryForm>
@@ -391,7 +394,7 @@ export default function InventoryTable() {
 
       <InventoryTip />
 
-      <Card className="border border-slate-100 dark:border-slate-800 bg-white/40 dark:bg-slate-900/40 backdrop-blur-md rounded-2xl overflow-hidden text-black shadow-[0_2px_12px_rgba(0,0,0,0.01)]">
+      <Card className="border border-white/40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-[24px] overflow-hidden text-black shadow-2xl shadow-emerald-900/10">
         <CardHeader className="p-4 sm:p-6 pb-2 text-left">
           <div className="flex flex-col lg:flex-row gap-3 mb-6 text-left">
               <div className="relative flex-1 group text-left">
@@ -456,6 +459,7 @@ export default function InventoryTable() {
             </DialogContent>
         </Dialog>
       )}
+      </div>
     </div>
   );
 }

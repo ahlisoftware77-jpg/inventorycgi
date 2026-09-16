@@ -64,41 +64,41 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 const itemColorMap: Record<string, { activeIconColor: string, shadow: string, iconColor: string, inactiveIconBg: string }> = {
-  dashboard: { activeIconColor: 'text-teal-700', shadow: 'shadow-teal-900/5', iconColor: 'text-sky-305', inactiveIconBg: 'bg-teal-950/40' },
-  notes: { activeIconColor: 'text-yellow-600', shadow: 'shadow-teal-900/5', iconColor: 'text-yellow-305', inactiveIconBg: 'bg-teal-950/40' },
-  workflow: { activeIconColor: 'text-indigo-700', shadow: 'shadow-teal-900/5', iconColor: 'text-indigo-305', inactiveIconBg: 'bg-teal-950/40' },
-  file_sharing: { activeIconColor: 'text-blue-700', shadow: 'shadow-teal-900/5', iconColor: 'text-blue-305', inactiveIconBg: 'bg-teal-950/40' },
-  announcements: { activeIconColor: 'text-purple-700', shadow: 'shadow-teal-900/5', iconColor: 'text-purple-305', inactiveIconBg: 'bg-teal-950/40' },
-  assets_a: { activeIconColor: 'text-emerald-700', shadow: 'shadow-teal-900/5', iconColor: 'text-emerald-305', inactiveIconBg: 'bg-teal-950/40' },
-  assets_util: { activeIconColor: 'text-teal-800', shadow: 'shadow-teal-900/5', iconColor: 'text-yellow-305', inactiveIconBg: 'bg-teal-950/40' },
-  assets_report: { activeIconColor: 'text-cyan-700', shadow: 'shadow-teal-900/5', iconColor: 'text-cyan-305', inactiveIconBg: 'bg-teal-950/40' },
-  assets_it: { activeIconColor: 'text-sky-750', shadow: 'shadow-teal-900/5', iconColor: 'text-sky-205', inactiveIconBg: 'bg-teal-950/40' },
-  iso: { activeIconColor: 'text-teal-700', shadow: 'shadow-teal-900/5', iconColor: 'text-teal-305', inactiveIconBg: 'bg-teal-950/40' },
-  maintenance: { activeIconColor: 'text-violet-700', shadow: 'shadow-teal-900/5', iconColor: 'text-violet-305', inactiveIconBg: 'bg-teal-950/40' },
-  helpdesk: { activeIconColor: 'text-pink-700', shadow: 'shadow-teal-900/5', iconColor: 'text-pink-305', inactiveIconBg: 'bg-teal-950/40' },
-  inventory: { activeIconColor: 'text-rose-700', shadow: 'shadow-teal-900/5', iconColor: 'text-rose-305', inactiveIconBg: 'bg-teal-950/40' },
-  inventory_requests: { activeIconColor: 'text-orange-700', shadow: 'shadow-teal-900/5', iconColor: 'text-orange-305', inactiveIconBg: 'bg-teal-950/40' },
-  mutations: { activeIconColor: 'text-amber-700', shadow: 'shadow-teal-900/5', iconColor: 'text-amber-305', inactiveIconBg: 'bg-teal-950/40' },
-  inventory_report: { activeIconColor: 'text-lime-700', shadow: 'shadow-teal-900/5', iconColor: 'text-lime-350', inactiveIconBg: 'bg-teal-950/40' },
-  logs: { activeIconColor: 'text-slate-700', shadow: 'shadow-teal-900/5', iconColor: 'text-slate-305', inactiveIconBg: 'bg-teal-950/40' },
+  dashboard: { activeIconColor: 'text-amber-700', shadow: 'shadow-amber-900/5', iconColor: 'text-sky-305', inactiveIconBg: 'bg-amber-950/40' },
+  notes: { activeIconColor: 'text-yellow-600', shadow: 'shadow-amber-900/5', iconColor: 'text-yellow-305', inactiveIconBg: 'bg-amber-950/40' },
+  workflow: { activeIconColor: 'text-indigo-700', shadow: 'shadow-amber-900/5', iconColor: 'text-indigo-305', inactiveIconBg: 'bg-amber-950/40' },
+  file_sharing: { activeIconColor: 'text-blue-700', shadow: 'shadow-amber-900/5', iconColor: 'text-blue-305', inactiveIconBg: 'bg-amber-950/40' },
+  announcements: { activeIconColor: 'text-purple-700', shadow: 'shadow-amber-900/5', iconColor: 'text-purple-305', inactiveIconBg: 'bg-amber-950/40' },
+  assets_a: { activeIconColor: 'text-emerald-700', shadow: 'shadow-amber-900/5', iconColor: 'text-emerald-305', inactiveIconBg: 'bg-amber-950/40' },
+  assets_util: { activeIconColor: 'text-amber-800', shadow: 'shadow-amber-900/5', iconColor: 'text-yellow-305', inactiveIconBg: 'bg-amber-950/40' },
+  assets_report: { activeIconColor: 'text-cyan-700', shadow: 'shadow-amber-900/5', iconColor: 'text-cyan-305', inactiveIconBg: 'bg-amber-950/40' },
+  assets_it: { activeIconColor: 'text-sky-750', shadow: 'shadow-amber-900/5', iconColor: 'text-sky-205', inactiveIconBg: 'bg-amber-950/40' },
+  iso: { activeIconColor: 'text-amber-700', shadow: 'shadow-amber-900/5', iconColor: 'text-amber-305', inactiveIconBg: 'bg-amber-950/40' },
+  maintenance: { activeIconColor: 'text-violet-700', shadow: 'shadow-amber-900/5', iconColor: 'text-violet-305', inactiveIconBg: 'bg-amber-950/40' },
+  helpdesk: { activeIconColor: 'text-pink-700', shadow: 'shadow-amber-900/5', iconColor: 'text-pink-305', inactiveIconBg: 'bg-amber-950/40' },
+  inventory: { activeIconColor: 'text-rose-700', shadow: 'shadow-amber-900/5', iconColor: 'text-rose-305', inactiveIconBg: 'bg-amber-950/40' },
+  inventory_requests: { activeIconColor: 'text-orange-700', shadow: 'shadow-amber-900/5', iconColor: 'text-orange-305', inactiveIconBg: 'bg-amber-950/40' },
+  mutations: { activeIconColor: 'text-amber-700', shadow: 'shadow-amber-900/5', iconColor: 'text-amber-305', inactiveIconBg: 'bg-amber-950/40' },
+  inventory_report: { activeIconColor: 'text-lime-700', shadow: 'shadow-amber-900/5', iconColor: 'text-lime-350', inactiveIconBg: 'bg-amber-950/40' },
+  logs: { activeIconColor: 'text-slate-700', shadow: 'shadow-amber-900/5', iconColor: 'text-slate-305', inactiveIconBg: 'bg-amber-950/40' },
   
-  users: { activeIconColor: 'text-teal-700', shadow: 'shadow-teal-900/5', iconColor: 'text-sky-305', inactiveIconBg: 'bg-teal-950/40' },
-  kategori: { activeIconColor: 'text-teal-700', shadow: 'shadow-teal-900/5', iconColor: 'text-indigo-305', inactiveIconBg: 'bg-teal-950/40' },
-  cost_center: { activeIconColor: 'text-emerald-700', shadow: 'shadow-teal-900/5', iconColor: 'text-emerald-305', inactiveIconBg: 'bg-teal-950/40' },
-  scan_qr: { activeIconColor: 'text-violet-700', shadow: 'shadow-teal-900/5', iconColor: 'text-violet-305', inactiveIconBg: 'bg-teal-950/40' },
-  scan_nfc: { activeIconColor: 'text-purple-700', shadow: 'shadow-teal-900/5', iconColor: 'text-purple-305', inactiveIconBg: 'bg-teal-950/40' },
-  preview_forms: { activeIconColor: 'text-cyan-700', shadow: 'shadow-teal-900/5', iconColor: 'text-cyan-305', inactiveIconBg: 'bg-teal-950/40' },
-  it_problem: { activeIconColor: 'text-rose-700', shadow: 'shadow-teal-900/5', iconColor: 'text-rose-305', inactiveIconBg: 'bg-teal-950/40' },
-  compare: { activeIconColor: 'text-amber-700', shadow: 'shadow-teal-900/5', iconColor: 'text-amber-305', inactiveIconBg: 'bg-teal-950/40' },
-  stamps: { activeIconColor: 'text-orange-700', shadow: 'shadow-teal-900/5', iconColor: 'text-orange-305', inactiveIconBg: 'bg-teal-950/40' },
-  thermal: { activeIconColor: 'text-teal-700', shadow: 'shadow-teal-900/5', iconColor: 'text-teal-305', inactiveIconBg: 'bg-teal-950/40' },
-  recycle: { activeIconColor: 'text-red-700', shadow: 'shadow-teal-900/5', iconColor: 'text-red-305', inactiveIconBg: 'bg-teal-950/40' },
-  settings: { activeIconColor: 'text-slate-700', shadow: 'shadow-teal-900/5', iconColor: 'text-slate-305', inactiveIconBg: 'bg-teal-950/40' },
-  backup: { activeIconColor: 'text-teal-700', shadow: 'shadow-teal-900/5', iconColor: 'text-indigo-305', inactiveIconBg: 'bg-teal-950/40' },
-  roles: { activeIconColor: 'text-cyan-700', shadow: 'shadow-teal-900/5', iconColor: 'text-cyan-305', inactiveIconBg: 'bg-teal-950/40' },
-  broadcast_email: { activeIconColor: 'text-rose-700', shadow: 'shadow-teal-900/5', iconColor: 'text-rose-305', inactiveIconBg: 'bg-teal-950/40' },
-  help: { activeIconColor: 'text-sky-700', shadow: 'shadow-teal-900/5', iconColor: 'text-sky-305', inactiveIconBg: 'bg-teal-950/40' },
-  form_app: { activeIconColor: 'text-blue-700', shadow: 'shadow-teal-900/5', iconColor: 'text-blue-305', inactiveIconBg: 'bg-teal-950/40' },
+  users: { activeIconColor: 'text-amber-700', shadow: 'shadow-amber-900/5', iconColor: 'text-sky-305', inactiveIconBg: 'bg-amber-950/40' },
+  kategori: { activeIconColor: 'text-amber-700', shadow: 'shadow-amber-900/5', iconColor: 'text-indigo-305', inactiveIconBg: 'bg-amber-950/40' },
+  cost_center: { activeIconColor: 'text-emerald-700', shadow: 'shadow-amber-900/5', iconColor: 'text-emerald-305', inactiveIconBg: 'bg-amber-950/40' },
+  scan_qr: { activeIconColor: 'text-violet-700', shadow: 'shadow-amber-900/5', iconColor: 'text-violet-305', inactiveIconBg: 'bg-amber-950/40' },
+  scan_nfc: { activeIconColor: 'text-purple-700', shadow: 'shadow-amber-900/5', iconColor: 'text-purple-305', inactiveIconBg: 'bg-amber-950/40' },
+  preview_forms: { activeIconColor: 'text-cyan-700', shadow: 'shadow-amber-900/5', iconColor: 'text-cyan-305', inactiveIconBg: 'bg-amber-950/40' },
+  it_problem: { activeIconColor: 'text-rose-700', shadow: 'shadow-amber-900/5', iconColor: 'text-rose-305', inactiveIconBg: 'bg-amber-950/40' },
+  compare: { activeIconColor: 'text-amber-700', shadow: 'shadow-amber-900/5', iconColor: 'text-amber-305', inactiveIconBg: 'bg-amber-950/40' },
+  stamps: { activeIconColor: 'text-orange-700', shadow: 'shadow-amber-900/5', iconColor: 'text-orange-305', inactiveIconBg: 'bg-amber-950/40' },
+  thermal: { activeIconColor: 'text-amber-700', shadow: 'shadow-amber-900/5', iconColor: 'text-amber-305', inactiveIconBg: 'bg-amber-950/40' },
+  recycle: { activeIconColor: 'text-red-700', shadow: 'shadow-amber-900/5', iconColor: 'text-red-305', inactiveIconBg: 'bg-amber-950/40' },
+  settings: { activeIconColor: 'text-slate-700', shadow: 'shadow-amber-900/5', iconColor: 'text-slate-305', inactiveIconBg: 'bg-amber-950/40' },
+  backup: { activeIconColor: 'text-amber-700', shadow: 'shadow-amber-900/5', iconColor: 'text-indigo-305', inactiveIconBg: 'bg-amber-950/40' },
+  roles: { activeIconColor: 'text-cyan-700', shadow: 'shadow-amber-900/5', iconColor: 'text-cyan-305', inactiveIconBg: 'bg-amber-950/40' },
+  broadcast_email: { activeIconColor: 'text-rose-700', shadow: 'shadow-amber-900/5', iconColor: 'text-rose-305', inactiveIconBg: 'bg-amber-950/40' },
+  help: { activeIconColor: 'text-sky-700', shadow: 'shadow-amber-900/5', iconColor: 'text-sky-305', inactiveIconBg: 'bg-amber-950/40' },
+  form_app: { activeIconColor: 'text-blue-700', shadow: 'shadow-amber-900/5', iconColor: 'text-blue-305', inactiveIconBg: 'bg-amber-950/40' },
 };
 
 export default function SidebarNav() {
@@ -328,12 +328,12 @@ export default function SidebarNav() {
 
   return (
     <>
-      <SidebarContent className="bg-teal-700 text-teal-50 selection:bg-teal-900 scrollbar-hide relative overflow-y-auto overflow-x-hidden">
+      <SidebarContent className="bg-amber-700 text-amber-50 selection:bg-amber-900 scrollbar-hide relative overflow-y-auto overflow-x-hidden">
         <div className="w-full">
           <SidebarMenu className="gap-1 pl-2 pr-0 group-data-[state=collapsed]:px-1 pt-4 pb-4">
             {filteredMainItems.map((item, index) => {
               const isActive = isItemActive(item.href, item.id);
-              const colors = itemColorMap[item.id] || { activeIconColor: 'text-teal-700', shadow: 'shadow-teal-900/5', iconColor: 'text-teal-355', inactiveIconBg: 'bg-teal-950/40' };
+              const colors = itemColorMap[item.id] || { activeIconColor: 'text-amber-700', shadow: 'shadow-amber-900/5', iconColor: 'text-amber-355', inactiveIconBg: 'bg-amber-950/40' };
               return (
                 <div key={item.id} className="w-full">
                   <SidebarMenuItem className="list-none">
@@ -341,30 +341,30 @@ export default function SidebarNav() {
                       href={item.href}
                       className={cn(
                         isActive 
-                          ? "btn-active-pipe flex items-center gap-3 transition-all duration-200 group-data-[state=collapsed]:px-2 group-data-[state=collapsed]:justify-center" 
-                          : "w-full px-3 py-2 rounded-xl text-teal-100 hover:text-white hover:bg-teal-650/40 font-semibold flex items-center gap-3 transition-all duration-200 group relative border border-transparent group-data-[state=collapsed]:px-2 group-data-[state=collapsed]:justify-center"
+                          ? "btn-active-pipe flex items-center shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] gap-3 transition-all duration-200 group-data-[state=collapsed]:px-2 group-data-[state=collapsed]:justify-center" 
+                          : "w-full px-3 py-2 rounded-xl text-amber-100 hover:text-white hover:bg-amber-600/40 font-semibold flex items-center gap-3 transition-all duration-300 group relative border border-transparent hover:-translate-y-0.5 hover:scale-[1.02] hover:shadow-[0_8px_16px_rgba(212,175,55,0.2)] hover:border-amber-400/30 hover:z-10 group-data-[state=collapsed]:px-2 group-data-[state=collapsed]:justify-center"
                       )}
                     >
                       <span className={cn(
                         "p-1.5 rounded-lg flex items-center justify-center shrink-0 transition-all duration-300",
                         isActive 
-                          ? "bg-teal-100/60 " + colors.activeIconColor 
-                          : `${colors.inactiveIconBg} border border-teal-900/10 ${colors.iconColor} group-hover:scale-110 group-hover:border-teal-900/20`
+                          ? "bg-amber-100/60 " + colors.activeIconColor 
+                          : `${colors.inactiveIconBg} border border-amber-900/10 ${colors.iconColor} group-hover:scale-110 group-hover:border-amber-900/20`
                       )}>
                         <item.icon className="size-4 shrink-0" />
                       </span>
                       <span className="flex-1 group-data-[collapsible=icon]:hidden text-[11px] uppercase tracking-wider truncate font-semibold">{item.label}</span>
                       {item.badge && (
-                        <span className="h-2 w-2 rounded-full bg-rose-450 animate-pulse shadow-[0_0_10px_rgba(251,113,133,0.8)] group-data-[state=collapsed]:absolute group-data-[state=collapsed]:top-1.5 group-data-[state=collapsed]:right-1.5 group-data-[state=collapsed]:border group-data-[state=collapsed]:border-teal-700" />
+                        <span className="h-2 w-2 rounded-full bg-rose-450 animate-pulse shadow-[0_0_10px_rgba(251,113,133,0.8)] group-data-[state=collapsed]:absolute group-data-[state=collapsed]:top-1.5 group-data-[state=collapsed]:right-1.5 group-data-[state=collapsed]:border group-data-[state=collapsed]:border-amber-700" />
                       )}
                       {item.count && item.count > 0 ? (
                           <span className={cn(
                               "text-[9px] font-black rounded-lg h-5 min-w-[20px] px-1 flex items-center justify-center shadow-md",
                               isActive
-                                ? "bg-teal-100 text-teal-900 font-extrabold"
-                                : item.urgent ? "bg-rose-600 text-white animate-bounce" : "bg-teal-950/55 text-teal-200 border border-teal-900/20",
+                                ? "bg-amber-100 text-amber-900 font-extrabold"
+                                : item.urgent ? "bg-rose-600 text-white animate-bounce" : "bg-amber-950/55 text-amber-200 border border-amber-900/20",
                               // Collapsed state classes for a clean pulsing red dot:
-                              "group-data-[state=collapsed]:absolute group-data-[state=collapsed]:top-1.5 group-data-[state=collapsed]:right-1.5 group-data-[state=collapsed]:h-2 group-data-[state=collapsed]:w-2 group-data-[state=collapsed]:min-w-0 group-data-[state=collapsed]:p-0 group-data-[state=collapsed]:rounded-full group-data-[state=collapsed]:bg-rose-500 group-data-[state=collapsed]:border group-data-[state=collapsed]:border-teal-700 group-data-[state=collapsed]:shadow-none group-data-[state=collapsed]:animate-pulse"
+                              "group-data-[state=collapsed]:absolute group-data-[state=collapsed]:top-1.5 group-data-[state=collapsed]:right-1.5 group-data-[state=collapsed]:h-2 group-data-[state=collapsed]:w-2 group-data-[state=collapsed]:min-w-0 group-data-[state=collapsed]:p-0 group-data-[state=collapsed]:rounded-full group-data-[state=collapsed]:bg-rose-500 group-data-[state=collapsed]:border group-data-[state=collapsed]:border-amber-700 group-data-[state=collapsed]:shadow-none group-data-[state=collapsed]:animate-pulse"
                           )}>
                               <span className="group-data-[state=collapsed]:hidden">{item.count}</span>
                           </span>
@@ -376,24 +376,24 @@ export default function SidebarNav() {
             })}
 
             {filteredSystemItems.length > 0 && (
-              <div className="mt-6 border-t border-teal-850/40 pt-4 mr-2">
+              <div className="mt-6 border-t border-amber-850/40 pt-4 mr-2">
                 <Collapsible open={isSystemOpen} onOpenChange={setIsSystemOpen} className="w-full group/collapsible">
                   <SidebarMenuItem className="list-none">
                     <CollapsibleTrigger asChild>
                       <button 
                         className={cn(
-                          "w-full px-3 py-2.5 rounded-xl flex items-center gap-3 transition-all duration-200 group text-teal-100 hover:text-white hover:bg-teal-650/50 font-semibold group-data-[state=collapsed]:px-2 group-data-[state=collapsed]:justify-center",
-                          isSystemOpen && "bg-teal-900/35 text-white"
+                          "w-full px-3 py-2.5 rounded-xl flex items-center gap-3 transition-all duration-200 group text-amber-100 hover:text-white hover:bg-amber-600/50 font-semibold hover:-translate-y-0.5 hover:scale-[1.02] hover:shadow-[0_8px_16px_rgba(212,175,55,0.2)] hover:border-amber-400/30 border border-transparent hover:z-10 group-data-[state=collapsed]:px-2 group-data-[state=collapsed]:justify-center",
+                          isSystemOpen && "bg-amber-900/35 text-white"
                         )}
                       >
                         <span className={cn(
-                          "p-1.5 rounded-lg flex items-center justify-center shrink-0 bg-teal-950/40 border border-teal-900/10 text-teal-300 group-hover:text-white",
-                          isSystemOpen && "border-teal-800/30 text-white bg-teal-950/60"
+                          "p-1.5 rounded-lg flex items-center justify-center shrink-0 bg-amber-950/40 border border-amber-900/10 text-amber-300 group-hover:text-white",
+                          isSystemOpen && "border-amber-800/30 text-white bg-amber-950/60"
                         )}>
                           <Layers className={cn("size-4 transition-transform duration-500", isSystemOpen && "rotate-180")} />
                         </span>
                         <span className="flex-1 group-data-[collapsible=icon]:hidden text-[11px] uppercase tracking-wider text-left font-semibold">Sistem & Settings</span>
-                        <ChevronRight className={cn("ml-auto h-4 w-4 transition-transform duration-500 group-data-[collapsible=icon]:hidden text-teal-350", isSystemOpen && "rotate-90 text-white")} />
+                        <ChevronRight className={cn("ml-auto h-4 w-4 transition-transform duration-500 group-data-[collapsible=icon]:hidden text-amber-350", isSystemOpen && "rotate-90 text-white")} />
                       </button>
                     </CollapsibleTrigger>
                   </SidebarMenuItem>
@@ -401,7 +401,7 @@ export default function SidebarNav() {
                     <SidebarMenu className="mt-1.5 gap-1 pl-4 pr-0">
                       {filteredSystemItems.map((item) => {
                         const isActive = isItemActive(item.href, item.id);
-                        const colors = itemColorMap[item.id] || { activeIconColor: 'text-teal-700', shadow: 'shadow-teal-900/5', iconColor: 'text-teal-355', inactiveIconBg: 'bg-teal-950/40' };
+                        const colors = itemColorMap[item.id] || { activeIconColor: 'text-amber-700', shadow: 'shadow-amber-900/5', iconColor: 'text-amber-355', inactiveIconBg: 'bg-amber-950/40' };
                         return (
                           <SidebarMenuItem key={item.id} className="list-none">
                             <Link 
@@ -409,14 +409,14 @@ export default function SidebarNav() {
                               className={cn(
                                 isActive 
                                   ? "btn-active-pipe-sub flex items-center gap-2.5 transition-all duration-200 group-data-[state=collapsed]:px-2 group-data-[state=collapsed]:justify-center" 
-                                  : "w-full px-3 py-1.5 rounded-xl text-teal-200/90 hover:text-white hover:bg-teal-650/30 font-medium flex items-center gap-2.5 transition-all duration-200 group border border-transparent group-data-[state=collapsed]:px-2 group-data-[state=collapsed]:justify-center"
+                                  : "w-full px-3 py-1.5 rounded-xl text-amber-200/90 hover:text-white hover:bg-amber-600/30 font-medium flex items-center gap-2.5 transition-all duration-300 group border border-transparent hover:-translate-y-0.5 hover:scale-[1.02] hover:shadow-[0_8px_16px_rgba(212,175,55,0.15)] hover:border-amber-400/20 hover:z-10 group-data-[state=collapsed]:px-2 group-data-[state=collapsed]:justify-center"
                               )}
                             >
                               <span className={cn(
                                 "p-1 rounded-md flex items-center justify-center shrink-0 transition-all duration-300",
                                 isActive 
-                                  ? "bg-teal-100/60 " + colors.activeIconColor 
-                                  : `${colors.inactiveIconBg} border border-teal-900/10 ${colors.iconColor} group-hover:scale-105 group-hover:border-teal-900/20`
+                                  ? "bg-amber-100/60 " + colors.activeIconColor 
+                                  : `${colors.inactiveIconBg} border border-amber-900/10 ${colors.iconColor} group-hover:scale-105 group-hover:border-amber-900/20`
                               )}>
                                 <item.icon className="size-3.5 shrink-0" />
                               </span>
@@ -424,9 +424,9 @@ export default function SidebarNav() {
                               {item.count && item.count > 0 ? (
                                   <span className={cn(
                                       "text-[8px] font-black rounded-full h-4 min-w-[16px] px-0.5 flex items-center justify-center shadow-sm",
-                                      isActive ? "bg-teal-100 text-teal-900 font-bold" : "bg-teal-950/50 text-teal-200",
+                                      isActive ? "bg-amber-100 text-amber-900 font-bold" : "bg-amber-950/50 text-amber-200",
                                       // Collapsed state classes:
-                                      "group-data-[state=collapsed]:absolute group-data-[state=collapsed]:top-1.5 group-data-[state=collapsed]:right-1.5 group-data-[state=collapsed]:h-2 group-data-[state=collapsed]:w-2 group-data-[state=collapsed]:min-w-0 group-data-[state=collapsed]:p-0 group-data-[state=collapsed]:rounded-full group-data-[state=collapsed]:bg-rose-500 group-data-[state=collapsed]:border group-data-[state=collapsed]:border-teal-700 group-data-[state=collapsed]:shadow-none group-data-[state=collapsed]:animate-pulse"
+                                      "group-data-[state=collapsed]:absolute group-data-[state=collapsed]:top-1.5 group-data-[state=collapsed]:right-1.5 group-data-[state=collapsed]:h-2 group-data-[state=collapsed]:w-2 group-data-[state=collapsed]:min-w-0 group-data-[state=collapsed]:p-0 group-data-[state=collapsed]:rounded-full group-data-[state=collapsed]:bg-rose-500 group-data-[state=collapsed]:border group-data-[state=collapsed]:border-amber-700 group-data-[state=collapsed]:shadow-none group-data-[state=collapsed]:animate-pulse"
                                   )}>
                                       <span className="group-data-[state=collapsed]:hidden">{item.count}</span>
                                   </span>
@@ -444,17 +444,17 @@ export default function SidebarNav() {
         </div>
       </SidebarContent>
 
-      <SidebarSeparator className="bg-teal-900/30 h-px mx-4 opacity-50" />
+      <SidebarSeparator className="bg-amber-900/30 h-px mx-4 opacity-50" />
 
-      <SidebarFooter className="bg-teal-800 text-teal-100 p-3 border-t border-teal-900/30 rounded-b-[24px] relative z-10 shrink-0">
+      <SidebarFooter className="bg-amber-800 text-amber-100 p-3 border-t border-amber-900/30 rounded-b-[24px] relative z-10 shrink-0">
         {user && (
-          <div className="mx-1 mb-3 p-3 rounded-2xl bg-teal-900/40 border border-teal-900/20 backdrop-blur-md flex items-center gap-3 group-data-[collapsible=icon]:hidden">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-teal-500 via-teal-600 to-emerald-500 flex items-center justify-center text-white font-black text-xs uppercase shadow-md shadow-teal-500/10">
+          <div className="mx-1 mb-3 p-3 rounded-2xl bg-amber-900/40 border border-amber-900/20 backdrop-blur-md flex items-center gap-3 group-data-[collapsible=icon]:hidden">
+            <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-amber-500 via-amber-600 to-yellow-500 flex items-center justify-center text-white font-black text-xs uppercase shadow-md shadow-amber-500/10">
               {userData?.name?.substring(0, 2) || user.email?.substring(0, 2) || 'AD'}
             </div>
             <div className="flex flex-col min-w-0 text-left">
               <span className="text-[10px] font-black text-white uppercase tracking-tight truncate leading-tight">{userData?.name || 'Administrator'}</span>
-              <span className="text-[8px] font-black text-teal-300 uppercase tracking-widest mt-0.5">{userData?.role || 'Admin'}</span>
+              <span className="text-[8px] font-black text-amber-300 uppercase tracking-widest mt-0.5">{userData?.role || 'Admin'}</span>
             </div>
           </div>
         )}
@@ -463,7 +463,7 @@ export default function SidebarNav() {
             <SidebarMenuItem className="list-none">
                 <button 
                   onClick={handleLogout} 
-                  className="w-full px-3 py-2.5 rounded-xl bg-teal-900/40 border border-teal-900/20 text-rose-300 hover:text-white hover:bg-rose-600 hover:shadow-lg hover:shadow-rose-600/15 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2.5 transition-all duration-200 active:scale-95 group"
+                  className="w-full px-3 py-2.5 rounded-xl bg-amber-900/40 border border-amber-900/20 text-rose-300 hover:text-white hover:bg-rose-600 hover:shadow-lg hover:shadow-rose-600/15 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2.5 transition-all duration-200 active:scale-95 group"
                 >
                   <LogOut className="size-4 group-hover:translate-x-0.5 transition-transform" />
                   <span className="group-data-[collapsible=icon]:hidden font-semibold">Keluar Sistem</span>
@@ -471,10 +471,10 @@ export default function SidebarNav() {
             </SidebarMenuItem>
         </SidebarMenu>
         <div className="p-3 text-center group-data-[collapsible=icon]:hidden">
-          <div className="text-[9px] font-bold uppercase tracking-widest text-teal-400">
+          <div className="text-[9px] font-bold uppercase tracking-widest text-amber-400">
             Build Ver. {appVersion}
           </div>
-          <div className="text-[10px] text-teal-300 font-black mt-1 uppercase tracking-widest">
+          <div className="text-[10px] text-amber-300 font-black mt-1 uppercase tracking-widest">
             {fullCompanyName}
           </div>
         </div>

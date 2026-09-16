@@ -162,7 +162,7 @@ export default function Header() {
     : (lines[currentLineIndex] || '');
 
   return (
-    <header className="z-50 sticky top-0 flex h-16 shrink-0 items-center justify-between gap-2 sm:gap-4 border-b border-teal-800 bg-teal-700 dark:bg-teal-950 pl-3 pr-2 sm:pl-3 sm:pr-6 shadow-xl transition-all duration-300">
+    <header className="z-50 sticky top-0 flex h-16 shrink-0 items-center justify-between gap-2 sm:gap-4 border-b border-amber-800 bg-amber-700 dark:bg-amber-950 pl-3 pr-2 sm:pl-3 sm:pr-6 shadow-xl transition-all duration-300">
       <div className="flex items-center gap-1 sm:gap-4 min-w-0">
         {user ? (
           <div className="flex items-center gap-1 sm:gap-2 min-w-0">
@@ -249,7 +249,7 @@ export default function Header() {
                   <Button variant="ghost" className="relative h-9 w-9 sm:h-10 sm:w-10 rounded-xl p-0 border-2 border-white/20 hover:border-white/40 transition-all active:scale-95 shadow-lg overflow-hidden">
                        <Avatar className="h-full w-full rounded-none">
                           <AvatarImage src={user?.photoURL || undefined} alt="User avatar" />
-                          <AvatarFallback className="bg-teal-800 text-white font-black text-[10px] sm:text-xs">{getInitials(user?.displayName, user?.email)}</AvatarFallback>
+                          <AvatarFallback className="bg-amber-800 text-white font-black text-[10px] sm:text-xs">{getInitials(user?.displayName, user?.email)}</AvatarFallback>
                       </Avatar>
                   </Button>
               </DropdownMenuTrigger>
@@ -278,7 +278,7 @@ export default function Header() {
               </DropdownMenuContent>
           </DropdownMenu>
         ) : (
-          <Button asChild className="rounded-xl bg-white text-teal-900 hover:bg-teal-50 font-black uppercase text-[9px] sm:text-[10px] tracking-widest px-4 sm:px-6 h-9 sm:h-10 shadow-xl active:scale-95 transition-all">
+          <Button asChild className="rounded-xl bg-white text-amber-900 hover:bg-amber-50 font-black uppercase text-[9px] sm:text-[10px] tracking-widest px-4 sm:px-6 h-9 sm:h-10 shadow-xl active:scale-95 transition-all">
             <Link href="/login">
               <LogIn className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" /> Masuk
             </Link>
