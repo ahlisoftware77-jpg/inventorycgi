@@ -264,6 +264,7 @@ export function LoginForm() {
                 <Turnstile
                   ref={turnstileRef}
                   siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'}
+                  options={{ language: 'zh-CN' }}
                   onSuccess={(token) => setTurnstileToken(token)}
                   onError={() => {
                     setTurnstileToken(null);

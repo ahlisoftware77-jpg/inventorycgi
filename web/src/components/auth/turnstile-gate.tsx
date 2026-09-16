@@ -30,9 +30,13 @@ export default function TurnstileGate({ children }: TurnstileGateProps) {
           </p>
         </div>
         
-        <div className="flex justify-center py-4 min-h-[80px]">
+        <div className="flex justify-center p-4">
           <Turnstile
             siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'}
+            options={{
+              theme: 'light',
+              language: 'zh-CN',
+            }}
             onSuccess={async (token) => {
               setIsVerifying(true);
               setError(null);

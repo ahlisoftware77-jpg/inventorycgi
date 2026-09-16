@@ -5,19 +5,23 @@ const execAsync = promisify(exec);
 const connectedHosts = new Set<string>();
 
 export async function ensureSmbConnection(sharePath: string) {
-  const username = process.env.SMB_USERNAME;
-  const password = process.env.SMB_PASSWORD;
+  // Kita butuh Host + ShareName (misal: \\192.168.15.130\Document Control Center)
+  const match = sharePath.match(/^[/\\]{2}([^/\\]+)[/\\]+([^/\\]+)/);
+  let targetToConnect = sharePath;
+  let host = '';
+  if (match) {
+    host = match[1];
+    targetToConnect = `\\\\${match[1]}\\${match[2]}`;
+  }
+  
+  // Deteksi kredensial per-IP (mendukung format _USER_ atau _USERNAME_)
+  let safeHost = host.replace(/\./g, '_').toUpperCase();
+  let username = process.env[`SMB_USER_${safeHost}`] || process.env[`SMB_USERNAME_${safeHost}`] || process.env.SMB_USERNAME;
+  let password = process.env[`SMB_PASS_${safeHost}`] || process.env[`SMB_PASSWORD_${safeHost}`] || process.env.SMB_PASSWORD;
   
   if (!username || !password) {
     // Jika tidak ada kredensial, gunakan akses default OS
     return;
-  }
-  
-  // Kita butuh Host + ShareName (misal: \\192.168.15.130\Document Control Center)
-  const match = sharePath.match(/^[/\\]{2}([^/\\]+)[/\\]+([^/\\]+)/);
-  let targetToConnect = sharePath;
-  if (match) {
-    targetToConnect = `\\\\${match[1]}\\${match[2]}`;
   }
   
   if (connectedHosts.has(targetToConnect)) {

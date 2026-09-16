@@ -26,6 +26,8 @@ export default function FileShareForm({ isOpen, onClose, onSave, initialData }: 
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
   const [allowedUsers, setAllowedUsers] = useState<string[]>([]);
   const [allowUpload, setAllowUpload] = useState<boolean>(true);
+  const [allowDelete, setAllowDelete] = useState<boolean>(false);
+  const [deleteAllowedUsers, setDeleteAllowedUsers] = useState<string[]>([]);
   const [users, setUsers] = useState<User[]>([]);
 
   useEffect(() => {
@@ -36,6 +38,8 @@ export default function FileShareForm({ isOpen, onClose, onSave, initialData }: 
       setStatus(initialData?.status || 'active');
       setAllowedUsers(initialData?.allowedUsers || []);
       setAllowUpload(initialData?.allowUpload !== false); // default true if undefined
+      setAllowDelete(initialData?.allowDelete || false);
+      setDeleteAllowedUsers(initialData?.deleteAllowedUsers || []);
       
       // Fetch users
       const fetchUsers = async () => {
@@ -50,7 +54,7 @@ export default function FileShareForm({ isOpen, onClose, onSave, initialData }: 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({ name, path, description, status, allowedUsers, allowUpload });
+    onSave({ name, path, description, status, allowedUsers, allowUpload, allowDelete, deleteAllowedUsers });
   };
 
   const handleToggleUser = (uid: string, checked: boolean) => {
@@ -59,13 +63,20 @@ export default function FileShareForm({ isOpen, onClose, onSave, initialData }: 
     );
   };
 
+  const handleToggleDeleteUser = (uid: string, checked: boolean) => {
+    setDeleteAllowedUsers(prev => 
+      checked ? [...prev, uid] : prev.filter(id => id !== uid)
+    );
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] flex flex-col overflow-hidden p-0">
+        <div className="p-6 pb-2 border-b bg-white dark:bg-slate-950 shrink-0">
           <DialogTitle>{initialData ? 'Edit File Share' : 'Tambah File Share Baru'}</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 py-4">
+        </div>
+        <div className="p-6 pt-2 overflow-y-auto flex-1 min-h-0">
+          <form id="file-share-form" onSubmit={handleSubmit} className="space-y-4 py-2">
           <div className="space-y-2">
             <Label htmlFor="name">Nama Folder / Server</Label>
             <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required placeholder="Contoh: Server Data HRD" />
@@ -117,7 +128,7 @@ export default function FileShareForm({ isOpen, onClose, onSave, initialData }: 
             </Select>
           </div>
           
-          <div className="flex items-center space-x-2 pt-2">
+          <div className="flex items-center space-x-2 pt-2 border-t mt-4">
             <Checkbox
               id="allow-upload"
               checked={allowUpload}
@@ -128,11 +139,50 @@ export default function FileShareForm({ isOpen, onClose, onSave, initialData }: 
             </Label>
           </div>
           
-          <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>Batal</Button>
-            <Button type="submit" className="bg-teal-600 hover:bg-teal-700 text-white">Simpan</Button>
+          <div className="space-y-3 pt-4 border-t">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="allow-delete"
+                checked={allowDelete}
+                onCheckedChange={(checked) => setAllowDelete(!!checked)}
+              />
+              <Label htmlFor="allow-delete" className="text-sm font-medium leading-none cursor-pointer">
+                Izinkan Penghapusan File pada Folder Ini
+              </Label>
+            </div>
+            
+            {allowDelete && (
+              <div className="space-y-2 pl-6 animate-in slide-in-from-top-1 fade-in duration-200">
+                <Label>Pilih Pengguna yang Diizinkan Menghapus (selain Admin/IT)</Label>
+                <ScrollArea className="h-40 border rounded-md p-3 bg-slate-50 dark:bg-slate-900/50">
+                  <div className="space-y-2">
+                    {users.length > 0 ? users.map(user => (
+                      <div key={user.uid} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`del-user-${user.uid}`}
+                          checked={deleteAllowedUsers.includes(user.uid)}
+                          onCheckedChange={(checked) => handleToggleDeleteUser(user.uid, !!checked)}
+                        />
+                        <Label htmlFor={`del-user-${user.uid}`} className="text-sm font-medium leading-none cursor-pointer">
+                          {user.name} ({user.department || 'No Dept'})
+                        </Label>
+                      </div>
+                    )) : (
+                      <div className="text-xs text-muted-foreground text-center pt-10">Memuat data pengguna...</div>
+                    )}
+                  </div>
+                </ScrollArea>
+                <p className="text-xs text-slate-500">Kosongkan centang jika hanya Admin & IT yang boleh menghapus.</p>
+              </div>
+            )}
           </div>
-        </form>
+          
+          </form>
+        </div>
+        <div className="p-4 border-t bg-slate-50 dark:bg-slate-900/50 shrink-0 flex justify-end gap-2">
+          <Button type="button" variant="outline" onClick={onClose}>Batal</Button>
+          <Button type="submit" form="file-share-form" className="bg-teal-600 hover:bg-teal-700 text-white">Simpan</Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -3,12 +3,17 @@ import { auth, db } from '@/lib/firebase-admin';
 import fs from 'fs'; // Use regular fs for streams
 import fsPromises from 'fs/promises';
 import path from 'path';
+import { Readable } from 'stream';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const shareId = searchParams.get('shareId');
-    const filePath = searchParams.get('path');
+    let filePath = searchParams.get('path');
+    const b64path = searchParams.get('b64path');
+    if (b64path) {
+      filePath = Buffer.from(b64path, 'base64').toString('utf-8');
+    }
     
     // or via headers if fetch is used. For direct browser downloads,
     // query parameter is required if we want to use <a> tags without fetch.
@@ -88,6 +93,10 @@ export async function GET(request: Request) {
       '.webp': 'image/webp',
       '.mp4': 'video/mp4',
       '.webm': 'video/webm',
+      '.ogg': 'video/ogg',
+      '.mov': 'video/quicktime',
+      '.mkv': 'video/x-matroska',
+      '.avi': 'video/x-msvideo',
       '.txt': 'text/plain',
       '.csv': 'text/csv',
       '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -95,7 +104,8 @@ export async function GET(request: Request) {
       '.zip': 'application/zip'
     };
     
-    const contentType = contentTypeMap[ext] || 'application/octet-stream';
+    const isPdfJs = searchParams.get('ispdfjs') === 'true';
+    const contentType = isPdfJs ? 'application/octet-stream' : (contentTypeMap[ext] || 'application/octet-stream');
     const fileName = path.basename(targetPath);
 
     // Handle Range Requests for streaming video
@@ -105,9 +115,9 @@ export async function GET(request: Request) {
     if (rangeHeader && isPreview) {
       const parts = rangeHeader.replace(/bytes=/, "").split("-");
       const start = parseInt(parts[0], 10);
-      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+      let end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
       
-      if (start >= fileSize || end >= fileSize) {
+      if (start >= fileSize) {
         return new NextResponse(null, {
           status: 416,
           headers: {
@@ -116,28 +126,35 @@ export async function GET(request: Request) {
         });
       }
       
+      if (end >= fileSize) {
+        end = fileSize - 1;
+      }
+      
       const chunksize = (end - start) + 1;
       const stream = fs.createReadStream(targetPath, { start, end });
+      const webStream = Readable.toWeb(stream);
       
-      return new NextResponse(stream as any, {
+      return new NextResponse(webStream as any, {
         status: 206,
         headers: {
           'Content-Range': `bytes ${start}-${end}/${fileSize}`,
           'Accept-Ranges': 'bytes',
           'Content-Length': chunksize.toString(),
           'Content-Type': contentType,
-          'Content-Disposition': `inline; filename="${encodeURIComponent(fileName)}"`,
+          'Content-Disposition': isPdfJs ? 'inline' : `inline; filename="${encodeURIComponent(fileName)}"`,
         },
       });
     }
 
     // Create full stream for standard download
     const stream = fs.createReadStream(targetPath);
+    const webStream = Readable.toWeb(stream);
     const disposition = isPreview ? 'inline' : 'attachment';
-    return new NextResponse(stream as any, {
+    const finalDisposition = isPdfJs ? disposition : `${disposition}; filename="${encodeURIComponent(fileName)}"`;
+    return new NextResponse(webStream as any, {
       headers: {
         'Content-Type': contentType,
-        'Content-Disposition': `${disposition}; filename="${encodeURIComponent(fileName)}"`,
+        'Content-Disposition': finalDisposition,
         'Content-Length': fileSize.toString(),
         'Accept-Ranges': 'bytes', // Helps with video seeking
       },

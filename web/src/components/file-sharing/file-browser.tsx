@@ -8,12 +8,14 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
   Folder, File, FileText, Image as ImageIcon, FileSpreadsheet, 
-  ArrowLeft, Download, AlertCircle, RefreshCw, X, Upload, Loader2
+  ArrowLeft, Download, AlertCircle, RefreshCw, X, Upload, Loader2,
+  Video, Trash2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { format } from 'date-fns';
 import { id as localeID } from 'date-fns/locale';
+import { PdfThumbnail } from './pdf-thumbnail';
 
 function formatBytes(bytes: number, decimals = 2) {
   if (!+bytes) return '0 Bytes';
@@ -44,7 +46,14 @@ export default function FileBrowser({ share, onClose }: FileBrowserProps) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [previewFile, setPreviewFile] = useState<{name: string, url: string, ext: string} | null>(null);
+  const [authToken, setAuthToken] = useState('');
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (auth.currentUser) {
+      auth.currentUser.getIdToken().then(setAuthToken).catch(console.error);
+    }
+  }, [user]);
 
   const fetchFolder = async (path: string) => {
     setLoading(true);
@@ -146,11 +155,17 @@ export default function FileBrowser({ share, onClose }: FileBrowserProps) {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     
-    const file = files[0];
+    const filesArray = Array.from(files);
     
-    const isDuplicate = items.some(item => item.name === file.name && !item.isDirectory);
-    if (isDuplicate) {
-      const confirmOverwrite = window.confirm(`File "${file.name}" sudah ada di folder ini.\n\nKlik OK untuk MENIMPA (Overwrite) file tersebut, atau Batal untuk SKIP.`);
+    const duplicateFiles = filesArray.filter(f => items.some(item => item.name === f.name && !item.isDirectory));
+    
+    if (duplicateFiles.length > 0) {
+      const fileNames = duplicateFiles.map(f => f.name).join(', ');
+      const confirmMsg = duplicateFiles.length === 1 
+        ? `File "${fileNames}" sudah ada di folder ini.\n\nKlik OK untuk MENIMPA (Overwrite) file tersebut, atau Batal untuk membatalkan unggahan.`
+        : `Sebanyak ${duplicateFiles.length} file sudah ada di folder ini (contoh: ${duplicateFiles[0].name}).\n\nKlik OK untuk MENIMPA (Overwrite) file-file tersebut, atau Batal untuk membatalkan seluruh unggahan.`;
+      
+      const confirmOverwrite = window.confirm(confirmMsg);
       if (!confirmOverwrite) {
         e.target.value = '';
         return;
@@ -168,24 +183,27 @@ export default function FileBrowser({ share, onClose }: FileBrowserProps) {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('shareId', share.id);
-      formData.append('path', currentPath);
+      // Upload sequentially
+      for (const file of filesArray) {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('shareId', share.id);
+        formData.append('path', currentPath);
 
-      const res = await fetch('/api/file-explorer/upload', {
-        method: 'POST',
-        headers,
-        body: formData,
-      });
+        const res = await fetch('/api/file-explorer/upload', {
+          method: 'POST',
+          headers,
+          body: formData,
+        });
 
-      const data = await res.json();
-      
-      if (!res.ok) {
-        throw new Error(data.error || 'Gagal mengunggah file');
+        const data = await res.json();
+        
+        if (!res.ok) {
+          throw new Error(`Gagal mengunggah ${file.name}: ${data.error || 'Unknown error'}`);
+        }
       }
 
-      toast({ title: 'Berhasil', description: `File ${file.name} telah diunggah.` });
+      toast({ title: 'Berhasil', description: `${filesArray.length} file telah selesai diunggah.` });
       fetchFolder(currentPath); // Refresh the list
     } catch (err: any) {
       console.error('Upload error:', err);
@@ -198,25 +216,97 @@ export default function FileBrowser({ share, onClose }: FileBrowserProps) {
     }
   };
 
+  const handleDelete = async (fileName: string) => {
+    const confirmDelete = window.confirm(`Apakah Anda yakin ingin menghapus "${fileName}"? Tindakan ini tidak dapat dibatalkan.`);
+    if (!confirmDelete) return;
+
+    try {
+      const currentUser = auth.currentUser;
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (currentUser) {
+        const token = await currentUser.getIdToken();
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const filePath = currentPath === '/' ? `/${fileName}` : `${currentPath}/${fileName}`;
+
+      const res = await fetch('/api/file-explorer/delete', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ shareId: share.id, path: filePath }),
+      });
+
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.error || 'Gagal menghapus file');
+      }
+
+      toast({ title: 'Berhasil', description: `"${fileName}" telah dihapus.` });
+      fetchFolder(currentPath); // Refresh the list
+    } catch (err: any) {
+      console.error('Delete error:', err);
+      toast({ title: 'Hapus Gagal', description: err.message, variant: 'destructive' });
+    }
+  };
+
+  // Determine if the current user can delete
+  // user might be from firebase auth directly or our user context which might have role/department
+  // The backend will strictly enforce it anyway, but we should hide the button if they definitely can't.
+  const isAdminOrIT = (user as any)?.role === 'Admin' || (user as any)?.department?.toUpperCase() === 'IT';
+  const isDeleteAllowedForUser = share.deleteAllowedUsers?.includes(user?.uid || '');
+  const canDelete = share.allowDelete && (isAdminOrIT || isDeleteAllowedForUser);
+
+
   const getFileIcon = (fileName: string) => {
     const ext = fileName.split('.').pop()?.toLowerCase();
+    const filePath = currentPath === '/' ? `/${fileName}` : `${currentPath}/${fileName}`;
+    const tokenParam = authToken ? `&token=${authToken}` : '';
+    const url = `/api/file-explorer/download?shareId=${share.id}&path=${encodeURIComponent(filePath)}${tokenParam}&preview=true`;
+
     switch (ext) {
-      case 'pdf':
+      case 'pdf': {
+        const b64path = btoa(unescape(encodeURIComponent(filePath)));
+        const pdfUrl = `/api/file-explorer/download?shareId=${share.id}&b64path=${encodeURIComponent(b64path)}${tokenParam}&preview=true&ispdfjs=true`;
+        return <PdfThumbnail url={pdfUrl} />;
+      }
       case 'txt':
       case 'doc':
       case 'docx':
-        return <FileText className="h-5 w-5 text-blue-500" />;
+        return <FileText className="h-6 w-6 text-blue-500 shrink-0" />;
       case 'png':
       case 'jpg':
       case 'jpeg':
       case 'gif':
-        return <ImageIcon className="h-5 w-5 text-purple-500" />;
+      case 'webp':
+        return (
+          <div className="h-10 w-10 rounded-md overflow-hidden bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700">
+            <img src={url} alt={fileName} className="h-full w-full object-cover" loading="lazy" />
+          </div>
+        );
+      case 'mp4':
+      case 'webm':
+      case 'ogg':
+      case 'mov':
+      case 'mkv':
+      case 'avi':
+        return (
+          <div className="h-10 w-10 rounded-md overflow-hidden bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700 relative">
+            <video src={url} className="h-full w-full object-cover" preload="metadata" muted playsInline />
+            <div className="absolute inset-0 bg-black/20 flex items-center justify-center pointer-events-none">
+              <Video className="h-4 w-4 text-white" />
+            </div>
+          </div>
+        );
       case 'xls':
       case 'xlsx':
       case 'csv':
-        return <FileSpreadsheet className="h-5 w-5 text-green-500" />;
+        return <FileSpreadsheet className="h-6 w-6 text-green-500 shrink-0" />;
       default:
-        return <File className="h-5 w-5 text-slate-500" />;
+        return <File className="h-6 w-6 text-slate-500 shrink-0" />;
     }
   };
 
@@ -248,6 +338,7 @@ export default function FileBrowser({ share, onClose }: FileBrowserProps) {
                 type="file" 
                 id="file-upload" 
                 className="hidden" 
+                multiple
                 onChange={handleFileChange} 
               />
               <Button variant="outline" size="sm" onClick={handleUploadClick} disabled={uploading || loading} className="gap-2 hidden sm:flex border-teal-200 text-teal-700 hover:bg-teal-50">
@@ -313,11 +404,11 @@ export default function FileBrowser({ share, onClose }: FileBrowserProps) {
                     <td className="px-6 py-3">
                       <div className="flex items-center gap-3">
                         {item.isDirectory ? (
-                          <Folder className="h-5 w-5 text-amber-500 fill-amber-500/20" />
+                          <Folder className="h-6 w-6 text-amber-500 fill-amber-500/20 shrink-0" />
                         ) : (
                           getFileIcon(item.name)
                         )}
-                        <span className="font-medium text-slate-900 dark:text-slate-200">
+                        <span className="font-medium text-slate-900 dark:text-slate-200 line-clamp-2">
                           {item.name}
                         </span>
                       </div>
@@ -330,13 +421,27 @@ export default function FileBrowser({ share, onClose }: FileBrowserProps) {
                     </td>
                     <td className="px-6 py-3 text-right">
                       {item.isDirectory ? (
-                        <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleNavigate(item.name); }}>
-                          Buka
-                        </Button>
+                        <div className="flex justify-end gap-2">
+                          {canDelete && (
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50" onClick={(e) => { e.stopPropagation(); handleDelete(item.name); }}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                          <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleNavigate(item.name); }}>
+                            Buka
+                          </Button>
+                        </div>
                       ) : (
-                        <Button variant="outline" size="icon" className="h-8 w-8 text-blue-600 border-blue-200 hover:bg-blue-50" onClick={(e) => { e.stopPropagation(); handleDownload(item.name); }}>
-                          <Download className="h-4 w-4" />
-                        </Button>
+                        <div className="flex justify-end gap-2">
+                          {canDelete && (
+                            <Button variant="outline" size="icon" className="h-8 w-8 text-red-500 border-red-200 hover:bg-red-50" onClick={(e) => { e.stopPropagation(); handleDelete(item.name); }}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                          <Button variant="outline" size="icon" className="h-8 w-8 text-blue-600 border-blue-200 hover:bg-blue-50" onClick={(e) => { e.stopPropagation(); handleDownload(item.name); }}>
+                            <Download className="h-4 w-4" />
+                          </Button>
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -358,17 +463,17 @@ export default function FileBrowser({ share, onClose }: FileBrowserProps) {
               </Button>
             </div>
           </DialogHeader>
-          <div className="flex-1 overflow-auto bg-slate-100 dark:bg-slate-950 flex flex-col">
+          <div className="flex-1 min-h-0 overflow-hidden bg-slate-100 dark:bg-slate-950 flex flex-col">
             {previewFile && (
               ['pdf'].includes(previewFile.ext) ? (
                 <iframe src={previewFile.url} className="w-full h-full border-0" />
               ) : ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(previewFile.ext) ? (
-                <div className="flex-1 flex items-center justify-center p-4">
+                <div className="flex-1 min-h-0 flex items-center justify-center p-4">
                   <img src={previewFile.url} alt={previewFile.name} className="max-w-full max-h-full object-contain" />
                 </div>
-              ) : ['mp4', 'webm'].includes(previewFile.ext) ? (
-                <div className="flex-1 flex items-center justify-center p-4 bg-black">
-                  <video src={previewFile.url} controls className="max-w-full max-h-full" />
+              ) : ['mp4', 'webm', 'ogg', 'mov', 'mkv', 'avi'].includes(previewFile.ext) ? (
+                <div className="flex-1 min-h-0 flex items-center justify-center p-4 bg-black">
+                  <video src={previewFile.url} controls className="max-w-full max-h-full object-contain" />
                 </div>
               ) : ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(previewFile.ext) ? (
                 <iframe src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(previewFile.url)}`} className="w-full h-full border-0" />

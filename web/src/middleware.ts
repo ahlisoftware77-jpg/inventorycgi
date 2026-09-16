@@ -62,7 +62,7 @@ export async function middleware(request: NextRequest) {
     
     const isAllowed = allowedPaths.some(p => path === p || path.startsWith(`${p}/`));
     
-    if (!isAllowed) {
+    if (!isAllowed && !path.match(/\.(png|jpe?g|gif|webp|svg|otf|ttf|woff2?|ico|css|js)$/i)) {
       return NextResponse.redirect(new URL('/file-sharing', request.url));
     }
   }

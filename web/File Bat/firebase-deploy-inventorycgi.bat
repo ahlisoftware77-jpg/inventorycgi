@@ -1,6 +1,6 @@
 @echo off
 echo Deploying to Firebase Hosting...
-cd /d "%~dp0"
+cd /d "%~dp0.."
 
 echo Menghentikan server lokal (PM2) sementara untuk mencegah folder terkunci...
 call pm2 stop inventory-app >nul

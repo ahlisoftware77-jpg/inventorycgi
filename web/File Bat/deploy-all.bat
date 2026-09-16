@@ -2,7 +2,7 @@
 echo ==============================================
 echo   DEPLOYMENT GITHUB (VERCEL) ^& FIREBASE
 echo ==============================================
-cd /d "%~dp0"
+cd /d "%~dp0.."
 
 echo.
 echo [1/2] DEPLOYING TO GITHUB (VERCEL)...

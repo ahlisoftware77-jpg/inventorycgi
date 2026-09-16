@@ -258,24 +258,32 @@ export default function RegisterDesignGalleryPage() {
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col h-full bg-slate-50 relative overflow-hidden">
+      <div className="flex flex-col min-h-[calc(100vh-64px)] bg-[#faf8f5] relative">
+        {/* Animated Custom Background */}
+        <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+          <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(#d4af37 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
+          <div className="absolute -top-40 -right-40 w-[500px] h-[500px] rounded-full bg-[#d4af37]/20 blur-[120px] animate-pulse duration-1000"></div>
+          <div className="absolute top-1/4 -left-40 w-[600px] h-[600px] rounded-full bg-[#00c6ff]/10 blur-[150px]"></div>
+          <div className="absolute -bottom-40 right-1/4 w-[500px] h-[500px] rounded-full bg-[#8e2de2]/10 blur-[150px]"></div>
+        </div>
+
         {/* Header & Controls */}
-        <div className="shrink-0 bg-white/80 backdrop-blur-xl border-b border-slate-200 p-4 md:p-6 shadow-sm z-10 relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-50/50 via-indigo-50/30 to-purple-50/50 -z-10" />
+        <div className="sticky top-0 z-40 shrink-0 bg-white/70 backdrop-blur-xl border-b border-[#d4af37]/30 p-4 md:p-6 shadow-sm">
+          <div className="absolute inset-0 bg-gradient-to-r from-[#d4af37]/5 via-transparent to-[#00c6ff]/5 -z-10" />
           <div className="max-w-7xl mx-auto space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20 text-white shrink-0">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#d4af37] to-[#b8860b] flex items-center justify-center shadow-lg shadow-[#d4af37]/30 text-white shrink-0">
                 <Layers className="w-6 h-6" />
               </div>
               <div>
-                <h1 className="text-2xl font-black bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent tracking-tight">Design Gallery</h1>
-                <p className="text-sm text-slate-500 font-medium mt-0.5">Eksplorasi visual seluruh desain yang terdaftar</p>
+                <h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#8b6508] to-[#d4af37] tracking-tight">Design Gallery</h1>
+                <p className="text-sm text-[#8b6508]/80 font-medium mt-0.5">Eksplorasi visual seluruh desain yang terdaftar</p>
               </div>
             </div>
             
             <div className="flex flex-wrap items-center gap-3">
               <div className="relative flex-1 min-w-[200px] max-w-sm">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#8b6508]/60" />
                 <Input 
                   placeholder="Cari Nama Desain / Design No..." 
                   value={search}
@@ -284,19 +292,19 @@ export default function RegisterDesignGalleryPage() {
                   autoCorrect="off"
                   spellCheck={false}
                   name="gallery_search_query"
-                  className="pl-9 bg-slate-50 border-slate-200 focus-visible:ring-blue-500 transition-shadow"
+                  className="pl-9 bg-white/80 border-[#d4af37]/40 text-slate-700 placeholder:text-slate-400 focus-visible:ring-[#d4af37] transition-shadow shadow-sm"
                 />
               </div>
               
               <div className="w-32">
                 <Select value={selectedYear} onValueChange={setSelectedYear}>
-                  <SelectTrigger className="bg-white border-slate-200 focus:ring-blue-500 font-medium">
+                  <SelectTrigger className="bg-white/80 border-[#d4af37]/40 text-slate-700 focus:ring-[#d4af37] font-medium shadow-sm">
                     <SelectValue placeholder="Tahun" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all" className="font-medium text-blue-600 focus:bg-blue-50">Semua Tahun</SelectItem>
+                  <SelectContent className="bg-white border-[#d4af37]/30 text-slate-700">
+                    <SelectItem value="all" className="font-medium text-[#8b6508] focus:bg-amber-50">Semua Tahun</SelectItem>
                     {yearOptions.map(y => (
-                      <SelectItem key={y} value={y}>{y}</SelectItem>
+                      <SelectItem key={y} value={y} className="focus:bg-amber-50 focus:text-slate-900">{y}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -304,13 +312,13 @@ export default function RegisterDesignGalleryPage() {
 
               <div className="w-40">
                 <Select value={selectedType} onValueChange={setSelectedType}>
-                  <SelectTrigger className="bg-white border-slate-200 focus:ring-blue-500 font-medium">
+                  <SelectTrigger className="bg-white/80 border-[#d4af37]/40 text-slate-700 focus:ring-[#d4af37] font-medium shadow-sm">
                     <SelectValue placeholder="Tipe Desain" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all" className="font-medium text-blue-600 focus:bg-blue-50">Semua Tipe</SelectItem>
+                  <SelectContent className="bg-white border-[#d4af37]/30 text-slate-700">
+                    <SelectItem value="all" className="font-medium text-[#8b6508] focus:bg-amber-50">Semua Tipe</SelectItem>
                     {typeOptions.map(t => (
-                      <SelectItem key={t} value={t}>{t}</SelectItem>
+                      <SelectItem key={t} value={t} className="focus:bg-amber-50 focus:text-slate-900">{t}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -318,13 +326,13 @@ export default function RegisterDesignGalleryPage() {
 
               <div className="w-40">
                 <Select value={selectedDesigner} onValueChange={setSelectedDesigner}>
-                  <SelectTrigger className="bg-white border-slate-200 focus:ring-blue-500 font-medium">
+                  <SelectTrigger className="bg-white/80 border-[#d4af37]/40 text-slate-700 focus:ring-[#d4af37] font-medium shadow-sm">
                     <SelectValue placeholder="Desainer" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all" className="font-medium text-blue-600 focus:bg-blue-50">Semua Desainer</SelectItem>
+                  <SelectContent className="bg-white border-[#d4af37]/30 text-slate-700">
+                    <SelectItem value="all" className="font-medium text-[#8b6508] focus:bg-amber-50">Semua Desainer</SelectItem>
                     {designerOptions.map(d => (
-                      <SelectItem key={d} value={d}>{d}</SelectItem>
+                      <SelectItem key={d} value={d} className="focus:bg-amber-50 focus:text-slate-900">{d}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -332,19 +340,19 @@ export default function RegisterDesignGalleryPage() {
 
               <div className="w-36">
                 <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                  <SelectTrigger className="bg-white border-slate-200 focus:ring-blue-500 font-medium">
+                  <SelectTrigger className="bg-white/80 border-[#d4af37]/40 text-slate-700 focus:ring-[#d4af37] font-medium shadow-sm">
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all" className="font-medium text-blue-600 focus:bg-blue-50">Semua Status</SelectItem>
+                  <SelectContent className="bg-white border-[#d4af37]/30 text-slate-700">
+                    <SelectItem value="all" className="font-medium text-[#8b6508] focus:bg-amber-50">Semua Status</SelectItem>
                     {statusOptions.map(s => (
-                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                      <SelectItem key={s} value={s} className="focus:bg-amber-50 focus:text-slate-900">{s}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               
-              <div className="ml-auto text-sm font-semibold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-md border border-slate-200">
+              <div className="ml-auto text-sm font-semibold text-[#8b6508] bg-white/80 px-3 py-1.5 rounded-md border border-[#d4af37]/40 shadow-sm">
                 {filteredData.length} Desain
               </div>
             </div>
@@ -353,28 +361,92 @@ export default function RegisterDesignGalleryPage() {
 
         {/* Gallery Content */}
         <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar">
+          <style dangerouslySetInnerHTML={{__html: `
+            .locked-card {
+              --background: linear-gradient(135deg, #bf953f 0%, #fcf6ba 25%, #b38728 50%, #fbf5b7 75%, #aa771c 100%);
+              padding: 4px;
+              border-radius: 1rem;
+              overflow: visible !important;
+              background: #d4af37;
+              background: var(--background);
+              background-size: 200% auto;
+              position: relative;
+              z-index: 1;
+              height: 100%;
+              animation: goldShine 3s linear infinite;
+            }
+            @keyframes goldShine {
+              to { background-position: 200% center; }
+            }
+            .locked-card::after {
+              position: absolute;
+              content: "";
+              top: 25px;
+              left: 0;
+              right: 0;
+              z-index: -1;
+              height: 100%;
+              width: 100%;
+              transform: scale(0.85);
+              filter: blur(25px);
+              background: #d4af37;
+              background: var(--background);
+              background-size: 200% auto;
+              animation: goldShine 3s linear infinite;
+              transition: opacity .5s;
+            }
+            .locked-card-info {
+              background: linear-gradient(135deg, #fffdf2 0%, #f5d78d 100%);
+              color: #3b280d;
+              display: flex;
+              flex-direction: column;
+              width: 100%;
+              height: 100%;
+              overflow: hidden;
+              border-radius: .8rem;
+              transition: all 0.5s ease;
+            }
+            .locked-card:hover::after {
+              opacity: 0.6;
+            }
+            .locked-card:hover .locked-card-info {
+              background: linear-gradient(135deg, #2a1e0b 0%, #110d05 100%);
+              color: #f7d070;
+            }
+            .locked-card:hover .locked-card-info span {
+              color: inherit !important;
+            }
+          `}} />
           <div className="max-w-7xl mx-auto">
             {loading ? (
-              <div className="flex flex-col items-center justify-center py-20 text-slate-500">
-                <Loader2 className="w-10 h-10 animate-spin text-blue-600 mb-4" />
+              <div className="flex flex-col items-center justify-center py-20 text-[#8b6508]/60">
+                <Loader2 className="w-10 h-10 animate-spin text-[#d4af37] mb-4" />
                 <p className="font-medium animate-pulse">Memuat galeri desain...</p>
               </div>
             ) : filteredData.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+              <div className="flex flex-col items-center justify-center py-20 text-[#8b6508]/40">
                 <Layers className="w-16 h-16 mb-4 opacity-20" />
-                <h3 className="text-lg font-bold text-slate-600">Tidak ada desain ditemukan</h3>
+                <h3 className="text-lg font-bold text-slate-700">Tidak ada desain ditemukan</h3>
                 <p className="text-sm">Coba sesuaikan filter pencarian Anda.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 auto-rows-max">
-                {filteredData.map(item => (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 auto-rows-max relative z-10">
+                {filteredData.map(item => {
+                  const isLocked = item.status === 'IN LOCK';
+                  
+                  return (
                   <div 
                     key={item.id} 
                     onClick={() => setLightboxItem(item)}
-                    className="group bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden hover:shadow-[0_20px_40px_-15px_rgba(59,130,246,0.15)] hover:border-blue-200 hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col"
+                    className={
+                      isLocked
+                        ? "locked-card group cursor-pointer flex flex-col hover:-translate-y-1 transition-all duration-300"
+                        : "group bg-white/80 backdrop-blur-md rounded-2xl shadow-sm border border-[#d4af37]/30 overflow-hidden hover:shadow-[0_20px_40px_-15px_rgba(212,175,55,0.15)] hover:border-[#d4af37]/70 hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col"
+                    }
                   >
+                    <div className={isLocked ? "locked-card-info" : "flex flex-col h-full w-full"}>
                     {/* Image Thumbnail */}
-                    <div className="relative aspect-square bg-slate-100 overflow-hidden">
+                    <div className={`relative aspect-square overflow-hidden ${isLocked ? 'bg-black/50' : 'bg-slate-50'}`}>
                       <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 to-transparent z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                       <ZoomIn className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white w-10 h-10 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 drop-shadow-md scale-50 group-hover:scale-100" />
                       
@@ -382,7 +454,7 @@ export default function RegisterDesignGalleryPage() {
                         <img 
                           src={`https://drive.google.com/thumbnail?id=${item.designImage}&sz=s600`} 
                           alt={item.itemName || 'Design'} 
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 opacity-95 group-hover:opacity-100"
                           loading="lazy"
                           referrerPolicy="no-referrer"
                           onError={(e) => { 
@@ -390,12 +462,12 @@ export default function RegisterDesignGalleryPage() {
                             if (target.src.includes('thumbnail')) {
                               target.src = `https://drive.google.com/uc?id=${item.designImage}`;
                             } else {
-                              target.src = 'https://placehold.co/400x400/png?text=Preview+Tidak+Tersedia';
+                              target.src = 'https://placehold.co/400x400/f8fafc/94a3b8?text=Preview+Tidak+Tersedia';
                             }
                           }}
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-slate-300">
+                        <div className={`w-full h-full flex items-center justify-center ${isLocked ? 'text-slate-500' : 'text-[#8b6508]/30'}`}>
                           <Layers className="w-12 h-12" />
                         </div>
                       )}
@@ -409,29 +481,29 @@ export default function RegisterDesignGalleryPage() {
                     </div>
                     
                     {/* Card Content */}
-                    <div className="p-4 flex flex-col flex-1 bg-gradient-to-b from-white to-slate-50/50">
-                      <h3 className="font-bold text-slate-800 text-sm line-clamp-1 group-hover:text-blue-600 transition-colors" title={item.itemName}>
+                    <div className={`p-4 flex flex-col flex-1 ${isLocked ? '' : 'bg-gradient-to-b from-white/50 to-amber-50/30'}`}>
+                      <h3 className="font-bold text-sm line-clamp-1 transition-colors text-slate-800 group-hover:text-[#8b6508]" title={item.itemName}>
                         {item.itemName || 'Tanpa Nama'}
                       </h3>
                       
                       <div className="mt-2 space-y-1.5 flex-1">
-                        <div className="flex items-center text-xs text-slate-500">
+                        <div className={`flex items-center text-xs ${isLocked ? 'text-inherit opacity-80' : 'text-slate-500'}`}>
                           <Tag className="w-3.5 h-3.5 mr-1.5 shrink-0" />
                           <span className="truncate" title={item.designNo || item.typeDesign}>
                             {item.designNo || '-'} &bull; {item.typeDesign || '-'}
                           </span>
                         </div>
-                        <div className="flex items-center text-xs text-slate-500 mt-1 mb-1">
+                        <div className={`flex items-center text-xs mt-1 mb-1 ${isLocked ? 'text-inherit opacity-90' : 'text-slate-500'}`}>
                           <User className="w-3.5 h-3.5 mr-1.5 shrink-0" />
                           <span className={`truncate px-2 py-0.5 rounded border ${getDesignerColor(item.designer || '')}`}>{item.designer || '-'}</span>
                         </div>
-                        <div className="flex items-center text-xs text-slate-500">
+                        <div className={`flex items-center text-xs ${isLocked ? 'text-inherit opacity-80' : 'text-slate-500'}`}>
                           <ImageIcon className="w-3.5 h-3.5 mr-1.5 shrink-0" />
                           <span className="truncate" title={item.designImageName || `Desain_${item.designNo || 'Gambar'}.jpg`}>
                             {item.designImageName || `Desain_${item.designNo || 'Gambar'}.jpg`}
                           </span>
                         </div>
-                        <div className="flex items-center text-xs text-slate-500">
+                        <div className={`flex items-center text-xs ${isLocked ? 'text-inherit opacity-80' : 'text-slate-500'}`}>
                           <Calendar className="w-3.5 h-3.5 mr-1.5 shrink-0" />
                           <span>
                             {item.entryDate 
@@ -443,8 +515,10 @@ export default function RegisterDesignGalleryPage() {
                         </div>
                       </div>
                     </div>
+                    </div>
                   </div>
-                ))}
+                );
+                })}
               </div>
             )}
           </div>
