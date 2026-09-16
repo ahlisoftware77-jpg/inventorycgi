@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { 
   Folder, File, FileText, Image as ImageIcon, FileSpreadsheet, 
   ArrowLeft, Download, AlertCircle, RefreshCw, X, Upload, Loader2,
-  Video, Trash2, Search
+  Video, Trash2, Search, Maximize, Minimize
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -51,6 +51,7 @@ export default function FileBrowser({ share, onClose }: FileBrowserProps) {
   const [authToken, setAuthToken] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('newest');
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -501,14 +502,25 @@ export default function FileBrowser({ share, onClose }: FileBrowserProps) {
         )}
       </div>
 
-      <Dialog open={!!previewFile} onOpenChange={(open) => !open && setPreviewFile(null)}>
-        <DialogContent className="sm:max-w-4xl p-0 overflow-hidden flex flex-col h-[90vh]">
+      <Dialog open={!!previewFile} onOpenChange={(open) => {
+        if (!open) {
+          setPreviewFile(null);
+          setIsFullscreen(false);
+        }
+      }}>
+        <DialogContent className={`p-0 overflow-hidden flex flex-col transition-all duration-300 ${isFullscreen ? 'max-w-[100vw] w-screen h-screen !rounded-none m-0 border-none' : 'sm:max-w-5xl h-[90vh]'}`}>
           <DialogHeader className="p-4 border-b bg-white dark:bg-slate-900 shrink-0 flex flex-row items-center justify-between">
             <DialogTitle className="truncate pr-4">{previewFile?.name}</DialogTitle>
             <div className="flex gap-2 mr-8">
+              {['pdf', 'jpg', 'jpeg', 'png', 'webp', 'mp4'].includes(previewFile?.ext || '') && (
+                <Button size="sm" variant="outline" onClick={() => setIsFullscreen(!isFullscreen)}>
+                  {isFullscreen ? <Minimize className="h-4 w-4 mr-1 sm:mr-2" /> : <Maximize className="h-4 w-4 mr-1 sm:mr-2" />}
+                  <span className="hidden sm:inline">{isFullscreen ? 'Tutup Layar Penuh' : 'Layar Penuh'}</span>
+                </Button>
+              )}
               <Button size="sm" onClick={() => previewFile && handleDownload(previewFile.name)}>
-                <Download className="h-4 w-4 mr-2" />
-                Unduh
+                <Download className="h-4 w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Unduh</span>
               </Button>
             </div>
           </DialogHeader>
