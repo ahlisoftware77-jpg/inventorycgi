@@ -9,8 +9,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { 
   Folder, File, FileText, Image as ImageIcon, FileSpreadsheet, 
   ArrowLeft, Download, AlertCircle, RefreshCw, X, Upload, Loader2,
-  Video, Trash2
+  Video, Trash2, Search
 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { format } from 'date-fns';
@@ -47,6 +49,8 @@ export default function FileBrowser({ share, onClose }: FileBrowserProps) {
   const [error, setError] = useState<string | null>(null);
   const [previewFile, setPreviewFile] = useState<{name: string, url: string, ext: string} | null>(null);
   const [authToken, setAuthToken] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState('newest');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -91,12 +95,14 @@ export default function FileBrowser({ share, onClose }: FileBrowserProps) {
   }, [share.id, user]);
 
   const handleNavigate = (folderName: string) => {
+    setSearchQuery('');
     const newPath = currentPath === '/' ? `/${folderName}` : `${currentPath}/${folderName}`;
     fetchFolder(newPath);
   };
 
   const handleBack = () => {
     if (currentPath === '/' || currentPath === '') return;
+    setSearchQuery('');
     const parts = currentPath.split('/').filter(Boolean);
     parts.pop();
     const newPath = parts.length === 0 ? '/' : `/${parts.join('/')}`;
@@ -310,52 +316,89 @@ export default function FileBrowser({ share, onClose }: FileBrowserProps) {
     }
   };
 
+  const filteredItems = items.filter(item => {
+    if (!searchQuery) return true;
+    return item.name.toLowerCase().includes(searchQuery.toLowerCase());
+  }).sort((a, b) => {
+    if (a.isDirectory && !b.isDirectory) return -1;
+    if (!a.isDirectory && b.isDirectory) return 1;
+
+    if (sortBy === 'newest') return (b.mtime || 0) - (a.mtime || 0);
+    if (sortBy === 'oldest') return (a.mtime || 0) - (b.mtime || 0);
+    if (sortBy === 'name') return a.name.localeCompare(b.name);
+    return 0;
+  });
+
   return (
     <div className="bg-white dark:bg-slate-900 rounded-xl border shadow-lg overflow-hidden flex flex-col h-[70vh]">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b bg-slate-50 dark:bg-slate-800/50">
-        <div className="flex items-center gap-3 overflow-hidden">
-          <Button 
-            variant="outline" 
-            size="icon" 
-            onClick={handleBack} 
-            disabled={currentPath === '/' || loading}
-            className="shrink-0"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div className="flex flex-col overflow-hidden">
-            <h3 className="font-semibold text-slate-900 dark:text-white truncate">{share.name}</h3>
-            <div className="text-xs text-slate-500 truncate flex items-center gap-1">
-              {share.path} <span className="font-bold text-slate-700 dark:text-slate-300">{(currentPath || '/').replace(/\//g, ' \\ ')}</span>
+      <div className="flex flex-col gap-3 p-4 border-b bg-slate-50 dark:bg-slate-800/50 shrink-0">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="flex items-center gap-3 overflow-hidden">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={handleBack} 
+              disabled={currentPath === '/' || loading}
+              className="shrink-0"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div className="flex flex-col overflow-hidden">
+              <h3 className="font-semibold text-slate-900 dark:text-white truncate">{share.name}</h3>
+              <div className="text-xs text-slate-500 truncate flex items-center gap-1">
+                {share.path} <span className="font-bold text-slate-700 dark:text-slate-300">{(currentPath || '/').replace(/\//g, ' \\ ')}</span>
+              </div>
             </div>
           </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {share.allowUpload !== false && (
+              <>
+                <input 
+                  type="file" 
+                  id="file-upload" 
+                  className="hidden" 
+                  multiple
+                  onChange={handleFileChange} 
+                />
+                <Button variant="outline" size="sm" onClick={handleUploadClick} disabled={uploading || loading} className="gap-2 hidden sm:flex border-teal-200 text-teal-700 hover:bg-teal-50">
+                  {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                  Upload File
+                </Button>
+                <Button variant="outline" size="icon" onClick={handleUploadClick} disabled={uploading || loading} className="sm:hidden border-teal-200 text-teal-700 hover:bg-teal-50">
+                  {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                </Button>
+              </>
+            )}
+            <Button variant="ghost" size="icon" onClick={() => fetchFolder(currentPath)} disabled={loading}>
+              <RefreshCw className={`h-4 w-4 ${loading && !uploading ? 'animate-spin' : ''}`} />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={onClose}>
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          {share.allowUpload !== false && (
-            <>
-              <input 
-                type="file" 
-                id="file-upload" 
-                className="hidden" 
-                multiple
-                onChange={handleFileChange} 
-              />
-              <Button variant="outline" size="sm" onClick={handleUploadClick} disabled={uploading || loading} className="gap-2 hidden sm:flex border-teal-200 text-teal-700 hover:bg-teal-50">
-                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                Upload File
-              </Button>
-              <Button variant="outline" size="icon" onClick={handleUploadClick} disabled={uploading || loading} className="sm:hidden border-teal-200 text-teal-700 hover:bg-teal-50">
-                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-              </Button>
-            </>
-          )}
-          <Button variant="ghost" size="icon" onClick={() => fetchFolder(currentPath)} disabled={loading}>
-            <RefreshCw className={`h-4 w-4 ${loading && !uploading ? 'animate-spin' : ''}`} />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="h-5 w-5" />
-          </Button>
+        
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full">
+          <div className="relative flex-1 w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input 
+              placeholder="Cari nama file atau folder di direktori ini..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 h-9"
+            />
+          </div>
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-full sm:w-[160px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 h-9">
+              <SelectValue placeholder="Urutkan" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Update Terbaru</SelectItem>
+              <SelectItem value="oldest">Paling Lama</SelectItem>
+              <SelectItem value="name">Sesuai Abjad</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -394,8 +437,14 @@ export default function FileBrowser({ share, onClose }: FileBrowserProps) {
                     Folder ini kosong.
                   </td>
                 </tr>
+              ) : filteredItems.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-6 py-12 text-center text-slate-500">
+                    Tidak ada file atau folder yang sesuai dengan "{searchQuery}".
+                  </td>
+                </tr>
               ) : (
-                items.map((item, idx) => (
+                filteredItems.map((item, idx) => (
                   <tr 
                     key={idx} 
                     className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group cursor-pointer"

@@ -8,7 +8,9 @@ import { collection, onSnapshot, query, addDoc, updateDoc, deleteDoc, doc, getDo
 import { FileShare, FileShareLog } from './types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Copy, Plus, FolderSync, Edit, Trash2, FolderOpen, ExternalLink, Pin } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Copy, Plus, FolderSync, Edit, Trash2, FolderOpen, ExternalLink, Pin, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import FileShareForm from './file-share-form';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -23,6 +25,8 @@ export default function FileShareList({ isManager }: { isManager: boolean }) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingShare, setEditingShare] = useState<FileShare | null>(null);
   const [activeBrowseShare, setActiveBrowseShare] = useState<FileShare | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState('newest');
 
   useEffect(() => {
     let q = query(collection(db, 'file_shares'));
@@ -44,14 +48,7 @@ export default function FileShareList({ isManager }: { isManager: boolean }) {
            fetchedShares.push({ id: doc.id, ...data });
         }
       });
-      setShares(fetchedShares.sort((a, b) => {
-        const aIsWeb = a.path.toLowerCase().startsWith('http://') || a.path.toLowerCase().startsWith('https://');
-        const bIsWeb = b.path.toLowerCase().startsWith('http://') || b.path.toLowerCase().startsWith('https://');
-        
-        if (aIsWeb && !bIsWeb) return -1;
-        if (!aIsWeb && bIsWeb) return 1;
-        return b.createdAt - a.createdAt;
-      }));
+      setShares(fetchedShares);
       setLoading(false);
     }, (error) => {
       console.error("Error fetching file shares:", error);
@@ -130,29 +127,71 @@ export default function FileShareList({ isManager }: { isManager: boolean }) {
     );
   }
 
+  const filteredShares = shares.filter(share => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return share.name.toLowerCase().includes(q) || share.description?.toLowerCase().includes(q) || share.path.toLowerCase().includes(q);
+  }).sort((a, b) => {
+    const aIsWeb = a.path.toLowerCase().startsWith('http://') || a.path.toLowerCase().startsWith('https://');
+    const bIsWeb = b.path.toLowerCase().startsWith('http://') || b.path.toLowerCase().startsWith('https://');
+    
+    if (aIsWeb && !bIsWeb) return -1;
+    if (!aIsWeb && bIsWeb) return 1;
+
+    const timeA = a.updatedAt || a.createdAt;
+    const timeB = b.updatedAt || b.createdAt;
+
+    if (sortBy === 'newest') return timeB - timeA;
+    if (sortBy === 'oldest') return timeA - timeB;
+    if (sortBy === 'name') return a.name.localeCompare(b.name);
+    return 0;
+  });
+
   return (
     <div className="space-y-6">
-      {isManager && (
-        <div className="flex justify-end">
-          <Button onClick={() => { setEditingShare(null); setIsFormOpen(true); }} className="bg-teal-600 hover:bg-teal-700 text-white">
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div className="flex w-full sm:w-auto items-center gap-3 flex-1 max-w-md">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input 
+              placeholder="Cari direktori..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+            />
+          </div>
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-[160px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+              <SelectValue placeholder="Urutkan" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Update Terbaru</SelectItem>
+              <SelectItem value="oldest">Paling Lama</SelectItem>
+              <SelectItem value="name">Sesuai Abjad</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {isManager && (
+          <Button onClick={() => { setEditingShare(null); setIsFormOpen(true); }} className="bg-teal-600 hover:bg-teal-700 text-white w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
             Tambah File Share
           </Button>
-        </div>
-      )}
+        )}
+      </div>
 
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map(i => <Skeleton key={i} className="h-48 w-full rounded-xl" />)}
         </div>
-      ) : shares.length === 0 ? (
+      ) : filteredShares.length === 0 ? (
         <div className="text-center py-20 bg-slate-50 dark:bg-slate-900 rounded-xl border border-dashed border-slate-300 dark:border-slate-800">
           <FolderSync className="h-10 w-10 text-slate-400 mx-auto mb-3" />
-          <p className="text-slate-500 font-medium">Belum ada direktori File Share yang tersedia untuk Anda.</p>
+          <p className="text-slate-500 font-medium">Belum ada direktori File Share yang sesuai.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {shares.map(share => (
+          {filteredShares.map(share => (
             <Card key={share.id} className={`border-slate-200 transition-all hover:shadow-md ${share.status === 'inactive' ? 'opacity-70 bg-slate-50' : ''}`}>
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">

@@ -29,10 +29,10 @@ try {
       analytics: true,
     });
 
-    // 100 requests per minute for general API
+    // 500 requests per minute for general API
     generalApiLimiter = new Ratelimit({
       redis,
-      limiter: Ratelimit.slidingWindow(100, '1 m'),
+      limiter: Ratelimit.slidingWindow(500, '1 m'),
       analytics: true,
     });
   }
