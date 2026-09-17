@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { db, auth } from '@/lib/firebase/config';
 import { collection, getDocs, query, orderBy, doc, updateDoc, getDoc } from 'firebase/firestore';
-import { Search, Loader2, X, ZoomIn, Calendar, Layers, Tag, User, Image as ImageIcon, Trash2, ExternalLink } from 'lucide-react';
+import { Search, Loader2, X, ZoomIn, Calendar, Layers, Tag, User, Image as ImageIcon, Trash2, ExternalLink, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -163,6 +163,16 @@ export default function RegisterDesignGalleryPage() {
     // fetchData is now called from auth effect
   }, []);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && lightboxItem) {
+        setLightboxItem(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [lightboxItem]);
+
   const fetchData = async () => {
     try {
       const q = query(collection(db, "register_design"), orderBy("createdAt", "desc"));
@@ -272,6 +282,9 @@ export default function RegisterDesignGalleryPage() {
           <div className="absolute inset-0 bg-gradient-to-r from-[#d4af37]/5 via-transparent to-[#00c6ff]/5 -z-10" />
           <div className="max-w-[1400px] mx-auto flex flex-col xl:flex-row xl:items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
+              <Button onClick={() => router.push('/register-design')} variant="ghost" size="icon" className="shrink-0 hover:bg-[#d4af37]/10 text-[#8b6508] rounded-full" title="Kembali ke Register Design">
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
               <div className="w-10 h-10 flex items-center justify-center shrink-0 drop-shadow-[0_2px_4px_rgba(212,175,55,0.3)]">
                 <div 
                   className="w-9 h-9 bg-gradient-to-r from-[#8b6508] to-[#d4af37]"
