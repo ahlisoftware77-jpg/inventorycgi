@@ -36,6 +36,7 @@ export default function RegisterDesignGalleryPage() {
   const [selectedType, setSelectedType] = useState<string>("all");
   const [selectedDesigner, setSelectedDesigner] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  const [displayLimit, setDisplayLimit] = useState<string>("20");
   
   // Options
   const statusOptions = ['FREE', 'IN USE', 'IN LOCK', 'ARCHIVE'];
@@ -376,6 +377,20 @@ export default function RegisterDesignGalleryPage() {
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="w-[110px]">
+                <Select value={displayLimit} onValueChange={setDisplayLimit}>
+                  <SelectTrigger className="h-9 text-xs bg-white/80 border-[#d4af37]/40 text-slate-700 focus:ring-[#d4af37] font-medium shadow-sm">
+                    <SelectValue placeholder="Tampilkan" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border-[#d4af37]/30 text-slate-700 text-xs">
+                    <SelectItem value="20" className="focus:bg-amber-50 focus:text-slate-900">20 Gambar</SelectItem>
+                    <SelectItem value="30" className="focus:bg-amber-50 focus:text-slate-900">30 Gambar</SelectItem>
+                    <SelectItem value="50" className="focus:bg-amber-50 focus:text-slate-900">50 Gambar</SelectItem>
+                    <SelectItem value="all" className="focus:bg-amber-50 focus:text-slate-900">Semua</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               
               <div className="ml-auto xl:ml-0 text-xs font-semibold text-[#8b6508] bg-white/80 px-2.5 py-1.5 rounded-md border border-[#d4af37]/40 shadow-sm shrink-0">
                 {filteredData.length} Desain
@@ -464,7 +479,7 @@ export default function RegisterDesignGalleryPage() {
               </div>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 auto-rows-max relative z-10">
-                {filteredData.map(item => {
+                {filteredData.slice(0, displayLimit === 'all' ? filteredData.length : parseInt(displayLimit)).map(item => {
                   const isLocked = item.status === 'IN LOCK';
                   
                   return (
