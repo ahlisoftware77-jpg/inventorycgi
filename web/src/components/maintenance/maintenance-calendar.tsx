@@ -31,6 +31,8 @@ import {
   Clock,
   CheckSquare,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Search,
   Filter,
   RotateCcw,
@@ -107,6 +109,13 @@ export default function MaintenanceCalendar() {
   const [selectedYear, setSelectedYear] = useState<string>('all');
   const [selectedDept, setSelectedDept] = useState<string>('all');
   const [userSearch, setUserSearch] = useState('');
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedMonth, selectedYear, selectedDept, userSearch]);
 
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
@@ -216,10 +225,18 @@ export default function MaintenanceCalendar() {
     setSelectedYear('all');
     setSelectedDept('all');
     setUserSearch('');
+    setCurrentPage(1);
   };
 
   const isAllSelected = filteredSchedules.length > 0 && selectedIds.length === filteredSchedules.length;
   const isIndeterminate = selectedIds.length > 0 && !isAllSelected;
+
+  const paginatedSchedules = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredSchedules.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredSchedules, currentPage]);
+  
+  const totalPages = Math.ceil(filteredSchedules.length / itemsPerPage);
 
   const handleSyncHelpdesk = async () => {
     const unsyncedSchedules = schedules.filter(
@@ -677,8 +694,8 @@ export default function MaintenanceCalendar() {
             <div className="space-y-4 pb-20">
                 {loading ? (
                     Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-24 w-full rounded-[1.5rem]" />)
-                ) : filteredSchedules.length > 0 ? (
-                    filteredSchedules.map(schedule => (
+                ) : paginatedSchedules.length > 0 ? (
+                    paginatedSchedules.map(schedule => (
                         <div key={schedule.id} className="animate-in fade-in slide-in-from-top-2 duration-500">
                             <MaintenanceItem
                                 schedule={schedule}
@@ -703,6 +720,36 @@ export default function MaintenanceCalendar() {
                     </div>
                 )}
             </div>
+
+            {!loading && totalPages > 1 && (
+                <div className="flex items-center justify-between mt-6 pt-6 border-t border-slate-100 dark:border-slate-800">
+                    <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                        Halaman {currentPage} dari {totalPages}
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                            disabled={currentPage === 1}
+                            className="h-8 px-3 rounded-lg text-xs"
+                        >
+                            <ChevronLeft className="h-4 w-4 mr-1" />
+                            Prev
+                        </Button>
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                            disabled={currentPage === totalPages}
+                            className="h-8 px-3 rounded-lg text-xs"
+                        >
+                            Next
+                            <ChevronRight className="h-4 w-4 ml-1" />
+                        </Button>
+                    </div>
+                </div>
+            )}
         </CardContent>
       </Card>
 

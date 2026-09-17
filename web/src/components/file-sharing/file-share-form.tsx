@@ -26,6 +26,7 @@ export default function FileShareForm({ isOpen, onClose, onSave, initialData }: 
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
   const [allowedUsers, setAllowedUsers] = useState<string[]>([]);
   const [allowUpload, setAllowUpload] = useState<boolean>(true);
+  const [allowDownload, setAllowDownload] = useState<boolean>(true);
   const [allowDelete, setAllowDelete] = useState<boolean>(false);
   const [deleteAllowedUsers, setDeleteAllowedUsers] = useState<string[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -38,6 +39,7 @@ export default function FileShareForm({ isOpen, onClose, onSave, initialData }: 
       setStatus(initialData?.status || 'active');
       setAllowedUsers(initialData?.allowedUsers || []);
       setAllowUpload(initialData?.allowUpload !== false); // default true if undefined
+      setAllowDownload(initialData?.allowDownload !== false); // default true if undefined
       setAllowDelete(initialData?.allowDelete || false);
       setDeleteAllowedUsers(initialData?.deleteAllowedUsers || []);
       
@@ -54,7 +56,7 @@ export default function FileShareForm({ isOpen, onClose, onSave, initialData }: 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({ name, path, description, status, allowedUsers, allowUpload, allowDelete, deleteAllowedUsers });
+    onSave({ name, path, description, status, allowedUsers, allowUpload, allowDownload, allowDelete, deleteAllowedUsers });
   };
 
   const handleToggleUser = (uid: string, checked: boolean) => {
@@ -136,6 +138,17 @@ export default function FileShareForm({ isOpen, onClose, onSave, initialData }: 
             />
             <Label htmlFor="allow-upload" className="text-sm font-medium leading-none cursor-pointer">
               Izinkan Upload File pada Folder Ini
+            </Label>
+          </div>
+          
+          <div className="flex items-center space-x-2 pt-4 border-t">
+            <Checkbox
+              id="allow-download"
+              checked={allowDownload}
+              onCheckedChange={(checked) => setAllowDownload(!!checked)}
+            />
+            <Label htmlFor="allow-download" className="text-sm font-medium leading-none cursor-pointer">
+              Izinkan Download File pada Folder Ini
             </Label>
           </div>
           

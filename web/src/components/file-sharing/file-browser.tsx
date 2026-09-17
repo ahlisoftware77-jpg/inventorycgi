@@ -331,9 +331,9 @@ export default function FileBrowser({ share, onClose }: FileBrowserProps) {
   });
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-xl border shadow-lg overflow-hidden flex flex-col h-[70vh]">
+    <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl rounded-xl border border-cyan-200/50 dark:border-cyan-800/50 shadow-2xl overflow-hidden flex flex-col h-[75vh]">
       {/* Header */}
-      <div className="flex flex-col gap-3 p-4 border-b bg-slate-50 dark:bg-slate-800/50 shrink-0">
+      <div className="flex flex-col gap-3 p-4 border-b border-cyan-100/50 dark:border-cyan-800/50 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md shrink-0">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="flex items-center gap-3 overflow-hidden">
             <Button 
@@ -362,11 +362,11 @@ export default function FileBrowser({ share, onClose }: FileBrowserProps) {
                   multiple
                   onChange={handleFileChange} 
                 />
-                <Button variant="outline" size="sm" onClick={handleUploadClick} disabled={uploading || loading} className="gap-2 hidden sm:flex border-teal-200 text-teal-700 hover:bg-teal-50">
+                <Button variant="outline" size="sm" onClick={handleUploadClick} disabled={uploading || loading} className="gap-2 hidden sm:flex border-cyan-300 text-cyan-700 hover:bg-cyan-50 dark:border-cyan-700 dark:text-cyan-300 dark:hover:bg-cyan-900/30 transition-all hover:shadow-[0_0_10px_rgba(6,182,212,0.3)]">
                   {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                   Upload File
                 </Button>
-                <Button variant="outline" size="icon" onClick={handleUploadClick} disabled={uploading || loading} className="sm:hidden border-teal-200 text-teal-700 hover:bg-teal-50">
+                <Button variant="outline" size="icon" onClick={handleUploadClick} disabled={uploading || loading} className="sm:hidden border-cyan-300 text-cyan-700 hover:bg-cyan-50 dark:border-cyan-700 dark:text-cyan-300 dark:hover:bg-cyan-900/30 transition-all">
                   {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                 </Button>
               </>
@@ -382,16 +382,16 @@ export default function FileBrowser({ share, onClose }: FileBrowserProps) {
         
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full">
           <div className="relative flex-1 w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-cyan-500" />
             <Input 
               placeholder="Cari nama file atau folder di direktori ini..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 h-9"
+              className="pl-9 bg-white/50 dark:bg-slate-950/50 backdrop-blur border-cyan-200/50 dark:border-cyan-800/50 h-9 focus-visible:ring-cyan-500 transition-all"
             />
           </div>
           <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-full sm:w-[160px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 h-9">
+            <SelectTrigger className="w-full sm:w-[160px] bg-white/50 dark:bg-slate-950/50 backdrop-blur border-cyan-200/50 dark:border-cyan-800/50 h-9 focus:ring-cyan-500 transition-all">
               <SelectValue placeholder="Urutkan" />
             </SelectTrigger>
             <SelectContent>
@@ -414,7 +414,7 @@ export default function FileBrowser({ share, onClose }: FileBrowserProps) {
           </div>
         ) : (
           <table className="w-full text-sm text-left">
-            <thead className="text-xs text-slate-500 uppercase bg-slate-50 dark:bg-slate-800/50 sticky top-0 z-10 shadow-sm">
+            <thead className="text-xs text-slate-500 uppercase bg-slate-50/80 dark:bg-slate-800/80 backdrop-blur-md sticky top-0 z-10 shadow-sm border-b border-cyan-100 dark:border-cyan-900/50">
               <tr>
                 <th className="px-6 py-3 font-medium">Nama</th>
                 <th className="px-6 py-3 font-medium w-32 hidden md:table-cell">Ukuran</th>
@@ -448,13 +448,15 @@ export default function FileBrowser({ share, onClose }: FileBrowserProps) {
                 filteredItems.map((item, idx) => (
                   <tr 
                     key={idx} 
-                    className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group cursor-pointer"
+                    className="hover:bg-cyan-50/50 dark:hover:bg-cyan-900/20 transition-all group cursor-pointer border-b border-slate-100 dark:border-slate-800/50"
                     onClick={() => item.isDirectory ? handleNavigate(item.name) : handlePreview(item.name)}
                   >
                     <td className="px-6 py-3">
                       <div className="flex items-center gap-3">
                         {item.isDirectory ? (
-                          <Folder className="h-6 w-6 text-amber-500 fill-amber-500/20 shrink-0" />
+                          <div className="p-1 rounded bg-cyan-100 dark:bg-cyan-900/50 text-cyan-600 dark:text-cyan-400 group-hover:shadow-[0_0_8px_rgba(6,182,212,0.4)] transition-all">
+                            <Folder className="h-5 w-5 fill-cyan-500/20" />
+                          </div>
                         ) : (
                           getFileIcon(item.name)
                         )}
@@ -488,9 +490,11 @@ export default function FileBrowser({ share, onClose }: FileBrowserProps) {
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           )}
-                          <Button variant="outline" size="icon" className="h-8 w-8 text-blue-600 border-blue-200 hover:bg-blue-50" onClick={(e) => { e.stopPropagation(); handleDownload(item.name); }}>
-                            <Download className="h-4 w-4" />
-                          </Button>
+                          {share.allowDownload !== false && (
+                            <Button variant="outline" size="icon" className="h-8 w-8 text-blue-600 border-blue-200 hover:bg-blue-50" onClick={(e) => { e.stopPropagation(); handleDownload(item.name); }}>
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       )}
                     </td>
@@ -508,23 +512,25 @@ export default function FileBrowser({ share, onClose }: FileBrowserProps) {
           setIsFullscreen(false);
         }
       }}>
-        <DialogContent className={`p-0 overflow-hidden flex flex-col transition-all duration-300 ${isFullscreen ? 'max-w-[100vw] w-screen h-screen !rounded-none m-0 border-none' : 'sm:max-w-5xl h-[90vh]'}`}>
-          <DialogHeader className="p-4 border-b bg-white dark:bg-slate-900 shrink-0 flex flex-row items-center justify-between">
-            <DialogTitle className="truncate pr-4">{previewFile?.name}</DialogTitle>
+        <DialogContent className={`p-0 overflow-hidden flex flex-col transition-all duration-300 bg-white/90 dark:bg-slate-950/90 backdrop-blur-2xl border-cyan-200/50 dark:border-cyan-800/50 shadow-2xl ${isFullscreen ? 'max-w-[100vw] w-screen h-screen !rounded-none m-0 border-none' : 'sm:max-w-5xl h-[90vh]'}`}>
+          <DialogHeader className="p-4 border-b border-cyan-100/50 dark:border-cyan-800/50 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md shrink-0 flex flex-row items-center justify-between">
+            <DialogTitle className="truncate pr-4 text-cyan-900 dark:text-cyan-100">{previewFile?.name}</DialogTitle>
             <div className="flex gap-2 mr-8">
               {['pdf', 'jpg', 'jpeg', 'png', 'webp', 'mp4'].includes(previewFile?.ext || '') && (
-                <Button size="sm" variant="outline" onClick={() => setIsFullscreen(!isFullscreen)}>
+                <Button size="sm" variant="outline" onClick={() => setIsFullscreen(!isFullscreen)} className="border-cyan-200 dark:border-cyan-800 hover:bg-cyan-50 dark:hover:bg-cyan-900/30">
                   {isFullscreen ? <Minimize className="h-4 w-4 mr-1 sm:mr-2" /> : <Maximize className="h-4 w-4 mr-1 sm:mr-2" />}
                   <span className="hidden sm:inline">{isFullscreen ? 'Tutup Layar Penuh' : 'Layar Penuh'}</span>
                 </Button>
               )}
-              <Button size="sm" onClick={() => previewFile && handleDownload(previewFile.name)}>
-                <Download className="h-4 w-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Unduh</span>
-              </Button>
+              {share.allowDownload !== false && (
+                <Button size="sm" onClick={() => previewFile && handleDownload(previewFile.name)} className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-sm border-0">
+                  <Download className="h-4 w-4 mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">Unduh</span>
+                </Button>
+              )}
             </div>
           </DialogHeader>
-          <div className="flex-1 min-h-0 overflow-hidden bg-slate-100 dark:bg-slate-950 flex flex-col">
+          <div className="flex-1 min-h-0 overflow-hidden bg-slate-100/50 dark:bg-slate-950/50 flex flex-col">
             {previewFile && (
               ['pdf'].includes(previewFile.ext) ? (
                 <iframe src={previewFile.url} className="w-full h-full border-0" />

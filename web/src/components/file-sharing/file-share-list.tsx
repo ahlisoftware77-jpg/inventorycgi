@@ -152,16 +152,16 @@ export default function FileShareList({ isManager }: { isManager: boolean }) {
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
         <div className="flex w-full sm:w-auto items-center gap-3 flex-1 max-w-md">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-cyan-600 dark:text-cyan-400" />
             <Input 
               placeholder="Cari direktori..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+              className="pl-9 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md border-cyan-200/50 dark:border-cyan-800/50 focus-visible:ring-cyan-500 shadow-sm"
             />
           </div>
           <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-[160px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+            <SelectTrigger className="w-[160px] bg-white/70 dark:bg-slate-900/70 backdrop-blur-md border-cyan-200/50 dark:border-cyan-800/50 focus:ring-cyan-500 shadow-sm">
               <SelectValue placeholder="Urutkan" />
             </SelectTrigger>
             <SelectContent>
@@ -173,7 +173,7 @@ export default function FileShareList({ isManager }: { isManager: boolean }) {
         </div>
 
         {isManager && (
-          <Button onClick={() => { setEditingShare(null); setIsFormOpen(true); }} className="bg-teal-600 hover:bg-teal-700 text-white w-full sm:w-auto">
+          <Button onClick={() => { setEditingShare(null); setIsFormOpen(true); }} className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-[0_4px_15px_rgba(79,70,229,0.4)] hover:shadow-[0_6px_25px_rgba(79,70,229,0.6)] border-0 transition-all w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
             Tambah File Share
           </Button>
@@ -192,29 +192,34 @@ export default function FileShareList({ isManager }: { isManager: boolean }) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredShares.map(share => (
-            <Card key={share.id} className={`border-slate-200 transition-all hover:shadow-md ${share.status === 'inactive' ? 'opacity-70 bg-slate-50' : ''}`}>
-              <CardHeader className="pb-3">
+            <Card key={share.id} className={`bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border border-indigo-100 dark:border-indigo-900/50 transition-all duration-300 shadow-md hover:shadow-[0_12px_30px_-12px_rgba(79,70,229,0.3)] hover:-translate-y-1.5 group relative overflow-hidden ${share.status === 'inactive' ? 'opacity-70 bg-slate-50' : ''}`}>
+              <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/0 to-purple-500/0 group-hover:from-indigo-500/5 group-hover:to-purple-500/5 transition-colors duration-500 pointer-events-none" />
+              <CardHeader className="pb-3 relative z-10">
                 <div className="flex justify-between items-start">
-                  <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+                  <div className="flex items-center gap-2">
                     {share.path.toLowerCase().startsWith('http://') || share.path.toLowerCase().startsWith('https://') ? (
-                      <Pin className="h-5 w-5 text-rose-500 fill-rose-500/20" />
+                      <div className="p-1.5 rounded-lg bg-gradient-to-br from-fuchsia-500/20 to-purple-500/20 shadow-[0_0_10px_rgba(217,70,239,0.2)] group-hover:shadow-[0_0_15px_rgba(217,70,239,0.4)] transition-all">
+                        <Pin className="h-5 w-5 text-fuchsia-600 dark:text-fuchsia-400" />
+                      </div>
                     ) : (
-                      <FolderSync className="h-5 w-5" />
+                      <div className="p-1.5 rounded-lg bg-gradient-to-br from-cyan-500/20 to-blue-500/20 shadow-[0_0_10px_rgba(6,182,212,0.2)] group-hover:shadow-[0_0_15px_rgba(6,182,212,0.4)] transition-all">
+                        <FolderSync className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
+                      </div>
                     )}
-                    <CardTitle className="text-lg">{share.name}</CardTitle>
+                    <CardTitle className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-800 to-slate-600 dark:from-slate-100 dark:to-slate-300">{share.name}</CardTitle>
                   </div>
                   {share.status === 'inactive' && (
-                    <span className="text-xs font-semibold px-2 py-1 bg-slate-200 text-slate-600 rounded">Nonaktif</span>
+                    <span className="text-xs font-semibold px-2 py-1 bg-rose-100/50 text-rose-700 dark:bg-rose-900/50 dark:text-rose-300 rounded border border-rose-200 dark:border-rose-800 backdrop-blur-sm">Nonaktif</span>
                   )}
                 </div>
                 <CardDescription className="line-clamp-2 mt-1">{share.description}</CardDescription>
               </CardHeader>
-              <CardContent className="pb-4">
-                <div className="bg-slate-100 dark:bg-slate-900 p-2 px-3 rounded text-sm font-mono text-slate-700 dark:text-slate-300 overflow-hidden text-ellipsis whitespace-nowrap" title={share.path}>
+              <CardContent className="pb-4 relative z-10">
+                <div className="bg-white/50 dark:bg-slate-950/50 p-2.5 px-3 rounded-lg border border-cyan-100/60 dark:border-cyan-900/50 text-sm font-mono text-slate-700 dark:text-slate-300 overflow-hidden text-ellipsis whitespace-nowrap shadow-inner" title={share.path}>
                   {share.path}
                 </div>
               </CardContent>
-              <CardFooter className="pt-0 flex flex-col gap-2">
+              <CardFooter className="pt-0 flex flex-col gap-2 relative z-10">
                 <Button 
                   onClick={() => {
                     // Check logic for allowedUsers (Private Share)
@@ -240,7 +245,7 @@ export default function FileShareList({ isManager }: { isManager: boolean }) {
                       setActiveBrowseShare(share);
                     }
                   }} 
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                  className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-md border-0 transition-all hover:shadow-[0_6px_20px_rgba(79,70,229,0.4)]"
                   disabled={share.status === 'inactive'}
                 >
                   {(share.path.toLowerCase().startsWith('http://') || share.path.toLowerCase().startsWith('https://')) ? (

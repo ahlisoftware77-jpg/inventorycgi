@@ -43,7 +43,8 @@ import {
   ClipboardCheck,
   Check,
   LayoutGrid,
-  List
+  List,
+  ChevronLeft
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Checkbox } from '../ui/checkbox';
@@ -126,7 +127,7 @@ const RadioFilterGroup = ({
                 {Icon && <Icon className="h-3.5 w-3.5" />}
                 {label}
             </Label>
-            <div className="flex flex-row flex-wrap gap-2.5 text-left">
+            <div className="flex flex-row flex-wrap gap-2 text-left">
                 <div className="relative">
                     <input 
                         type="radio" 
@@ -139,7 +140,7 @@ const RadioFilterGroup = ({
                     />
                     <label 
                         htmlFor={`${namePrefix}-all`}
-                        className="radio-label flex items-center px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-slate-800 peer-checked:bg-primary/10 peer-checked:border-primary peer-checked:shadow-sm"
+                        className="radio-label flex items-center px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-slate-800 peer-checked:bg-primary/10 peer-checked:border-primary peer-checked:shadow-sm"
                     >
                         <span className="radio-inner-circle inline-block w-3.5 h-3.5 border-2 border-slate-300 dark:border-slate-600 rounded-full mr-2 relative transition-all peer-checked:border-primary">
                              {selectedValue === 'ALL' && <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-primary rounded-full" />}
@@ -161,7 +162,7 @@ const RadioFilterGroup = ({
                         />
                         <label 
                             htmlFor={`${namePrefix}-${option.value}`}
-                            className="radio-label flex items-center px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-slate-800 peer-checked:bg-primary/10 peer-checked:border-primary peer-checked:shadow-sm"
+                            className="radio-label flex items-center px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-slate-800 peer-checked:bg-primary/10 peer-checked:border-primary peer-checked:shadow-sm"
                         >
                             <span className="radio-inner-circle inline-block w-3.5 h-3.5 border-2 border-slate-300 dark:border-slate-600 rounded-full mr-2 relative transition-all peer-checked:border-primary">
                                  {selectedValue === option.value && <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-primary rounded-full" />}
@@ -419,7 +420,22 @@ export default function AssetList({ assets, initialSearchTerm = '', initialCateg
     setConditionFilter('ALL');
     setCategoryFilter('ALL');
     setOwnershipFilter('ALL');
+    setCurrentPage(1);
   }
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, categoryFilter, statusFilter, conditionFilter, locationFilter, ownershipFilter, sortConfig]);
+
+  const paginatedAssets = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredAssets.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredAssets, currentPage]);
+  
+  const totalPages = Math.ceil(filteredAssets.length / itemsPerPage);
 
   const handleToggle = useCallback((id: string) => {
     setExpandedId(prevId => (prevId === id ? null : id));
@@ -456,18 +472,18 @@ export default function AssetList({ assets, initialSearchTerm = '', initialCateg
   const isAdmin = user?.role === 'Admin';
 
   return (
-    <div className="w-full space-y-8 animate-in fade-in duration-700 pb-20 text-black">
-      <CardHeader className="bg-transparent px-0 space-y-8">
+    <div className="w-full space-y-4 animate-in fade-in duration-700 pb-10 text-black">
+      <CardHeader className="bg-transparent px-0 space-y-4">
         {/* Modern Header Banner */}
-        <div className="relative overflow-hidden bg-gradient-to-r from-slate-900 to-indigo-950 dark:from-slate-950 dark:to-slate-900 text-white rounded-[2rem] p-8 md:p-10 shadow-xl border border-white/5">
+        <div className="relative overflow-hidden bg-gradient-to-r from-slate-900 to-indigo-950 dark:from-slate-950 dark:to-slate-900 text-white rounded-[2rem] p-5 md:p-6 shadow-xl border border-white/5">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.15),transparent_50%)]" />
             <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="space-y-2 text-left">
-                    <span className="text-[10px] font-black tracking-[0.25em] text-indigo-400 uppercase">Master Database</span>
-                    <h1 className="text-3xl md:text-4xl font-black tracking-tight uppercase flex items-center gap-3">
-                        <Package className="h-9 w-9 text-indigo-400" /> Asset Inventory
+                <div className="space-y-1.5 text-left">
+                    <span className="text-[9px] font-black tracking-[0.25em] text-indigo-400 uppercase">Master Database</span>
+                    <h1 className="text-2xl md:text-3xl font-black tracking-tight uppercase flex items-center gap-2.5">
+                        <Package className="h-7 w-7 text-indigo-400" /> Asset Inventory
                     </h1>
-                    <p className="text-xs text-slate-300 font-medium tracking-wide">
+                    <p className="text-[11px] text-slate-300 font-medium tracking-wide">
                         Sistem Manajemen & Pelacakan Inventaris Aset PT. China Glaze Indonesia
                     </p>
                 </div>
@@ -476,56 +492,53 @@ export default function AssetList({ assets, initialSearchTerm = '', initialCateg
                     <span className="text-[10px] font-black uppercase tracking-wider text-slate-300">{summaryData.totalAssets} Total Unit Terdaftar</span>
                 </div>
             </div>
-        </div>
-
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 px-1">
-             <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-                 <div className="uiverse-search-container !h-12 w-full md:w-80">
-                     <div className="relative w-full px-2">
-                         <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300" />
+            <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mt-6 pt-6 border-t border-white/10">
+                 <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                     <div className="relative w-full md:w-80 h-10 group">
+                         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-white transition-colors" />
                          <input
                              placeholder="Cari nama atau kode aset..."
                              value={searchTerm}
                              onChange={(e) => setSearchTerm(e.target.value)}
-                             className="uiverse-search-input pl-12 h-10 font-black text-xs uppercase tracking-widest"
+                             className="w-full h-full pl-10 pr-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-xs font-bold uppercase tracking-widest text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-white/30 transition-all shadow-[0_2px_10px_rgba(0,0,0,0.02)]"
                          />
                      </div>
-                 </div>
 
-                 <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 p-1 rounded-xl border border-slate-100 dark:border-slate-800 shadow-[0_2px_8px_rgba(0,0,0,0.01)]">
-                      <Button asChild variant="ghost" className="rounded-lg h-9 px-3 text-xs font-bold uppercase tracking-wider hover:bg-slate-50 transition-all text-black dark:text-white">
-                        <Link href="/scan">
-                          <span className="mr-1.5 text-sm select-none">📷</span>
-                          Scan QR
-                        </Link>
+                     <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-md p-1 rounded-xl border border-white/20 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+                          <Button asChild variant="ghost" className="rounded-lg h-8 px-3 text-xs font-bold uppercase tracking-wider hover:bg-white/20 transition-all text-white hover:text-white">
+                            <Link href="/scan">
+                              <span className="mr-1.5 text-sm select-none">📷</span>
+                              Scan QR
+                            </Link>
+                          </Button>
+                          {user?.role === 'Admin' && <ImportAssetsDialog />}
+                      </div>
+
+                      <Button 
+                          variant="outline" 
+                          onClick={() => setShowFilters(!showFilters)}
+                          className={cn(
+                              "h-10 px-4 rounded-xl border font-bold uppercase tracking-wider transition-all duration-300 text-xs shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-md hover:-translate-y-0.5 backdrop-blur-md text-white hover:text-white",
+                              showFilters 
+                                 ? "bg-white/20 border-white/40" 
+                                 : "bg-white/10 border-white/20 hover:bg-white/20",
+                              activeFiltersCount > 0 && "border-indigo-400 bg-white/20 text-indigo-100 hover:bg-white/30"
+                          )}
+                      >
+                          <Filter className={cn("mr-2 h-4 w-4 transition-transform", showFilters && "text-indigo-200")} />
+                          Filter {activeFiltersCount > 0 && `(${activeFiltersCount})`}
                       </Button>
-                      {user?.role === 'Admin' && <ImportAssetsDialog />}
-                  </div>
 
-                  <Button 
-                      variant="outline" 
-                      onClick={() => setShowFilters(!showFilters)}
-                      className={cn(
-                          "h-10 px-4 rounded-xl border font-bold uppercase tracking-wider transition-all duration-300 text-xs shadow-sm hover:shadow-md hover:-translate-y-0.5",
-                          showFilters 
-                             ? "bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white" 
-                             : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50",
-                          activeFiltersCount > 0 && "border-primary/50 bg-primary/5 text-primary hover:bg-primary/10 hover:text-primary"
+                      {canAdd && (
+                        <AssetForm>
+                            <Button className="rounded-xl h-10 px-5 bg-white text-indigo-900 hover:bg-slate-100 font-black uppercase text-xs tracking-wider transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 border border-white/20">
+                                <span className="mr-1.5 text-sm select-none">➕</span>
+                                Tambah Aset
+                            </Button>
+                        </AssetForm>
                       )}
-                  >
-                      <Filter className={cn("mr-2 h-4 w-4 transition-transform", showFilters && "text-primary")} />
-                      Filter {activeFiltersCount > 0 && `(${activeFiltersCount})`}
-                  </Button>
-
-                  {canAdd && (
-                    <AssetForm>
-                        <Button className="rounded-xl h-10 px-5 bg-primary hover:bg-primary/90 text-white font-black uppercase text-xs tracking-wider transition-all text-white">
-                            <span className="mr-1.5 text-sm select-none">➕</span>
-                            Tambah Aset
-                        </Button>
-                    </AssetForm>
-                  )}
-             </div>
+                 </div>
+            </div>
         </div>
 
         <div className="grid gap-4 sm:gap-6 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 mt-2">
@@ -540,8 +553,8 @@ export default function AssetList({ assets, initialSearchTerm = '', initialCateg
                     exit={{ height: 0, opacity: 0 }}
                     className="overflow-hidden"
                 >
-                     <div className="space-y-8 p-8 mt-2 border-2 border-dashed rounded-[3rem] bg-white/40 dark:bg-slate-900/40 backdrop-blur-md border-primary/10 text-left">
-                        <div className="flex flex-col gap-8">
+                     <div className="space-y-4 p-5 mt-2 border-2 border-dashed rounded-[2rem] bg-white/40 dark:bg-slate-900/40 backdrop-blur-md border-primary/10 text-left">
+                        <div className="flex flex-col gap-4">
                             <RadioFilterGroup 
                                 label="Kepemilikan" 
                                 icon={ShieldCheck}
@@ -597,8 +610,8 @@ export default function AssetList({ assets, initialSearchTerm = '', initialCateg
                 </motion.div>
             )}
         </AnimatePresence>
-      </CardHeader>      <CardContent className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-md rounded-[3rem] p-4 sm:p-8 border-none shadow-2xl">
-        <div className="flex items-center justify-between py-3 px-6 border-b border-primary/5 mb-6">
+      </CardHeader>      <CardContent className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-md rounded-[2rem] p-3 sm:p-5 border-none shadow-2xl">
+        <div className="flex items-center justify-between py-2 px-3 border-b border-primary/5 mb-4">
           <div className="flex items-center gap-5">
              {isSelectionMode && (
               <Checkbox
@@ -654,11 +667,11 @@ export default function AssetList({ assets, initialSearchTerm = '', initialCateg
 
         <div className={cn(
           viewMode === 'grid' 
-            ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" 
-            : "space-y-3"
+            ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" 
+            : "space-y-2"
         )}>
-          {filteredAssets.length > 0 ? (
-            filteredAssets.map(asset => (
+          {paginatedAssets.length > 0 ? (
+            paginatedAssets.map(asset => (
               <React.Fragment key={asset.id}>
                 {viewMode === 'grid' ? (
                   <AssetGridCard 
@@ -694,6 +707,36 @@ export default function AssetList({ assets, initialSearchTerm = '', initialCateg
              </div>
           )}
         </div>
+
+        {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-100 dark:border-slate-800">
+                <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    Halaman {currentPage} dari {totalPages}
+                </div>
+                <div className="flex items-center gap-2">
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        disabled={currentPage === 1}
+                        className="h-8 px-3 rounded-lg text-xs"
+                    >
+                        <ChevronLeft className="h-4 w-4 mr-1" />
+                        Prev
+                    </Button>
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                        disabled={currentPage === totalPages}
+                        className="h-8 px-3 rounded-lg text-xs"
+                    >
+                        Next
+                        <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                </div>
+            </div>
+        )}
       </CardContent>
       
       {/* Floating Action Bar for Selections */}

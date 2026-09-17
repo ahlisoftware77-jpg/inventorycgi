@@ -6,6 +6,7 @@ export interface FileShare {
   allowedUsers: string[];
   status: 'active' | 'inactive';
   allowUpload?: boolean;
+  allowDownload?: boolean;
   allowDelete?: boolean;
   deleteAllowedUsers?: string[];
   createdAt: number;

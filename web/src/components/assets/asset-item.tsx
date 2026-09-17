@@ -126,7 +126,7 @@ const AssetItem = React.memo(function AssetItem({ asset, isExpanded, onToggle, i
         role="alert" 
         onClick={onToggle}
         className={cn(
-            "flex-grow flex items-center p-3 rounded-xl border transition-all duration-300 ease-in-out cursor-pointer relative overflow-hidden",
+            "flex-grow flex items-center p-2 rounded-xl border transition-all duration-300 ease-in-out cursor-pointer relative overflow-hidden",
             styles.container,
             isExpanded && "ring-2 ring-primary/10 shadow-sm border-slate-200 dark:border-slate-800",
             isBlinkingError && "blinking-destructive-border",
@@ -137,7 +137,7 @@ const AssetItem = React.memo(function AssetItem({ asset, isExpanded, onToggle, i
              <Dialog>
               <DialogTrigger asChild>
                 <div 
-                  className="relative h-14 w-14 rounded-xl overflow-hidden cursor-pointer group shrink-0 shadow-sm border border-slate-100 bg-white"
+                  className="relative h-10 w-10 rounded-lg overflow-hidden cursor-pointer group shrink-0 shadow-sm border border-slate-100 bg-white"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <Image 
@@ -183,9 +183,9 @@ const AssetItem = React.memo(function AssetItem({ asset, isExpanded, onToggle, i
             </Dialog>
 
             <div className="flex-1 min-w-0 text-left">
-              <div className="flex items-center gap-2 mb-1.5 text-left">
+              <div className="flex items-center gap-2 mb-1 text-left">
                 <span className="text-sm shrink-0 select-none">{styles.emoji}</span>
-                <h3 className={cn("font-extrabold text-sm sm:text-base uppercase tracking-tight truncate leading-tight", styles.titleClass)}>
+                <h3 className={cn("font-extrabold text-xs sm:text-sm uppercase tracking-tight truncate leading-tight", styles.titleClass)}>
                     {asset.name}
                 </h3>
                 {asset.status === 'Bukan_Asset_Perusahaan' && <Crown className="h-4 w-4 text-amber-500 fill-amber-500 shrink-0" />}

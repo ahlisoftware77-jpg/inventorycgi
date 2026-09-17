@@ -52,6 +52,11 @@ export async function GET(request: Request) {
        return NextResponse.json({ error: 'Share is inactive' }, { status: 403 });
     }
     
+    // Enforce allowDownload (if not just a preview)
+    if (shareData?.allowDownload === false && !isPreview) {
+      return NextResponse.json({ error: 'Download is disabled for this folder' }, { status: 403 });
+    }
+    
     let isAllowed = true; // Default public access
     if (decodedToken) {
         const userDoc = await db.collection('users').doc(decodedToken.uid).get();

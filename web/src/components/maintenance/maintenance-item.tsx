@@ -109,20 +109,20 @@ export default function MaintenanceItem({ schedule, isExpanded, onToggle, isSele
             role="alert" 
             onClick={onToggle}
             className={cn(
-                "flex-grow flex items-center p-3 sm:p-4 rounded-2xl border-l-4 transition-all duration-300 ease-in-out transform hover:scale-[1.01] cursor-pointer shadow-sm relative overflow-hidden",
+                "flex-grow flex items-center p-2.5 sm:p-3 rounded-xl border-l-4 transition-all duration-300 ease-in-out transform hover:-translate-y-[1px] cursor-pointer shadow-sm hover:shadow-md relative overflow-hidden",
                 styles.container,
                 isExpanded && "ring-2 ring-primary/20 shadow-md scale-[1.01]",
                 isOverdue ? "blinking-destructive-border" : (isBlinkingWarning ? "blinking-process-border" : (isBlinkingInfo ? "blinking-info-border" : ""))
             )}
         >
-            <div className="flex items-center gap-4 flex-1 min-w-0">
-                <div className="p-2 bg-white/20 rounded-full shrink-0">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="p-1.5 bg-white/20 rounded-full shrink-0">
                     <StatusIcon className={cn("h-5 w-5", styles.iconClass)} />
                 </div>
                 
                 <div className="flex-1 min-w-0 text-left">
-                    <div className="flex items-center gap-3 mb-1">
-                        <h3 className="font-black text-base sm:text-lg uppercase tracking-tight truncate leading-tight">
+                    <div className="flex items-center gap-3 mb-0.5">
+                        <h3 className="font-black text-sm sm:text-base uppercase tracking-tight truncate leading-tight">
                             {schedule.assetName}
                         </h3>
                         {schedule.ticketNumber && (

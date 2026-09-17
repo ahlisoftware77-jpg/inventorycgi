@@ -12,6 +12,7 @@ import { Skeleton } from '../ui/skeleton';
 import { 
   PlusCircle, 
   Search, 
+  ChevronLeft,
   ChevronRight, 
   Clock, 
   MessageSquare, 
@@ -144,13 +145,13 @@ const TicketItem = ({ ticket, maintenanceInfo }: { ticket: HelpdeskTicket, maint
                 <div 
                     role="alert" 
                     className={cn(
-                        "p-4 rounded-[1.25rem] border border-l-4 flex items-center gap-4 transition duration-300 ease-in-out hover:-translate-y-[2px] cursor-pointer shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_10px_30px_-5px_rgba(0,0,0,0.1)] relative overflow-hidden",
+                        "p-3 rounded-xl border border-l-4 flex items-center gap-3 transition duration-300 ease-in-out hover:-translate-y-[1px] cursor-pointer shadow-sm hover:shadow-md relative overflow-hidden",
                         styles.container,
                         ticket.status === 'Menunggu' && "blinking-destructive-border",
                         ticket.status === 'Diproses' && "blinking-info-border"
                     )}
                 >
-                    <div className="p-2 bg-slate-50 dark:bg-slate-800/50 rounded-full shrink-0 shadow-inner">
+                    <div className="p-1.5 bg-slate-50 dark:bg-slate-800/50 rounded-full shrink-0 shadow-inner">
                         <StatusIcon className={cn("h-5 w-5", styles.iconClass)} />
                     </div>
                     
@@ -232,6 +233,13 @@ export default function HelpdeskTable() {
   const [reporterSearch, setReporterSearch] = useState('');
   const [statusFilters, setStatusFilters] = useState<TicketStatus[]>([]);
   
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedMonth, selectedYear, selectedDept, selectedCategory, selectedMaintenanceType, reporterSearch, statusFilters]);
+
   const [isNewTicketOpen, setIsNewTicketOpen] = useState(false);
 
   const fetchHelpdeskData = async (isManual = false) => {
@@ -397,6 +405,7 @@ export default function HelpdeskTable() {
     setSelectedMaintenanceType('all');
     setReporterSearch('');
     setStatusFilters([]);
+    setCurrentPage(1);
   };
 
   const activeFiltersCount = useMemo(() => {
@@ -410,6 +419,13 @@ export default function HelpdeskTable() {
     if (statusFilters.length > 0) count++;
     return count;
   }, [selectedMonth, selectedYear, selectedDept, selectedCategory, selectedMaintenanceType, reporterSearch, statusFilters]);
+
+  const paginatedTickets = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredTickets.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredTickets, currentPage]);
+  
+  const totalPages = Math.ceil(filteredTickets.length / itemsPerPage);
 
   return (
     <div className="space-y-6 sm:space-y-8 w-full max-w-full overflow-hidden pb-10 text-black">
@@ -700,9 +716,9 @@ export default function HelpdeskTable() {
 
                 <div className="space-y-3 pb-10">
                     {loading || authLoading ? (
-                        Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 w-full rounded-[1.5rem]" />)
-                    ) : filteredTickets.length > 0 ? (
-                        filteredTickets.map(ticket => (
+                        Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-xl" />)
+                    ) : paginatedTickets.length > 0 ? (
+                        paginatedTickets.map(ticket => (
                             <TicketItem 
                                 key={ticket.id} 
                                 ticket={ticket} 
@@ -710,13 +726,43 @@ export default function HelpdeskTable() {
                             />
                         ))
                     ) : (
-                        <div className="text-center py-20 bg-slate-50/50 dark:bg-slate-800/20 rounded-[2rem] border-4 border-dashed border-slate-100 dark:border-slate-800 transition-all">
-                            <MessageSquare className="h-14 w-14 text-slate-200 mb-6 mx-auto" />
-                            <h3 className="text-lg font-black text-slate-400 uppercase tracking-widest text-center">Data Tidak Ditemukan</h3>
-                            <p className="text-xs text-slate-400 font-medium italic mt-2 text-center">Coba ubah kriteria filter atau kata kunci pencarian Anda.</p>
+                        <div className="text-center py-20 bg-slate-50/50 dark:bg-slate-800/20 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-800 transition-all">
+                            <MessageSquare className="h-10 w-10 text-slate-300 mb-4 mx-auto" />
+                            <h3 className="text-base font-black text-slate-400 uppercase tracking-widest text-center">Data Tidak Ditemukan</h3>
+                            <p className="text-xs text-slate-400 font-medium mt-1 text-center">Coba ubah kriteria filter atau kata kunci pencarian Anda.</p>
                         </div>
                     )}
                 </div>
+
+                {!loading && !authLoading && totalPages > 1 && (
+                    <div className="flex items-center justify-between mt-6 pt-6 border-t border-slate-100 dark:border-slate-800">
+                        <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                            Halaman {currentPage} dari {totalPages}
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                disabled={currentPage === 1}
+                                className="h-8 px-3 rounded-lg text-xs"
+                            >
+                                <ChevronLeft className="h-4 w-4 mr-1" />
+                                Prev
+                            </Button>
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                disabled={currentPage === totalPages}
+                                className="h-8 px-3 rounded-lg text-xs"
+                            >
+                                Next
+                                <ChevronRight className="h-4 w-4 ml-1" />
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </CardContent>
 
             <CardFooter className="p-4 sm:p-6 md:p-8 bg-slate-50 dark:bg-slate-900/50 border-t flex items-center justify-between">

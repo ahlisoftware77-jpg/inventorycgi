@@ -57,6 +57,8 @@ import {
   Loader2,
   FileSpreadsheet,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ShieldCheck,
   Crown
 } from 'lucide-react';
@@ -173,6 +175,13 @@ export default function ISO14064Content() {
     key: 'code',
     direction: 'asc'
   });
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [nameFilters, codeFilter, deptFilters, categoryFilters, sortConfig, activeTab]);
   
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -499,23 +508,29 @@ export default function ISO14064Content() {
     return <ArrowUpDown className="h-3 w-3 opacity-50" />;
   };
 
-  const renderTable = (data: Asset[]) => (
-    <div className="rounded-xl border border-slate-100 dark:border-slate-800 overflow-hidden bg-background shadow-[0_2px_8px_rgba(0,0,0,0.01)] text-black">
-      <Table>
-        <TableHeader className="bg-slate-50/50 dark:bg-slate-900/20 h-11">
-          <TableRow>
-            <TableHead className="pl-6 w-[110px] cursor-pointer hover:bg-muted/80 transition-colors" onClick={() => handleSort('code')}><div className="flex items-center gap-1 font-black uppercase text-[9px] tracking-widest text-left">Kode{getSortIcon('code')}</div></TableHead>
-            <TableHead className="cursor-pointer hover:bg-muted/80 transition-colors" onClick={() => handleSort('name')}><div className="flex items-center gap-1 font-black uppercase text-[9px] tracking-widest text-left">Nama Barang{getSortIcon('name')}</div></TableHead>
-            <TableHead className="cursor-pointer hover:bg-muted/80 transition-colors" onClick={() => handleSort('location')}><div className="flex items-center gap-1 font-black uppercase text-[9px] tracking-widest text-left">Lokasi{getSortIcon('location')}</div></TableHead>
-            <TableHead className="cursor-pointer hover:bg-muted/80 transition-colors" onClick={() => handleSort('scope')}><div className="flex items-center gap-1 font-black uppercase text-[9px] tracking-widest text-left">Scope{getSortIcon('scope')}</div></TableHead>
-            <TableHead className="w-[420px] font-black uppercase text-[9px] tracking-widest text-left">Detail Kelengkapan Standar</TableHead>
-            <TableHead className="font-black uppercase text-[9px] tracking-widest text-left">Foto</TableHead>
-            <TableHead className="text-right pr-6 font-black uppercase text-[9px] tracking-widest">Aksi</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data.length > 0 ? data.map((asset) => {
-            const scope1 = isScope1(asset);
+  const renderTable = (data: Asset[]) => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const paginatedData = data.slice(startIndex, startIndex + itemsPerPage);
+    const totalPages = Math.ceil(data.length / itemsPerPage);
+
+    return (
+      <div className="space-y-4">
+        <div className="rounded-xl border border-slate-100 dark:border-slate-800 overflow-hidden bg-background shadow-[0_2px_8px_rgba(0,0,0,0.01)] text-black">
+          <Table className="[&_th]:border-r [&_th]:border-slate-200/60 dark:[&_th]:border-slate-800/60 [&_td]:border-r [&_td]:border-slate-200/60 dark:[&_td]:border-slate-800/60 [&_th:last-child]:border-r-0 [&_td:last-child]:border-r-0">
+            <TableHeader className="bg-slate-50/50 dark:bg-slate-900/20 h-11">
+              <TableRow>
+                <TableHead className="pl-6 w-[110px] cursor-pointer hover:bg-muted/80 transition-colors" onClick={() => handleSort('code')}><div className="flex items-center gap-1 font-black uppercase text-[9px] tracking-widest text-left">Kode{getSortIcon('code')}</div></TableHead>
+                <TableHead className="cursor-pointer hover:bg-muted/80 transition-colors" onClick={() => handleSort('name')}><div className="flex items-center gap-1 font-black uppercase text-[9px] tracking-widest text-left">Nama Barang{getSortIcon('name')}</div></TableHead>
+                <TableHead className="cursor-pointer hover:bg-muted/80 transition-colors" onClick={() => handleSort('location')}><div className="flex items-center gap-1 font-black uppercase text-[9px] tracking-widest text-left">Lokasi{getSortIcon('location')}</div></TableHead>
+                <TableHead className="cursor-pointer hover:bg-muted/80 transition-colors" onClick={() => handleSort('scope')}><div className="flex items-center gap-1 font-black uppercase text-[9px] tracking-widest text-left">Scope{getSortIcon('scope')}</div></TableHead>
+                <TableHead className="w-[420px] font-black uppercase text-[9px] tracking-widest text-left">Detail Kelengkapan Standar</TableHead>
+                <TableHead className="font-black uppercase text-[9px] tracking-widest text-left">Foto</TableHead>
+                <TableHead className="text-right pr-6 font-black uppercase text-[9px] tracking-widest">Aksi</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedData.length > 0 ? paginatedData.map((asset) => {
+                const scope1 = isScope1(asset);
             const isPersonal = asset.status === 'Bukan_Asset_Perusahaan';
             const isUtility = utilityCategories.includes(asset.category);
             const labels = getDynamicLabels(asset);
@@ -587,11 +602,43 @@ export default function ISO14064Content() {
                 </TableCell>
               </TableRow>
             );
-          }) : <TableRow><TableCell colSpan={7} className="h-40 text-center"><Info className="h-8 w-8 mx-auto text-muted-foreground opacity-20 mb-2" /><p className="font-bold uppercase tracking-widest text-xs opacity-30">Tidak ada data terizin ditemukan</p></TableCell></TableRow>}
-        </TableBody>
-      </Table>
-    </div>
-  );
+              }) : <TableRow><TableCell colSpan={7} className="h-40 text-center"><Info className="h-8 w-8 mx-auto text-muted-foreground opacity-20 mb-2" /><p className="font-bold uppercase tracking-widest text-xs opacity-30">Tidak ada data terizin ditemukan</p></TableCell></TableRow>}
+            </TableBody>
+          </Table>
+        </div>
+        
+        {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4">
+                <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    Halaman {currentPage} dari {totalPages}
+                </div>
+                <div className="flex items-center gap-2">
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        disabled={currentPage === 1}
+                        className="h-8 px-3 rounded-lg text-xs"
+                    >
+                        <ChevronLeft className="h-4 w-4 mr-1" />
+                        Prev
+                    </Button>
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                        disabled={currentPage === totalPages}
+                        className="h-8 px-3 rounded-lg text-xs"
+                    >
+                        Next
+                        <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                </div>
+            </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700 pb-10 text-black">

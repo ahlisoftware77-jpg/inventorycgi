@@ -23,7 +23,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { PlusCircle, Search, ShoppingCart, Edit, ArrowUp, ArrowDown, FileText, Share2, Loader2, Trash2, ArrowRightLeft, History, Info, AlertCircle, Clock } from 'lucide-react';
+import { PlusCircle, Search, ShoppingCart, Edit, ArrowUp, ArrowDown, FileText, Share2, Loader2, Trash2, ArrowRightLeft, History, Info, AlertCircle, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Image from 'next/image';
@@ -69,6 +69,14 @@ export default function InventoryTable() {
   const [historyItem, setHistoryItem] = useState<InventoryItem | null>(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [previewPhoto, setPreviewPhoto] = useState<{ url: string; name: string } | null>(null);
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, activeTab, sortConfig]);
 
   useEffect(() => {
     const unsubSettings = onSnapshot(doc(db, 'settings', 'general'), (docSnap) => {
@@ -217,7 +225,11 @@ export default function InventoryTable() {
     setIsHistoryOpen(true);
   };
 
-  const renderTable = (items: EnrichedInventoryItem[]) => (
+  const renderTable = (items: EnrichedInventoryItem[]) => {
+    const totalPages = Math.max(1, Math.ceil(items.length / itemsPerPage));
+    const paginatedItems = items.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+    return (
     <div className="relative w-full overflow-hidden bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 shadow-[0_2px_8px_rgba(0,0,0,0.01)]">
         <div className="overflow-x-auto">
             <Table>
@@ -250,8 +262,8 @@ export default function InventoryTable() {
                                 <TableCell colSpan={6} className="px-6"><Skeleton className="h-10 w-full rounded-xl" /></TableCell>
                             </TableRow>
                         ))
-                    ) : items.length > 0 ? (
-                        items.map((item) => (
+                    ) : paginatedItems.length > 0 ? (
+                        paginatedItems.map((item) => (
                             <TableRow key={item.id} className="group h-16 even:bg-slate-100/50 dark:even:bg-slate-800/30 hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition-colors border-slate-200/30 dark:border-slate-800">
                                 <TableCell className="pl-4">
                                     <div 
@@ -360,8 +372,43 @@ export default function InventoryTable() {
                 </TableBody>
             </Table>
         </div>
+        
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/10">
+                <div className="text-xs text-slate-500 font-medium">
+                    Menampilkan <span className="font-bold text-slate-700 dark:text-slate-300">{(currentPage - 1) * itemsPerPage + 1}</span> - <span className="font-bold text-slate-700 dark:text-slate-300">{Math.min(currentPage * itemsPerPage, items.length)}</span> dari <span className="font-bold text-slate-700 dark:text-slate-300">{items.length}</span> barang
+                </div>
+                <div className="flex items-center gap-2">
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-8 rounded-lg text-xs" 
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                    >
+                        <ChevronLeft className="h-3.5 w-3.5 mr-1" />
+                        Sebelumnya
+                    </Button>
+                    <div className="text-xs font-bold px-2 text-slate-600 dark:text-slate-400">
+                        {currentPage} / {totalPages}
+                    </div>
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-8 rounded-lg text-xs" 
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                    >
+                        Selanjutnya
+                        <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                    </Button>
+                </div>
+            </div>
+        )}
     </div>
   );
+  }
 
   return (
     <div className="relative max-w-full overflow-hidden p-4 sm:p-6 md:p-8 rounded-[32px] pb-10 bg-gradient-to-br from-green-300 via-emerald-400 to-teal-500 shadow-2xl shadow-emerald-500/20">
