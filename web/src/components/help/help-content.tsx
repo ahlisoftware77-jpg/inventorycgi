@@ -834,7 +834,7 @@ export default function HelpContent() {
                             </h4>
                             <ul className="list-disc pl-5 space-y-2 text-sm font-medium text-slate-600 dark:text-slate-400 text-left">
                                 <li><strong>Ringkasan Analitik:</strong> Gunakan menu Dasbor Desain untuk melihat visualisasi distribusi Tipe Desain (diagram akar), tren bulanan, dan 5 Analitik Teratas (Desainer, Pelanggan, Item).</li>
-                                <li><strong>Bantuan AI (Copilot):</strong> Klik tombol melayang (FAB) di pojok kiri bawah untuk mengaktifkan AI Copilot. Anda bisa meminta AI memberikan insight/saran strategi bisnis berdasarkan data desain.</li>
+                                <li><strong>Bantuan AI (Copilot):</strong> Klik tombol melayang (FAB) di pojok kanan bawah untuk mengaktifkan AI Copilot. Anda bisa meminta AI memberikan insight/saran strategi bisnis berdasarkan data desain.</li>
                                 <li><strong>Real-time AI:</strong> Analisa dari Copilot bersifat <em>on-the-fly</em> dan membaca langsung dari tabel Anda saat itu juga.</li>
                             </ul>
                         </section>

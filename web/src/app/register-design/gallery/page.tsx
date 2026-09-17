@@ -371,11 +371,8 @@ export default function RegisterDesignGalleryPage() {
           </div>
         </div>
 
-        {/* Main Content Area: Split View */}
-        <div className="flex flex-1 overflow-hidden relative z-10">
-        
         {/* Gallery Content */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar relative">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar">
           <style dangerouslySetInnerHTML={{__html: `
             .locked-card {
               --background: linear-gradient(135deg, #bf953f 0%, #fcf6ba 25%, #b38728 50%, #fbf5b7 75%, #aa771c 100%);
@@ -432,7 +429,7 @@ export default function RegisterDesignGalleryPage() {
               color: inherit !important;
             }
           `}} />
-          <div className="max-w-[1600px] mx-auto">
+          <div className="max-w-7xl mx-auto">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-20 text-[#8b6508]/60">
                 <Loader2 className="w-10 h-10 animate-spin text-[#d4af37] mb-4" />
@@ -445,7 +442,7 @@ export default function RegisterDesignGalleryPage() {
                 <p className="text-sm">Coba sesuaikan filter pencarian Anda.</p>
               </div>
             ) : (
-              <div className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 md:gap-6 auto-rows-max relative z-10 transition-all duration-300 ${lightboxItem ? 'xl:grid-cols-3 2xl:grid-cols-4' : ''}`}>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 auto-rows-max relative z-10">
                 {filteredData.map(item => {
                   const isLocked = item.status === 'IN LOCK';
                   
@@ -539,26 +536,24 @@ export default function RegisterDesignGalleryPage() {
           </div>
         </div>
 
-        {/* Side Panel Preview */}
+        {/* Lightbox / Zoom View */}
         {lightboxItem && (
-          <div className="w-full absolute right-0 top-0 h-full md:relative md:w-[400px] lg:w-[450px] shrink-0 bg-white shadow-[-10px_0_30px_rgba(0,0,0,0.05)] border-l border-slate-200 flex flex-col animate-in slide-in-from-right duration-300 z-50">
-            <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col relative">
-              {/* Floating Close Button */}
-              <button 
-                onClick={() => setLightboxItem(null)} 
-                className="absolute top-3 right-3 p-1.5 bg-white/90 hover:bg-white text-slate-700 rounded-full transition-all border border-slate-200 shadow-md z-10 hover:scale-110"
-                title="Tutup Preview"
-              >
-                <X className="w-4 h-4" />
-              </button>
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4 md:p-8 animate-in fade-in duration-300">
+            <button 
+              onClick={() => setLightboxItem(null)}
+              className="absolute top-6 right-6 p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all hover:scale-110 z-50 backdrop-blur-sm"
+            >
+              <X className="w-6 h-6" />
+            </button>
 
+            <div className="max-w-6xl w-full max-h-full flex flex-col md:flex-row bg-white rounded-2xl overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-300 border border-white/20">
               {/* Image Section */}
-              <div className="bg-slate-100/50 flex flex-col items-center justify-center p-6 min-h-[400px] relative border-b border-slate-100">
+              <div className="flex-1 bg-slate-100 flex items-center justify-center p-4 min-h-[40vh] md:min-h-0 relative">
                 {lightboxItem.designImage ? (
                   <img 
                     src={`https://drive.google.com/thumbnail?id=${lightboxItem.designImage}&sz=s1200`} 
                     alt={lightboxItem.itemName || 'Design'} 
-                    className="max-w-full max-h-[450px] object-contain drop-shadow-xl rounded-md bg-white border border-slate-200 p-1.5"
+                    className="max-w-full max-h-[85vh] object-contain drop-shadow-xl"
                     referrerPolicy="no-referrer"
                     onError={(e) => { 
                       const target = e.currentTarget;
@@ -572,130 +567,161 @@ export default function RegisterDesignGalleryPage() {
                 ) : (
                   <Layers className="w-20 h-20 text-slate-300" />
                 )}
-                <div className="absolute top-4 left-4">
-                  <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider shadow-sm border ${getStatusColor(lightboxItem.status || '')}`}>
-                    {lightboxItem.status || '-'}
-                  </span>
-                </div>
               </div>
 
               {/* Specs Section */}
-              <div className="p-5 flex-1 bg-white">
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <span className="text-xs font-bold text-slate-400">
-                    {lightboxItem.entryDate || '-'}
-                  </span>
-                  <span className={`px-2 py-0.5 rounded text-[10px] border ${getDesignerColor(lightboxItem.designer || '')}`}>
-                    {lightboxItem.designer || '-'}
-                  </span>
-                </div>
-
-                <h2 className="text-xl font-black text-slate-800 leading-tight mb-5 border-b border-slate-100 pb-4">
-                  {lightboxItem.itemName || 'Tanpa Nama'}
-                </h2>
-
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-4 border-b border-slate-50 pb-3">
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Design No</p>
-                      <p className="font-semibold text-slate-700 text-sm truncate" title={lightboxItem.designNo || '-'}>{lightboxItem.designNo || '-'}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Type Design</p>
-                      <p className="font-semibold text-slate-700 text-sm truncate" title={lightboxItem.typeDesign || '-'}>{lightboxItem.typeDesign || '-'}</p>
-                    </div>
+              <div className="w-full md:w-80 lg:w-96 bg-white flex flex-col border-l border-slate-100 overflow-y-auto max-h-[50vh] md:max-h-[85vh]">
+                <div className="p-6 md:p-8 flex-1">
+                  <div className="flex items-center justify-between gap-2 mb-4">
+                    <span className={`px-3 py-1 rounded-md text-[11px] font-black uppercase tracking-wider shadow-sm border ${getStatusColor(lightboxItem.status || '')}`}>
+                      {lightboxItem.status || '-'}
+                    </span>
+                    <span className="text-xs font-bold text-slate-400">
+                      {lightboxItem.entryDate || '-'}
+                    </span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4 border-b border-slate-50 pb-3">
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Customer</p>
-                      <p className="font-semibold text-slate-700 text-sm truncate" title={lightboxItem.customer || '-'}>{lightboxItem.customer || '-'}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Note</p>
-                      <p className="font-semibold text-slate-700 text-sm line-clamp-2" title={lightboxItem.note || '-'}>{lightboxItem.note || '-'}</p>
-                    </div>
-                  </div>
+                  <h2 className="text-2xl font-black text-slate-800 leading-tight mb-6">
+                    {lightboxItem.itemName || 'Tanpa Nama'}
+                  </h2>
 
-                  <div className="grid grid-cols-2 gap-4 border-b border-slate-50 pb-3">
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Size / Faces</p>
-                      <p className="font-semibold text-slate-700 text-sm">
-                        {lightboxItem.sizeCm1 ? `${lightboxItem.sizeCm1}x${lightboxItem.sizeCm2}` : (lightboxItem.sizeChecks || '-')} / {lightboxItem.sizeFaces || '-'}
-                      </p>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4 border-b border-slate-100 pb-4">
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Design No</p>
+                        <p className="font-semibold text-slate-700 text-sm">{lightboxItem.designNo || '-'}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Type Design</p>
+                        <p className="font-semibold text-slate-700 text-sm">{lightboxItem.typeDesign || '-'}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Glaze / Residue</p>
-                      <p className="font-semibold text-slate-700 text-sm truncate" title={`${lightboxItem.glazeChecks || '-'} / ${lightboxItem.glazeResidue || '-'}`}>{lightboxItem.glazeChecks || '-'} / {lightboxItem.glazeResidue || '-'}</p>
-                    </div>
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-4 border-b border-slate-50 pb-3">
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Surface / Temp</p>
-                      <p className="font-semibold text-slate-700 text-sm">
-                        {lightboxItem.surfaceChecks || '-'} / {lightboxItem.surfaceTemp ? `${lightboxItem.surfaceTemp}°C` : '-'}
-                      </p>
+                    <div className="grid grid-cols-2 gap-4 border-b border-slate-100 pb-4">
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Designer</p>
+                        <p className="font-semibold text-sm">
+                          <span className={`px-2 py-0.5 rounded border ${getDesignerColor(lightboxItem.designer || '')}`}>{lightboxItem.designer || '-'}</span>
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Customer</p>
+                        <p className="font-semibold text-slate-700 text-sm">{lightboxItem.customer || '-'}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Ink / Other</p>
-                      <p className="font-semibold text-slate-700 text-sm truncate">
-                        {lightboxItem.inkChecks || '-'} {lightboxItem.inkOther ? `(${lightboxItem.inkOther})` : ''}
-                      </p>
-                    </div>
-                  </div>
 
-                  <div className="grid grid-cols-1 gap-4 border-b border-slate-50 pb-3">
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">GU / PTV</p>
-                      <p className="font-semibold text-slate-700 text-sm">
-                        {[lightboxItem.guPtv, lightboxItem.guPtv2, lightboxItem.guPtv3, lightboxItem.guPtv4, lightboxItem.guPtv5, lightboxItem.guPtv6].filter(Boolean).join(', ') || '-'}
-                      </p>
-                      {lightboxItem.guPtvChecks && (
-                        <p className="text-[11px] text-slate-500 mt-1 italic leading-tight">{lightboxItem.guPtvChecks}</p>
-                      )}
+                    <div className="grid grid-cols-2 gap-4 border-b border-slate-100 pb-4">
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Technician</p>
+                        <p className="font-semibold text-slate-700 text-sm">{lightboxItem.technician || '-'}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Send By</p>
+                        <p className="font-semibold text-slate-700 text-sm">{lightboxItem.sendBy || '-'}</p>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="grid grid-cols-1 gap-4 pt-1 pb-4">
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">File Gambar Asli</p>
-                      <div className="flex items-center justify-between gap-2 bg-slate-50 p-2 rounded-lg border border-slate-200">
-                        {lightboxItem.designImage ? (
-                          <a 
-                            href={`https://drive.google.com/file/d/${lightboxItem.designImage}/view`} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="font-semibold text-blue-600 hover:text-blue-800 hover:underline text-xs flex items-center gap-1.5 truncate"
-                            title="Buka Gambar di Google Drive"
-                          >
-                            <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-                            <span className="truncate">{lightboxItem.designImageName || `Desain_${lightboxItem.designNo || 'Gambar'}.jpg`}</span>
-                          </a>
-                        ) : (
-                          <p className="font-semibold text-slate-700 text-xs truncate">
-                            {lightboxItem.designImageName || `Desain_${lightboxItem.designNo || 'Gambar'}.jpg`}
-                          </p>
-                        )}
-                        {lightboxItem.designImage && !isReadOnly && (
-                          <button 
-                            onClick={() => handleDeleteImage(lightboxItem)}
-                            disabled={isDeleting}
-                            title="Hapus Gambar dari Google Drive"
-                            className="p-1.5 text-red-500 bg-white hover:bg-red-50 hover:text-red-700 border border-slate-200 rounded-md transition-colors flex items-center justify-center shrink-0 disabled:opacity-50"
-                          >
-                            {isDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                          </button>
+                    <div className="grid grid-cols-2 gap-4 border-b border-slate-100 pb-4">
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Versi</p>
+                        <p className="font-semibold text-slate-700 text-sm">{lightboxItem.version || '-'}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Tujuan</p>
+                        <p className="font-semibold text-slate-700 text-sm">{lightboxItem.benefitText || lightboxItem.benefit || '-'}</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 border-b border-slate-100 pb-4">
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Req Date</p>
+                        <p className="font-semibold text-slate-700 text-sm">{lightboxItem.requiredDate || '-'}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Closing Date</p>
+                        <p className="font-semibold text-slate-700 text-sm">{lightboxItem.closingDate || '-'}</p>
+                      </div>
+                    </div>
+
+                    <div className="pt-2">
+                      <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-widest border-b-2 border-slate-200 inline-block mb-3">Spesifikasi Lanjutan</h3>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 border-b border-slate-100 pb-4">
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Size / Faces</p>
+                        <p className="font-semibold text-slate-700 text-sm">
+                          {lightboxItem.sizeCm1 ? `${lightboxItem.sizeCm1}x${lightboxItem.sizeCm2}` : (lightboxItem.sizeChecks || '-')} / {lightboxItem.sizeFaces || '-'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Glaze / Residue</p>
+                        <p className="font-semibold text-slate-700 text-sm">{lightboxItem.glazeChecks || '-'} / {lightboxItem.glazeResidue || '-'}</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 border-b border-slate-100 pb-4">
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Surface / Temp</p>
+                        <p className="font-semibold text-slate-700 text-sm">{lightboxItem.surfaceChecks || '-'} / {lightboxItem.surfaceTemp ? `${lightboxItem.surfaceTemp}°C` : '-'}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Ink / Other</p>
+                        <p className="font-semibold text-slate-700 text-sm">{lightboxItem.inkChecks || '-'} {lightboxItem.inkOther ? `(${lightboxItem.inkOther})` : ''}</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4 border-b border-slate-100 pb-4">
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">GU / PTV</p>
+                        <p className="font-semibold text-slate-700 text-sm">
+                          {[lightboxItem.guPtv, lightboxItem.guPtv2, lightboxItem.guPtv3, lightboxItem.guPtv4, lightboxItem.guPtv5, lightboxItem.guPtv6].filter(Boolean).join(', ') || '-'}
+                        </p>
+                        {lightboxItem.guPtvChecks && (
+                          <p className="text-[11px] text-slate-500 mt-1 italic">{lightboxItem.guPtvChecks}</p>
                         )}
                       </div>
                     </div>
+
+                      <div className="grid grid-cols-1 gap-4 border-b border-slate-100 pb-4">
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">File Gambar</p>
+                          <div className="flex items-center justify-between gap-2 bg-slate-50 p-2 rounded-lg border border-slate-200">
+                            {lightboxItem.designImage ? (
+                              <a 
+                                href={`https://drive.google.com/file/d/${lightboxItem.designImage}/view`} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="font-semibold text-blue-600 hover:text-blue-800 hover:underline text-sm break-all flex items-center gap-1.5"
+                                title="Buka Gambar di Google Drive"
+                              >
+                                {lightboxItem.designImageName || `Desain_${lightboxItem.designNo || 'Gambar'}.jpg`}
+                                <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                              </a>
+                            ) : (
+                              <p className="font-semibold text-slate-700 text-sm break-all">
+                                {lightboxItem.designImageName || `Desain_${lightboxItem.designNo || 'Gambar'}.jpg`}
+                              </p>
+                            )}
+                            {lightboxItem.designImage && !isReadOnly && (
+                              <button 
+                                onClick={() => handleDeleteImage(lightboxItem)}
+                                disabled={isDeleting}
+                                title="Hapus Gambar dari Google Drive"
+                                className="p-2 text-red-500 bg-white hover:bg-red-50 hover:text-red-700 border border-slate-200 rounded-md transition-colors flex items-center justify-center shrink-0 disabled:opacity-50"
+                              >
+                                {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         )}
-      </div>
       </div>
       
       {/* Custom Scrollbar Styles for the gallery */}
