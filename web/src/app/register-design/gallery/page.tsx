@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { db, auth } from '@/lib/firebase/config';
 import { collection, getDocs, query, orderBy, doc, updateDoc, getDoc } from 'firebase/firestore';
-import { Search, Loader2, X, ZoomIn, Calendar, Layers, Tag, User, Image as ImageIcon, Trash2, ExternalLink, ArrowLeft } from 'lucide-react';
+import { Search, Loader2, X, ZoomIn, Calendar, Layers, Tag, User, Image as ImageIcon, Trash2, ExternalLink, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -36,7 +36,8 @@ export default function RegisterDesignGalleryPage() {
   const [selectedType, setSelectedType] = useState<string>("all");
   const [selectedDesigner, setSelectedDesigner] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
-  const [displayLimit, setDisplayLimit] = useState<string>("20");
+  const [displayLimit, setDisplayLimit] = useState<string>("25");
+  const [currentPage, setCurrentPage] = useState(1);
   
   // Options
   const statusOptions = ['FREE', 'IN USE', 'IN LOCK', 'ARCHIVE'];
@@ -239,6 +240,12 @@ export default function RegisterDesignGalleryPage() {
     });
   }, [data, search, selectedYear, selectedType, selectedDesigner, selectedStatus]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, selectedYear, selectedType, selectedDesigner, selectedStatus, displayLimit]);
+
+  const totalPages = Math.ceil(filteredData.length / parseInt(displayLimit));
+
   const getStatusColor = (status: string) => {
     if (status === 'IN LOCK') return 'bg-rose-500 text-white border-rose-600 shadow-rose-500/30 shadow-md';
     if (status === 'IN USE') return 'bg-emerald-500 text-white border-emerald-600 shadow-emerald-500/30 shadow-md';
@@ -384,12 +391,34 @@ export default function RegisterDesignGalleryPage() {
                     <SelectValue placeholder="Tampilkan" />
                   </SelectTrigger>
                   <SelectContent className="bg-white border-[#d4af37]/30 text-slate-700 text-xs">
-                    <SelectItem value="20" className="focus:bg-amber-50 focus:text-slate-900">20 Gambar</SelectItem>
-                    <SelectItem value="30" className="focus:bg-amber-50 focus:text-slate-900">30 Gambar</SelectItem>
+                    <SelectItem value="25" className="focus:bg-amber-50 focus:text-slate-900">25 Gambar</SelectItem>
                     <SelectItem value="50" className="focus:bg-amber-50 focus:text-slate-900">50 Gambar</SelectItem>
-                    <SelectItem value="all" className="focus:bg-amber-50 focus:text-slate-900">Semua</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="flex items-center gap-1 bg-white/80 rounded-md border border-[#d4af37]/40 shadow-sm p-0.5">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8 rounded text-[#8b6508]"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <div className="text-xs font-semibold text-slate-700 px-2 min-w-[60px] text-center">
+                  {currentPage} / {totalPages > 0 ? totalPages : 1}
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8 rounded text-[#8b6508]"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
               </div>
               
               <div className="ml-auto xl:ml-0 text-xs font-semibold text-[#8b6508] bg-white/80 px-2.5 py-1.5 rounded-md border border-[#d4af37]/40 shadow-sm shrink-0">
@@ -479,7 +508,7 @@ export default function RegisterDesignGalleryPage() {
               </div>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 auto-rows-max relative z-10">
-                {filteredData.slice(0, displayLimit === 'all' ? filteredData.length : parseInt(displayLimit)).map(item => {
+                {filteredData.slice((currentPage - 1) * parseInt(displayLimit), currentPage * parseInt(displayLimit)).map(item => {
                   const isLocked = item.status === 'IN LOCK';
                   
                   return (

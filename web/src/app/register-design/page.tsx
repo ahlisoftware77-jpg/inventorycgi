@@ -922,7 +922,7 @@ export default function RegisterDesignPage() {
   const [targetDarNo, setTargetDarNo] = useState("");
   const [importProgress, setImportProgress] = useState<{current: number, total: number, isParsing?: boolean} | null>(null);
   const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
-  const [rowLimit, setRowLimit] = useState<number>(50);
+  const [rowLimit, setRowLimit] = useState<number>(25);
   const [currentPage, setCurrentPage] = useState(1);
   const [isMassDeleteOpen, setIsMassDeleteOpen] = useState(false);
   const [massDeleteYear, setMassDeleteYear] = useState<string>("");
@@ -2152,9 +2152,8 @@ export default function RegisterDesignPage() {
                   <SelectValue placeholder="Baris" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="25">25 Baris</SelectItem>
                   <SelectItem value="50">50 Baris</SelectItem>
-                  <SelectItem value="100">100 Baris</SelectItem>
-                  <SelectItem value="0">Semua</SelectItem>
                 </SelectContent>
               </Select>
             </div>
