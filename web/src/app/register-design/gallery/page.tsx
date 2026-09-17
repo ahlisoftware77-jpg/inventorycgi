@@ -399,6 +399,9 @@ export default function RegisterDesignGalleryPage() {
               z-index: 1;
               height: 100%;
               animation: goldShine 3s linear infinite;
+              transform: translateZ(0);
+              -webkit-transform: translateZ(0);
+              backface-visibility: hidden;
             }
             @keyframes goldShine {
               to { background-position: 200% center; }
@@ -412,13 +415,16 @@ export default function RegisterDesignGalleryPage() {
               z-index: -1;
               height: 100%;
               width: 100%;
-              transform: scale(0.85);
+              transform: scale(0.85) translateZ(0);
+              -webkit-transform: scale(0.85) translateZ(0);
               filter: blur(25px);
+              -webkit-filter: blur(25px);
               background: #d4af37;
               background: var(--background);
               background-size: 200% auto;
               animation: goldShine 3s linear infinite;
               transition: opacity .5s;
+              will-change: opacity, transform;
             }
             .locked-card-info {
               background: linear-gradient(135deg, #fffdf2 0%, #f5d78d 100%);
@@ -430,6 +436,8 @@ export default function RegisterDesignGalleryPage() {
               overflow: hidden;
               border-radius: .8rem;
               transition: all 0.5s ease;
+              transform: translateZ(0);
+              -webkit-transform: translateZ(0);
             }
             .locked-card:hover::after {
               opacity: 0.6;
@@ -465,8 +473,8 @@ export default function RegisterDesignGalleryPage() {
                     onClick={() => setLightboxItem(item)}
                     className={
                       isLocked
-                        ? "locked-card group cursor-pointer flex flex-col hover:-translate-y-1 transition-all duration-300"
-                        : "group bg-white/80 backdrop-blur-md rounded-2xl shadow-sm border border-[#d4af37]/30 overflow-hidden hover:shadow-[0_20px_40px_-15px_rgba(212,175,55,0.15)] hover:border-[#d4af37]/70 hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col"
+                        ? "locked-card group cursor-pointer flex flex-col hover:-translate-y-1 transition-all duration-300 transform-gpu"
+                        : "group bg-white/80 backdrop-blur-md rounded-2xl shadow-sm border border-[#d4af37]/30 overflow-hidden hover:shadow-[0_20px_40px_-15px_rgba(212,175,55,0.15)] hover:border-[#d4af37]/70 hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col transform-gpu backface-hidden"
                     }
                   >
                     <div className={isLocked ? "locked-card-info" : "flex flex-col h-full w-full"}>
@@ -479,7 +487,7 @@ export default function RegisterDesignGalleryPage() {
                         <img 
                           src={`https://drive.google.com/thumbnail?id=${item.designImage}&sz=s600`} 
                           alt={item.itemName || 'Design'} 
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 opacity-95 group-hover:opacity-100"
+                          className="w-full h-full object-cover transform-gpu group-hover:scale-110 transition-transform duration-500 opacity-95 group-hover:opacity-100 will-change-transform"
                           loading="lazy"
                           referrerPolicy="no-referrer"
                           onError={(e) => { 
