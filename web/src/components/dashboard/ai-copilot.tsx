@@ -707,7 +707,7 @@ Sistem kami secara otomatis akan merubah format link khusus tersebut menjadi tom
   return (
     <>
       {/* 1. Floating Action Button (FAB) & Pro AI Label */}
-      <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3">
+      <div className="fixed bottom-6 left-6 z-50 flex items-center gap-3">
 
         <div className="relative group">
           {/* Cosmic Aura Gradient Backdrop Glow */}
@@ -756,8 +756,8 @@ Sistem kami secara otomatis akan merubah format link khusus tersebut menjadi tom
       {/* 3. Sliding Side Panel (Copilot Drawer) */}
       <div
         className={cn(
-          "fixed inset-y-0 right-0 z-40 w-full sm:w-[480px] md:w-[520px] bg-slate-950/95 backdrop-blur-xl border-l border-teal-900/35 shadow-2xl flex flex-col text-white transition-all duration-300 ease-out transform",
-          isOpen ? "translate-x-0" : "translate-x-full"
+          "fixed inset-y-0 left-0 z-40 w-full sm:w-[480px] md:w-[520px] bg-slate-950/95 backdrop-blur-xl border-r border-teal-900/35 shadow-2xl flex flex-col text-white transition-all duration-300 ease-out transform",
+          isOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         {/* Panel Header */}

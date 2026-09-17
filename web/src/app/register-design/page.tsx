@@ -2089,21 +2089,21 @@ export default function RegisterDesignPage() {
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col h-[calc(100vh-90px)] bg-white dark:bg-slate-900 dark:bg-slate-100 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+      <div className="flex flex-col h-[calc(100vh-77px)] bg-white dark:bg-slate-900 dark:bg-slate-100 shadow-sm border-b border-slate-200 dark:border-slate-700">
         
         {/* Header */}
-        <div className="flex flex-col xl:flex-row xl:items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 gap-4 rounded-t-xl">
+        <div className="flex flex-row flex-wrap items-center justify-between py-1.5 px-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 gap-2">
           <div>
-            <h1 className="text-xl font-black text-slate-800 dark:text-slate-200 flex items-center gap-2">
-              <Layers className="text-blue-600 dark:text-blue-400" />
+            <h1 className="text-lg md:text-xl font-black text-[#d4af37] flex items-center gap-2 drop-shadow-sm leading-none">
+              <Layers className="text-[#8b6508] w-5 h-5 md:w-6 md:h-6" />
               Register Design
             </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">Input desain individual bergaya Excel dan kelompokkan ke dalam Form DAR.</p>
+            <p className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium leading-none">Input desain individual bergaya Excel dan kelompokkan ke dalam Form DAR.</p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             <div className="relative w-full sm:w-auto flex items-center bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-700 rounded-md overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500">
               <Select value={searchCategory} onValueChange={setSearchCategory}>
-                <SelectTrigger className="w-[130px] border-none shadow-none focus:ring-0 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 h-9 rounded-none border-r border-slate-200 dark:border-slate-700">
+                <SelectTrigger className="w-[110px] sm:w-[130px] border-none shadow-none focus:ring-0 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 h-8 rounded-none border-r border-slate-200 dark:border-slate-700">
                   <SelectValue placeholder="Kategori" />
                 </SelectTrigger>
                 <SelectContent>
@@ -2126,18 +2126,18 @@ export default function RegisterDesignPage() {
                   autoCorrect="off"
                   spellCheck={false}
                   name="table_search_query"
-                  className="pl-9 h-9 w-full sm:w-48 text-sm border-none shadow-none focus-visible:ring-0 rounded-none bg-transparent"
+                  className="pl-8 h-8 w-full sm:w-40 text-xs border-none shadow-none focus-visible:ring-0 rounded-none bg-transparent"
                 />
               </div>
             </div>
             
-            <div className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1.5 rounded-full whitespace-nowrap">
+            <div className="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-1 rounded-full whitespace-nowrap">
               {filteredData.length} Baris
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <Select value={selectedYear} onValueChange={setSelectedYear}>
-                <SelectTrigger className="w-[100px] h-9 text-xs font-semibold bg-white dark:bg-slate-900 dark:bg-slate-100 border-slate-200 dark:border-slate-700">
+                <SelectTrigger className="w-[90px] h-8 text-[11px] font-semibold bg-white dark:bg-slate-900 dark:bg-slate-100 border-slate-200 dark:border-slate-700">
                   <SelectValue placeholder="Tahun" />
                 </SelectTrigger>
                 <SelectContent>
@@ -2148,7 +2148,7 @@ export default function RegisterDesignPage() {
                 </SelectContent>
               </Select>
               <Select value={rowLimit.toString()} onValueChange={(v) => setRowLimit(parseInt(v))}>
-                <SelectTrigger className="w-[110px] h-9 text-xs font-semibold bg-white dark:bg-slate-900 dark:bg-slate-100 border-slate-200 dark:border-slate-700">
+                <SelectTrigger className="w-[95px] h-8 text-[11px] font-semibold bg-white dark:bg-slate-900 dark:bg-slate-100 border-slate-200 dark:border-slate-700">
                   <SelectValue placeholder="Baris" />
                 </SelectTrigger>
                 <SelectContent>
@@ -2174,7 +2174,7 @@ export default function RegisterDesignPage() {
             </div>
             
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => router.push('/register-design/dashboard')} className="font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 dark:bg-slate-800 border-slate-300 dark:border-slate-600">
+              <Button variant="outline" size="sm" onClick={() => router.push('/register-design/dashboard')} className="font-semibold text-[#8b6508] bg-[#fdfaf3] dark:bg-amber-950/30 hover:bg-[#fcf5e3] dark:hover:bg-amber-900/40 border-[#d4af37]/50 shadow-sm transition-colors">
                 <BarChart2 className="w-4 h-4 mr-2 hidden sm:inline" /> Dashboard
               </Button>
 
@@ -2253,15 +2253,11 @@ export default function RegisterDesignPage() {
 
               <input type="file" ref={fileInputRef} accept=".xlsx, .xls" onChange={handleImportExcel} className="hidden" title="Import Excel" />
 
-              <Button onClick={() => router.push('/register-design/gallery')} size="sm" variant="outline" className="font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 dark:bg-slate-100 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700/50 dark:bg-slate-800 hover:text-blue-600 dark:hover:text-blue-400 dark:text-blue-400 transition-colors flex flex-1 sm:flex-none border-slate-200 dark:border-slate-700">
-                <Layers className="w-4 h-4 mr-1.5 text-blue-500" /> Gallery
+              <Button onClick={() => router.push('/register-design/gallery')} size="sm" variant="outline" className="font-semibold text-[#8b6508] bg-[#fdfaf3] dark:bg-amber-950/30 shadow-sm hover:bg-[#fcf5e3] dark:hover:bg-amber-900/40 transition-colors flex flex-1 sm:flex-none border-[#d4af37]/50">
+                <ImageIcon className="w-4 h-4 mr-1.5" /> Gallery
               </Button>
 
-              {!isReadOnly && (
-                <Button onClick={handleAddRow} size="sm" className="font-semibold bg-slate-900 dark:bg-slate-100 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-slate-200 dark:hover:bg-slate-200 text-white dark:text-slate-900 dark:text-slate-900 flex-1 sm:flex-none transition-colors shadow-sm">
-                  <Plus className="w-4 h-4 mr-1 hidden sm:inline" /> Baris Baru (F8)
-                </Button>
-              )}
+
             </div>
 
             {/* Pagination UI - Header Version */}

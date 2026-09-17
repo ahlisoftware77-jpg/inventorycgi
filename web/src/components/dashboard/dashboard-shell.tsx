@@ -92,7 +92,7 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
               ) : (
                 <div className={cn(
                   "p-4 md:p-10 lg:p-12 min-h-full pb-40 transition-all duration-500",
-                  (isStandalonePage || pathname.startsWith('/register-design/gallery')) && "p-0 md:p-0 lg:p-0 pb-0"
+                  (isStandalonePage || pathname.startsWith('/register-design')) && "p-0 md:p-0 lg:p-0 pb-0"
                 )}>
                   {children}
                 </div>
