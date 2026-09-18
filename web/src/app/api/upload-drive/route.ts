@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     // RESUMABLE UPLOAD LOGIC (Bypass Vercel 4.5MB limit)
     if (contentType.includes('application/json')) {
       const body = await request.json();
-      const { action, fileName, mimeType, fileId } = body;
+      const { action, fileName, mimeType, fileId, folderType } = body;
 
       const settingsDoc = await getDoc(doc(db, "settings", "general"));
       if (!settingsDoc.exists()) throw new Error("Settings not found");
@@ -32,7 +32,8 @@ export async function POST(request: Request) {
 
       if (action === 'init') {
         const { token } = await oauth2Client.getAccessToken();
-        const metadata = { name: fileName, parents: [settingsData.googleDriveFolderId] };
+        const targetFolderId = folderType === 'original' ? settingsData.googleDriveOriginalFolderId : settingsData.googleDriveFolderId;
+        const metadata = { name: fileName, parents: [targetFolderId] };
 
         const reqOrigin = request.headers.get('origin') || 'https://inventorycgi.web.app';
 
@@ -79,7 +80,8 @@ export async function POST(request: Request) {
     const clientId = settingsData.googleClientId;
     const clientSecret = settingsData.googleClientSecret;
     const refreshToken = settingsData.googleRefreshToken;
-    const folderId = settingsData.googleDriveFolderId;
+    const folderType = formData.get('folderType') as string;
+    const folderId = folderType === 'original' ? settingsData.googleDriveOriginalFolderId : settingsData.googleDriveFolderId;
 
     if (!clientId || !clientSecret || !refreshToken || !folderId) {
       return NextResponse.json({ error: "Google Drive OAuth Credentials (Client ID, Secret, Refresh Token) or Folder ID not configured" }, { status: 500, headers: corsHeaders });

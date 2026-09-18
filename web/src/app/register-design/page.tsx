@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { db, auth } from '@/lib/firebase/config';
 import { collection, getDocs, doc, setDoc, deleteDoc, updateDoc, query, orderBy, serverTimestamp, where, addDoc, getDoc } from 'firebase/firestore';
-import { Trash2, Plus, Save, Layers, CheckSquare, Search, ChevronDown, Check, Eye, X, Pencil, Share2, ChevronUp, BarChart2, Download, Upload, FileSpreadsheet, Lock, Unlock, Loader2, MoreHorizontal, ChevronLeft, ChevronRight, Calendar, Image as ImageIcon, Printer } from 'lucide-react';
+import { Trash2, Plus, Save, Layers, CheckSquare, Search, ChevronDown, Check, Eye, X, Pencil, Share2, ChevronUp, BarChart2, Download, Upload, FileSpreadsheet, Lock, Unlock, Loader2, MoreHorizontal, ChevronLeft, ChevronRight, Calendar, Image as ImageIcon, Printer, Send } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
@@ -1436,7 +1436,10 @@ export default function RegisterDesignPage() {
     }
 
     const infoAndNoteFields = ["benefit", "generalNote", "note2", "lastTimeReq", "benefitText", "feedbackDetails", "lastDesignSupp", "requiredDate", "closingDate", "technician", "designer", "customer"];
-    const shouldSync = currentRow?.darNo && infoAndNoteFields.includes(field);
+    const shouldSyncDar = currentRow?.darNo && infoAndNoteFields.includes(field as string);
+    
+    const specFields = ["type", "sizeChecks", "sizeFaces", "sizeCm1", "sizeCm2", "glazeChecks", "glazeResidue", "surfaceChecks", "surfaceTemp", "guPtv", "guPtv2", "guPtv3", "guPtv4", "guPtv5", "guPtv6", "guPtvChecks", "inkChecks", "inkOther", "sendBy"];
+    const shouldSyncItemName = currentRow?.itemName && specFields.includes(field as string);
 
     // Update local state immediately
     setData(prev => prev.map(d => {
@@ -1445,7 +1448,10 @@ export default function RegisterDesignPage() {
         if (generatedDesignNo) updated.designNo = generatedDesignNo;
         return updated;
       }
-      if (shouldSync && d.darNo === currentRow.darNo) {
+      if (shouldSyncDar && d.darNo === currentRow.darNo) {
+        return { ...d, [field]: value };
+      }
+      if (shouldSyncItemName && d.itemName === currentRow.itemName) {
         return { ...d, [field]: value };
       }
       return d;
@@ -1455,7 +1461,7 @@ export default function RegisterDesignPage() {
     try {
       const promises = [updateDoc(doc(db, "register_design", id), updatePayload)];
       
-      if (shouldSync) {
+      if (shouldSyncDar) {
         data.forEach(d => {
           if (d.id !== id && d.darNo === currentRow.darNo) {
             promises.push(updateDoc(doc(db, "register_design", d.id), { [field]: value, updatedAt: serverTimestamp() }));
@@ -1469,7 +1475,7 @@ export default function RegisterDesignPage() {
           const formField = field === 'benefit' ? 'purpose' : field === 'feedbackDetails' ? 'feedbackRows' : field === 'note2' ? 'note2Rows' : field === 'benefitText' ? 'benefit' : field;
           
           let parsedValue: any = value;
-          if (['feedbackDetails', 'note2', 'lastDesignSupp'].includes(field)) {
+          if (['feedbackDetails', 'note2', 'lastDesignSupp'].includes(field as string)) {
              try { parsedValue = JSON.parse(value || "[]"); if(!Array.isArray(parsedValue)) parsedValue = []; } catch(e) { parsedValue = []; }
           }
           if (field === 'benefit') {
@@ -1481,6 +1487,14 @@ export default function RegisterDesignPage() {
             updatedAt: serverTimestamp()
           }));
         }
+      }
+
+      if (shouldSyncItemName) {
+        data.forEach(d => {
+          if (d.id !== id && d.itemName === currentRow.itemName) {
+            promises.push(updateDoc(doc(db, "register_design", d.id), { [field]: value, updatedAt: serverTimestamp() }));
+          }
+        });
       }
 
       if ((field === 'itemName' || field === 'version') && currentRow?.darNo) {
@@ -2087,9 +2101,11 @@ export default function RegisterDesignPage() {
     reader.readAsBinaryString(file);
   };
 
+  const LayoutWrapper = user ? DashboardLayout : React.Fragment;
+
   return (
-    <DashboardLayout>
-      <div className="flex flex-col h-[calc(100vh-77px)] bg-white dark:bg-slate-900 dark:bg-slate-100 shadow-sm border-b border-slate-200 dark:border-slate-700">
+    <LayoutWrapper>
+      <div className={`flex flex-col ${user ? 'h-[calc(100vh-77px)]' : 'h-screen'} bg-white dark:bg-slate-900 shadow-sm border-b border-slate-200 dark:border-slate-700`}>
         
         {/* Header */}
         <div className="flex flex-row flex-wrap items-center justify-between py-1.5 px-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 gap-2">
@@ -2117,12 +2133,21 @@ export default function RegisterDesignPage() {
                 </SelectContent>
               </Select>
               <div className="relative flex-1">
+                {/* Honeypot to prevent browser autofilling the search box */}
+                <input 
+                  type="text" 
+                  autoComplete="username" 
+                  style={{ position: 'absolute', opacity: 0, height: 0, width: 0, zIndex: -1 }} 
+                  aria-hidden="true" 
+                  tabIndex={-1} 
+                />
                 <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
                 <Input 
+                  type="search"
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder={searchCategory === 'all' ? "Cari apapun..." : "Cari..."}
-                  autoComplete="new-password"
+                  autoComplete="off"
                   autoCorrect="off"
                   spellCheck={false}
                   name="table_search_query"
@@ -2339,10 +2364,34 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
+                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 dark:bg-slate-950 transition-colors select-none group" onClick={() => handleSort("typeDesign")}>
+                  <div className="flex items-center gap-1">
+                    Tipe Desain
+                    {sortConfig?.key === "typeDesign" ? (
+                      sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+                    ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
+                  </div>
+                </th>
+                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 dark:bg-slate-950 transition-colors select-none group" onClick={() => handleSort("designNo")}>
+                  <div className="flex items-center gap-1">
+                    Design No
+                    {sortConfig?.key === "designNo" ? (
+                      sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+                    ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
+                  </div>
+                </th>
                 <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 dark:bg-slate-950 transition-colors select-none group" onClick={() => handleSort("itemName")}>
                   <div className="flex items-center gap-1">
                     Nama Item
                     {sortConfig?.key === "itemName" ? (
+                      sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+                    ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
+                  </div>
+                </th>
+                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 dark:bg-slate-950 transition-colors select-none group" onClick={() => handleSort("designSource")}>
+                  <div className="flex items-center gap-1">
+                    Sumber Desain
+                    {sortConfig?.key === "designSource" ? (
                       sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
@@ -2363,6 +2412,8 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
+
+
                 <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 dark:bg-slate-950 transition-colors select-none group" onClick={() => handleSort("technician")}>
                   <div className="flex items-center gap-1">
                     Technician
@@ -2398,30 +2449,9 @@ export default function RegisterDesignPage() {
                     ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
                   </div>
                 </th>
-                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 dark:bg-slate-950 transition-colors select-none group" onClick={() => handleSort("typeDesign")}>
-                  <div className="flex items-center gap-1">
-                    Tipe Desain
-                    {sortConfig?.key === "typeDesign" ? (
-                      sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
-                    ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
-                  </div>
-                </th>
-                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 dark:bg-slate-950 transition-colors select-none group" onClick={() => handleSort("designSource")}>
-                  <div className="flex items-center gap-1">
-                    Sumber Desain
-                    {sortConfig?.key === "designSource" ? (
-                      sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
-                    ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
-                  </div>
-                </th>
-                <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 dark:bg-slate-950 transition-colors select-none group" onClick={() => handleSort("designNo")}>
-                  <div className="flex items-center gap-1">
-                    Design No
-                    {sortConfig?.key === "designNo" ? (
-                      sortConfig.direction === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
-                    ) : <ChevronUp className="h-3 w-3 opacity-0 group-hover:opacity-30 transition-opacity" />}
-                  </div>
-                </th>
+
+
+
                 <th className="sticky top-0 z-10 p-2 border-r cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 dark:bg-slate-950 transition-colors select-none group" onClick={() => handleSort("requiredDate")}>
                   <div className="flex items-center gap-1">
                     Req Date
@@ -2567,17 +2597,19 @@ export default function RegisterDesignPage() {
                       </td>
                       <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="entryDate" width="w-28" type="date" /></td>
                       <td className="p-1 border-r text-[10px] text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 text-center">{row.createdBy || '-'}</td>
+                      <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="typeDesign" options={typeDesignOptions} colorFn={getTypeDesignColor} width="w-20" /></td>
+                      <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="designNo" width="w-24" /></td>
                       <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="itemName" width="w-40" /></td>
+                      <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="designSource" options={designSourceOptions} width="w-24" /></td>
                       <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="customer" options={customerOptions} width="w-32" /></td>
                       <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="designer" options={designerOptions} colorFn={getDesignerColor} width="w-28" /></td>
+
                       <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="technician" options={technicianOptions} colorFn={getTechnicianColor} width="w-28" /></td>
                       <td className="p-1 border-r bg-slate-50 dark:bg-slate-800/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="benefit" options={baseTujuanOptions} width="w-32" /></td>
                       <td className="p-1 border-r bg-slate-50 dark:bg-slate-800/50"><CellImageUpload handleUpdateCell={handleUpdateCell} row={row} /></td>
                       <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="version" width="w-20" /></td>
                       <td className="p-1 border-r"><CellSelect handleUpdateCell={handleUpdateCell} row={row} field="status" options={["IN LOCK", "IN USE", "FREE", "ARCHIVE"]} colorFn={getStatusColor} width="w-24" /></td>
-                      <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="typeDesign" options={typeDesignOptions} colorFn={getTypeDesignColor} width="w-20" /></td>
-                      <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="designSource" options={designSourceOptions} width="w-24" /></td>
-                      <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="designNo" width="w-24" /></td>
+
                       <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="requiredDate" width="w-28" type="date" /></td>
                       <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="closingDate" width="w-28" type="date" /></td>
                       <td className="p-1 border-r bg-slate-50 dark:bg-slate-800/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="type" options={baseTypeOptions} width="w-24" /></td>
@@ -2606,6 +2638,9 @@ export default function RegisterDesignPage() {
                                 </Button>
                               </>
                             )}
+                            <Button variant="ghost" size="icon" onClick={() => router.push(`/customer-send/${row.id}`)} className="h-6 w-6 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/50 hover:text-purple-700 dark:hover:text-purple-300 shadow-sm border border-purple-100 dark:border-purple-800" title="Kirim Customer">
+                              <Send className="w-3.5 h-3.5" />
+                            </Button>
                             <Button variant="ghost" size="icon" onClick={() => handleDeleteRow(row.id)} className="h-6 w-6 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 hover:text-red-700 dark:hover:text-red-300 shadow-sm border border-red-100 dark:border-red-800" title="Hapus Baris">
                               <Trash2 className="w-3.5 h-3.5" />
                             </Button>
@@ -2929,12 +2964,21 @@ export default function RegisterDesignPage() {
                 )}
               </div>
               <div className="relative">
+                {/* Honeypot to prevent browser autofilling the search box */}
+                <input 
+                  type="text" 
+                  autoComplete="username" 
+                  style={{ position: 'absolute', opacity: 0, height: 0, width: 0, zIndex: -1 }} 
+                  aria-hidden="true" 
+                  tabIndex={-1} 
+                />
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <Input 
+                  type="search"
                   placeholder="Cari berdasarkan No Design, Item, Customer, atau DAR..."
                   value={trashSearch}
                   onChange={(e) => setTrashSearch(e.target.value)}
-                  autoComplete="new-password"
+                  autoComplete="off"
                   autoCorrect="off"
                   spellCheck={false}
                   name="trash_search_query"
@@ -3072,6 +3116,6 @@ export default function RegisterDesignPage() {
           </div>
         </div>
       )}
-    </DashboardLayout>
+    </LayoutWrapper>
   );
 }

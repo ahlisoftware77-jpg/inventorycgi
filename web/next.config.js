@@ -16,6 +16,16 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        "node:fs": false,
+      };
+    }
+    return config;
+  },
   images: {
     unoptimized: true,
     remotePatterns: [

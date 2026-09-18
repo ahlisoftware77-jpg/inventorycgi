@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Lock, ArrowRight, Loader2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
-
+import { db } from '@/lib/firebase/config';
+import { doc, getDoc } from 'firebase/firestore';
 async function hashString(str: string) {
   const msgBuffer = new TextEncoder().encode(str);
   const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
@@ -17,30 +18,79 @@ async function hashString(str: string) {
 
 function PublicDashboardContent() {
   const searchParams = useSearchParams();
+  const shareId = searchParams.get('shareId');
   const k = searchParams.get('k');
   
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passcode, setPasscode] = useState('');
   const [error, setError] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
+  const [initialCheckDone, setInitialCheckDone] = useState(false);
 
-  // If no key is provided, deny access inherently (or we could just say "Link tidak valid")
-  const isInvalidLink = !k;
+  // If there's neither shareId nor k, link is invalid
+  const isInvalidLink = !shareId && !k;
+
+  useEffect(() => {
+    if (isInvalidLink) {
+      setInitialCheckDone(true);
+    } else {
+      setInitialCheckDone(true);
+    }
+  }, [isInvalidLink]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isInvalidLink) return;
     
     setIsChecking(true);
-    const hashed = await hashString(passcode);
-    if (hashed === k) {
-      setIsAuthenticated(true);
-      setError(false);
-    } else {
+    setError(false);
+    
+    try {
+      if (shareId) {
+        const docRef = doc(db, "shared_links", shareId);
+        const snap = await getDoc(docRef);
+        
+        if (!snap.exists()) {
+          setError(true);
+          setIsChecking(false);
+          return;
+        }
+        
+        const data = snap.data();
+        
+        if (data.expiresAt) {
+          const expiresAt = new Date(data.expiresAt);
+          if (new Date() > expiresAt) {
+            alert("Link Kedaluwarsa");
+            setIsChecking(false);
+            return;
+          }
+        }
+        
+        const hashedInput = await hashString(passcode);
+        if (hashedInput === data.hashedPasscode) {
+          setIsAuthenticated(true);
+        } else {
+          setError(true);
+        }
+      } else if (k) {
+        // Fallback for older links with ?k=
+        const hashed = await hashString(passcode);
+        if (hashed === k) {
+          setIsAuthenticated(true);
+        } else {
+          setError(true);
+        }
+      }
+    } catch (err) {
+      console.error(err);
       setError(true);
     }
+    
     setIsChecking(false);
   };
+
+  if (!initialCheckDone) return null;
 
   if (isInvalidLink) {
     return (

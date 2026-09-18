@@ -27,7 +27,7 @@ export default function RegisterDesignDashboardPage() {
   return (
     <DashboardLayout>
       <div className="w-full bg-slate-50/50 relative">
-        <div className="pt-4 px-4 lg:px-6 -mb-2 relative z-10">
+        <div className="pt-4 px-4 lg:px-6 -mb-2 relative z-10 print:hidden">
           <Button variant="outline" size="sm" onClick={() => router.push('/register-design')} className="bg-white shadow-sm border-slate-200 hover:bg-slate-100 h-8">
             <ArrowLeft className="w-3.5 h-3.5 mr-2" />
             Kembali

@@ -21,8 +21,21 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
   const [isVisible, setIsVisible] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
+  const [isSharedGallery, setIsSharedGallery] = useState(false);
+  
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const search = window.location.search;
+      if ((pathname === '/register-design/gallery' || pathname === '/register-design') && search.includes('shareId=')) {
+        setIsSharedGallery(true);
+      } else {
+        setIsSharedGallery(false);
+      }
+    }
+  }, [pathname]);
+
   // Daftar halaman publik dan standalone
-  const isStandalonePage = pathname.startsWith('/public/') || pathname === '/login' || pathname === '/register' || pathname.startsWith('/form-app/preview');
+  const isStandalonePage = pathname.startsWith('/public/') || pathname === '/login' || pathname === '/register' || pathname.startsWith('/form-app/preview') || isSharedGallery;
   
   // Sidebar ditampilan jika bukan halaman publik (dan user login ATAU masih loading di halaman privat)
   const showSidebar = !isStandalonePage && (user !== null || loading);
@@ -101,7 +114,7 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
             </div>
             
             {!isStandalonePage && (
-              <>
+              <div className="print:hidden">
                 <AICopilot />
                 <Button
                   variant="default"
@@ -115,7 +128,7 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
                 >
                   <ArrowUp className="h-5 w-5" />
                 </Button>
-              </>
+              </div>
             )}
           </SidebarInset>
         </div>

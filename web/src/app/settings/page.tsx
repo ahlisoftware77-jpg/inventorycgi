@@ -106,6 +106,7 @@ export default function SettingsPage() {
   const [googleClientSecret, setGoogleClientSecret] = useState('');
   const [googleRefreshToken, setGoogleRefreshToken] = useState('');
   const [googleDriveFolderId, setGoogleDriveFolderId] = useState('');
+  const [googleDriveOriginalFolderId, setGoogleDriveOriginalFolderId] = useState('');
   
   const [departments, setDepartments] = useState<string[]>([]);
   const [categories, setCategories] = useState<CategoryObject[]>([]);
@@ -222,6 +223,7 @@ export default function SettingsPage() {
             }
 
             setGoogleDriveFolderId(data.googleDriveFolderId || '');
+            setGoogleDriveOriginalFolderId(data.googleDriveOriginalFolderId || '');
             setDepartments(data.departments || defaultDepts);
             setSeriesList(data.seriesList || ['Seri A', 'Seri B', 'Fasilitas']);
             setCostCenters(data.costCenters || []);
@@ -328,6 +330,7 @@ export default function SettingsPage() {
         googleClientSecret,
         googleRefreshToken,
         googleDriveFolderId,
+        googleDriveOriginalFolderId,
         mainMenuOrder: mainMenuOrder.map(m => m.id),
         systemMenuOrder: systemMenuOrder.map(m => m.id),
       }, { merge: true });
@@ -1424,14 +1427,25 @@ export default function SettingsPage() {
                 
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase tracking-widest text-slate-400">Folder ID</Label>
+                    <Label className="text-xs font-bold uppercase tracking-widest text-slate-400">Folder ID (Gambar Galeri)</Label>
                     <Input 
                       placeholder="Contoh: 1bA2c3D4e5F6g7H8i9J0kL..." 
                       value={googleDriveFolderId} 
                       onChange={(e) => setGoogleDriveFolderId(e.target.value)} 
                       className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none shadow-inner font-bold text-slate-900 dark:text-white"
                     />
-                    <p className="text-[10px] text-slate-400">ID folder Google Drive tempat gambar akan disimpan.</p>
+                    <p className="text-[10px] text-slate-400">ID folder Google Drive tempat file gambar kompresi (thumbnail/preview) akan disimpan.</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-widest text-slate-400">Folder ID (File Original)</Label>
+                    <Input 
+                      placeholder="Contoh: 1bA2c3D4e5F6g7H8i9J0kL..." 
+                      value={googleDriveOriginalFolderId} 
+                      onChange={(e) => setGoogleDriveOriginalFolderId(e.target.value)} 
+                      className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none shadow-inner font-bold text-slate-900 dark:text-white"
+                    />
+                    <p className="text-[10px] text-slate-400">ID folder Google Drive tempat file master/original desain (bisa mencapai 2GB) akan disimpan.</p>
                   </div>
                   
                   <div className="space-y-2">

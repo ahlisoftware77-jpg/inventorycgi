@@ -274,9 +274,11 @@ export default function RegisterDesignGalleryPage() {
     );
   }
 
+  const LayoutWrapper = user ? DashboardLayout : React.Fragment;
+
   return (
-    <DashboardLayout>
-      <div className="flex flex-col h-[calc(100vh-77px)] bg-[#faf8f5] relative">
+    <LayoutWrapper>
+      <div className={`flex flex-col relative ${user ? 'h-[calc(100vh-77px)]' : 'h-screen'} bg-[#faf8f5]`}>
         {/* Animated Custom Background */}
         <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
           <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(#d4af37 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
@@ -288,20 +290,20 @@ export default function RegisterDesignGalleryPage() {
         {/* Header & Controls */}
         <div className="sticky top-0 z-40 shrink-0 bg-white/70 backdrop-blur-xl border-b border-[#d4af37]/30 p-3 shadow-sm">
           <div className="absolute inset-0 bg-gradient-to-r from-[#d4af37]/5 via-transparent to-[#00c6ff]/5 -z-10" />
-          <div className="max-w-[1400px] mx-auto flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+          <div className="w-full flex flex-col xl:flex-row xl:items-center justify-between gap-3 px-2">
             <div className="flex items-center gap-2.5">
               <Button onClick={() => router.push('/register-design')} variant="ghost" size="icon" className="shrink-0 hover:bg-[#d4af37]/10 text-[#8b6508] rounded-full" title="Kembali ke Register Design">
                 <ArrowLeft className="w-5 h-5" />
               </Button>
-              <div className="w-10 h-10 flex items-center justify-center shrink-0 drop-shadow-[0_2px_4px_rgba(212,175,55,0.3)]">
+              <div className="w-14 h-14 flex items-center justify-center shrink-0 drop-shadow-[0_2px_4px_rgba(212,175,55,0.3)]">
                 <div 
-                  className="w-9 h-9 bg-gradient-to-r from-[#8b6508] to-[#d4af37]"
+                  className="w-14 h-14 bg-gradient-to-r from-[#8b6508] to-[#d4af37]"
                   style={{
-                    maskImage: 'url(/cgi2.png)',
+                    maskImage: 'url(/logo_cgi_transparent.png)',
                     maskSize: 'contain',
                     maskRepeat: 'no-repeat',
                     maskPosition: 'center',
-                    WebkitMaskImage: 'url(/cgi2.png)',
+                    WebkitMaskImage: 'url(/logo_cgi_transparent.png)',
                     WebkitMaskSize: 'contain',
                     WebkitMaskRepeat: 'no-repeat',
                     WebkitMaskPosition: 'center',
@@ -318,10 +320,11 @@ export default function RegisterDesignGalleryPage() {
               <div className="relative flex-1 min-w-[180px] max-w-xs">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#8b6508]/60" />
                 <Input 
+                  type="search"
                   placeholder="Cari Nama/Design No..." 
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  autoComplete="new-password"
+                  autoComplete="off"
                   autoCorrect="off"
                   spellCheck={false}
                   name="gallery_search_query"
@@ -428,9 +431,10 @@ export default function RegisterDesignGalleryPage() {
           </div>
         </div>
 
-        {/* Gallery Content */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar">
-          <style dangerouslySetInnerHTML={{__html: `
+        {/* MAIN GALLERY CONTENT */}
+        <div className="flex-1 overflow-auto bg-slate-50/50 relative custom-scrollbar">
+          <div className="w-full p-4 md:p-6 pb-24">
+            <style dangerouslySetInnerHTML={{__html: `
             .locked-card {
               --background: linear-gradient(135deg, #bf953f 0%, #fcf6ba 25%, #b38728 50%, #fbf5b7 75%, #aa771c 100%);
               padding: 4px;
@@ -787,6 +791,7 @@ export default function RegisterDesignGalleryPage() {
             </div>
           </div>
         )}
+        </div>
       </div>
       
       {/* Custom Scrollbar Styles for the gallery */}
@@ -815,6 +820,14 @@ export default function RegisterDesignGalleryPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
+            {/* Honeypot to prevent browser autofilling the search box with email */}
+            <input 
+              type="text" 
+              autoComplete="username" 
+              style={{ position: 'absolute', opacity: 0, height: 0, width: 0, zIndex: -1 }} 
+              aria-hidden="true" 
+              tabIndex={-1} 
+            />
             <Input 
               type="password" 
               value={publicPasscode} 
@@ -832,6 +845,6 @@ export default function RegisterDesignGalleryPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </DashboardLayout>
+    </LayoutWrapper>
   );
 }

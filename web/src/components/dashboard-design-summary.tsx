@@ -8,9 +8,11 @@ import {
   AreaChart, Area, PieChart, Pie, Cell, LabelList
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Layers, CheckSquare, Clock, Archive, Calendar, Activity, TrendingUp, Image as ImageIcon, ExternalLink } from 'lucide-react';
+import { Loader2, Layers, CheckSquare, Clock, Archive, Calendar, Activity, TrendingUp, Image as ImageIcon, ExternalLink, Download, Printer } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from '@/components/ui/button';
+import Script from 'next/script';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#f43f5e', '#8b5cf6', '#0ea5e9'];
 
@@ -64,6 +66,8 @@ export default function DashboardDesignSummary() {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
+  const [selectedMonth, setSelectedMonth] = useState<string>('all');
+  const [designerStatusFilter, setDesignerStatusFilter] = useState<string>('ALL');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -95,12 +99,25 @@ export default function DashboardDesignSummary() {
   }, [data]);
 
   const filteredData = useMemo(() => {
-    if (!selectedYear || selectedYear === 'all') return data;
-    return data.filter(d => {
-      const entryStr = String(d.entryDate || "");
-      return entryStr.startsWith(selectedYear);
-    });
-  }, [data, selectedYear]);
+    let result = data;
+    if (selectedYear && selectedYear !== 'all') {
+      result = result.filter(d => {
+        const entryStr = String(d.entryDate || "");
+        return entryStr.startsWith(selectedYear);
+      });
+    }
+    if (selectedMonth && selectedMonth !== 'all') {
+      result = result.filter(d => {
+        const entryStr = String(d.entryDate || "");
+        if (entryStr.length >= 7) {
+          const monthStr = entryStr.substring(5, 7);
+          return monthStr === selectedMonth;
+        }
+        return false;
+      });
+    }
+    return result;
+  }, [data, selectedYear, selectedMonth]);
 
   const stats = useMemo(() => {
     let inUse = 0;
@@ -162,22 +179,28 @@ export default function DashboardDesignSummary() {
     return Array.from(yearMap.values()).sort((a, b) => a.year.localeCompare(b.year));
   }, [data]);
 
-  const getTop5 = (field: string) => {
+  const getTop5 = (field: string, filterFn?: (item: any) => boolean, limit: number = 5) => {
     const counts = new Map<string, number>();
     filteredData.forEach(d => {
+      if (filterFn && !filterFn(d)) return;
       if (d[field]) {
         counts.set(d[field], (counts.get(d[field]) || 0) + 1);
       }
     });
-    return Array.from(counts.entries())
+    const sorted = Array.from(counts.entries())
       .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5);
+      .sort((a, b) => b.count - a.count);
+    return limit > 0 ? sorted.slice(0, limit) : sorted;
   };
 
   const customerData = useMemo(() => getTop5('customer'), [filteredData]);
-  const designerData = useMemo(() => getTop5('designer'), [filteredData]);
-  const itemData = useMemo(() => getTop5('itemName'), [filteredData]);
+  const designerData = useMemo(() => {
+    if (designerStatusFilter === 'ALL') {
+      return getTop5('designer');
+    }
+    return getTop5('designer', (d) => d.status === designerStatusFilter);
+  }, [filteredData, designerStatusFilter]);
+  const itemData = useMemo(() => getTop5('itemName', (d) => d.status === 'IN LOCK', 0), [filteredData]);
 
   const typeDesignData = useMemo(() => {
     const counts = new Map<string, number>();
@@ -198,11 +221,19 @@ export default function DashboardDesignSummary() {
   }, [filteredData]);
 
   const galleryItems = useMemo(() => {
-    return [...filteredData]
-      .filter(d => d.designImage)
-      .sort((a, b) => String(b.entryDate || "").localeCompare(String(a.entryDate || "")))
-      .slice(0, 20);
-  }, [filteredData]);
+    let items = [...filteredData]
+      .filter(d => {
+        if (!d.designImage) return false;
+        if (designerStatusFilter !== 'ALL' && d.status !== designerStatusFilter) return false;
+        return true;
+      })
+      .sort((a, b) => String(b.entryDate || "").localeCompare(String(a.entryDate || "")));
+      
+    if (designerStatusFilter === 'ALL') {
+      items = items.slice(0, 20);
+    }
+    return items;
+  }, [filteredData, designerStatusFilter]);
 
   if (loading) {
     return (
@@ -212,10 +243,156 @@ export default function DashboardDesignSummary() {
     );
   }
 
+  const exportToPowerPoint = async () => {
+    try {
+      const PptxGenJS = (window as any).pptxgen || (window as any).PptxGenJS;
+      if (!PptxGenJS) {
+        alert("Library PowerPoint masih sedang dimuat atau gagal dimuat. Silakan muat ulang halaman.");
+        return;
+      }
+      const pptx = new PptxGenJS();
+
+    pptx.author = "Inventory System";
+    pptx.company = "AHLI";
+    pptx.revision = "1";
+    pptx.subject = "Dashboard Design Report";
+    pptx.title = "Dashboard Design Report";
+
+    // Format default slide master
+    pptx.defineSlideMaster({
+      title: "MASTER_SLIDE",
+      background: { color: "FFFFFF" },
+      objects: [
+        { rect: { x: 0, y: 0, w: "100%", h: 0.7, fill: { color: "003366" } } },
+        { text: { text: "DASHBOARD DESIGN REPORT", options: { x: 0, y: 0.1, w: "100%", h: 0.5, color: "FFFFFF", fontSize: 18, align: "center", bold: true } } }
+      ]
+    });
+
+    // SLIDE 1: Title & Summary
+    const slide1 = pptx.addSlide({ masterName: "MASTER_SLIDE" });
+    slide1.addText(`Laporan Periode: ${selectedMonth === 'all' ? 'Semua Bulan' : selectedMonth} ${selectedYear === 'all' ? 'Semua Tahun' : selectedYear}`, { x: 0.5, y: 1, fontSize: 14, color: "363636", bold: true });
+    
+    // Add summary cards as shapes
+    const summaryData = [
+      { t: "TOTAL DESAIN", v: stats.total, c: "3B82F6" },
+      { t: "FREE", v: stats.free, c: "10B981" },
+      { t: "IN USE", v: stats.inUse, c: "F59E0B" },
+      { t: "IN LOCK", v: stats.inLock, c: "F43F5E" },
+      { t: "ARCHIVE", v: stats.archive, c: "64748B" },
+    ];
+    
+    summaryData.forEach((item, idx) => {
+      const x = 0.5 + (idx * 1.8);
+      const y = 1.6;
+      slide1.addShape(pptx.ShapeType.roundRect, { x, y, w: 1.6, h: 1.2, fill: { color: item.c }, line: { type: 'none' }, rectRadius: 0.1 });
+      slide1.addText(item.t, { x, y: y + 0.1, w: 1.6, h: 0.4, align: "center", fontSize: 11, color: "FFFFFF", bold: true });
+      slide1.addText(String(item.v), { x, y: y + 0.5, w: 1.6, h: 0.5, align: "center", fontSize: 24, color: "FFFFFF", bold: true });
+    });
+
+    // SLIDE 2: Charts (Monthly Status & Yearly Trend)
+    const slide2 = pptx.addSlide({ masterName: "MASTER_SLIDE" });
+    slide2.addText("Statistik Pertumbuhan & Status", { x: 0.5, y: 1, fontSize: 14, color: "363636", bold: true });
+    
+    // Yearly Trend Chart (Line)
+    if (yearlyData && yearlyData.length > 0) {
+      const chartDataYearly = [
+        { name: "Total", labels: yearlyData.map((d: any) => d.year), values: yearlyData.map((d: any) => d.Total) }
+      ];
+      slide2.addChart(pptx.ChartType.line, chartDataYearly, {
+        x: 0.5, y: 1.5, w: 4.5, h: 3.5,
+        chartColors: ["0ea5e9"],
+        showTitle: true, title: "Tren Pertumbuhan Tahunan",
+        showLegend: false,
+        lineSmooth: true, lineDataSymbol: "circle"
+      });
+    }
+
+    // Monthly Chart (Bar Stacked)
+    if (monthlyData && monthlyData.length > 0) {
+      const chartDataMonthly = [
+        { name: "FREE", labels: monthlyData.map((d: any) => d.month), values: monthlyData.map((d: any) => d.FREE) },
+        { name: "IN USE", labels: monthlyData.map((d: any) => d.month), values: monthlyData.map((d: any) => d["IN USE"]) },
+        { name: "IN LOCK", labels: monthlyData.map((d: any) => d.month), values: monthlyData.map((d: any) => d["IN LOCK"]) },
+        { name: "ARCHIVE", labels: monthlyData.map((d: any) => d.month), values: monthlyData.map((d: any) => d.ARCHIVE) }
+      ];
+      slide2.addChart(pptx.ChartType.bar, chartDataMonthly, {
+        x: 5.2, y: 1.5, w: 4.5, h: 3.5,
+        chartColors: ["10b981", "f59e0b", "f43f5e", "64748b"],
+        barGrouping: "stacked",
+        showTitle: true, title: `Status Bulanan (${selectedYear})`,
+        showLegend: true, legendPos: "b"
+      });
+    }
+
+    // SLIDE 3: Design Types
+    const slide3 = pptx.addSlide({ masterName: "MASTER_SLIDE" });
+    slide3.addText("Distribusi Tipe Desain", { x: 0.5, y: 1, fontSize: 14, color: "363636", bold: true });
+
+    if (typeDesignData && typeDesignData.length > 0) {
+      const chartDataType = [
+        {
+          name: "Tipe Desain",
+          labels: typeDesignData.map((d: any) => d.name),
+          values: typeDesignData.map((d: any) => d.value)
+        }
+      ];
+      slide3.addChart(pptx.ChartType.pie, chartDataType, {
+        x: 0.5, y: 1.5, w: 4, h: 3.5,
+        showTitle: false,
+        showLegend: true, legendPos: "r",
+        dataLabelFormatCode: "0"
+      });
+    }
+    
+    // SLIDE 4: IN LOCK Details
+    const inLockItems = filteredData.filter(d => d.status === 'IN LOCK');
+    if (inLockItems.length > 0) {
+      const grouped = inLockItems.reduce((acc, curr) => {
+        const key = `${curr.customer}-${curr.typeDesign}-${curr.designer}`;
+        if (!acc[key]) {
+          acc[key] = { customer: curr.customer || '-', typeDesign: curr.typeDesign || '-', designer: curr.designer || '-', count: 0 };
+        }
+        acc[key].count++;
+        return acc;
+      }, {} as Record<string, any>);
+      
+      const inLockArray = Object.values(grouped).sort((a: any, b: any) => b.count - a.count);
+      
+      const tableHeaders = [
+        { text: "Nama Customer", options: { bold: true, fill: "F1F5F9", color: "475569" } },
+        { text: "Tipe Desain", options: { bold: true, fill: "F1F5F9", color: "475569" } },
+        { text: "Desainer", options: { bold: true, fill: "F1F5F9", color: "475569" } },
+        { text: "Jumlah", options: { bold: true, fill: "F1F5F9", color: "475569", align: "right" } }
+      ];
+      
+      const tableRows = inLockArray.map((item: any) => [
+        item.customer,
+        item.typeDesign,
+        item.designer,
+        { text: String(item.count), options: { align: "right" } }
+      ]);
+      
+      const slide4 = pptx.addSlide({ masterName: "MASTER_SLIDE" });
+      slide4.addText(`Informasi Desain IN LOCK (Total: ${inLockItems.length})`, { x: 0.5, y: 1, fontSize: 14, color: "363636", bold: true });
+      slide4.addTable([tableHeaders, ...tableRows], {
+        x: 0.5, y: 1.5, w: 9.0, colW: [3.5, 2, 2.5, 1],
+        border: { pt: 1, color: "E2E8F0" },
+        fontSize: 10,
+        fill: "FFFFFF"
+      });
+    }
+
+    pptx.writeFile({ fileName: `Dashboard_Desain_Report_${selectedYear}_${selectedMonth}.pptx` });
+    } catch (error) {
+      console.error("Failed to generate PowerPoint", error);
+      alert("Terjadi kesalahan saat membuat file PowerPoint.");
+    }
+  };
+
   const renderHorizontalBar = (chartData: any[], defaultColor: string, colorMap?: Record<string, string>) => {
     return (
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 30, left: -10, bottom: 5 }}>
+        <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
           <defs>
             {chartData.map((entry, idx) => {
               const cellColor = colorMap?.[entry.name] || defaultColor;
@@ -230,7 +407,7 @@ export default function DashboardDesignSummary() {
           </defs>
           <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e2e8f0" strokeOpacity={0.5} />
           <XAxis type="number" hide />
-          <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 10, fontWeight: 600 }} width={110} />
+          <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 10, fontWeight: 600 }} width={160} />
           <RechartsTooltip 
             cursor={{ fill: 'rgba(241, 245, 249, 0.4)' }} 
             contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
@@ -249,19 +426,121 @@ export default function DashboardDesignSummary() {
     );
   };
 
+  const renderVerticalBar = (chartData: any[], defaultColor: string, colorMap?: Record<string, string>) => {
+    return (
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={chartData} margin={{ top: 20, right: 10, left: -20, bottom: 40 }}>
+          <defs>
+            {chartData.map((entry, idx) => {
+              const cellColor = colorMap?.[entry.name] || defaultColor;
+              const gradientId = `grad-vert-${cellColor.replace('#', '')}-${idx}`;
+              return (
+                <linearGradient key={`grad-vert-def-${idx}`} id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={cellColor} stopOpacity={1}/>
+                  <stop offset="100%" stopColor={cellColor} stopOpacity={0.4}/>
+                </linearGradient>
+              );
+            })}
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" strokeOpacity={0.5} />
+          <XAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 10, fontWeight: 600 }} angle={-45} textAnchor="end" height={60} interval={0} />
+          <YAxis type="number" axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 10 }} />
+          <RechartsTooltip 
+            cursor={{ fill: 'rgba(241, 245, 249, 0.4)' }} 
+            contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+            itemStyle={{ fontWeight: 'bold' }}
+          />
+          <Bar dataKey="count" name="Total" radius={[6, 6, 0, 0]} maxBarSize={40}>
+            {chartData.map((entry, index) => {
+              const cellColor = colorMap?.[entry.name] || defaultColor;
+              const gradientId = `grad-vert-${cellColor.replace('#', '')}-${index}`;
+              return <Cell key={`cell-vert-${index}`} fill={`url(#${gradientId})`} />;
+            })}
+            <LabelList dataKey="count" position="top" fill="#475569" fontSize={11} fontWeight={800} />
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    );
+  };
+
   return (
-    <div className="flex flex-col min-h-full w-full px-4 lg:px-6 pt-2 pb-6 bg-slate-50 gap-4 overflow-y-auto">
+    <>
+      <Script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js" strategy="lazyOnload" />
+      <style dangerouslySetInnerHTML={{__html: `
+        @media print {
+          @page { size: A4 landscape; margin: 10mm; }
+          body, html { 
+            -webkit-print-color-adjust: exact; 
+            print-color-adjust: exact; 
+            background-color: white !important;
+          }
+          /* Hide app shell elements */
+          header, [data-sidebar="sidebar"], .print-hide, .print-hide * {
+            display: none !important;
+          }
+          /* Reset parent containers to allow normal pagination flow */
+          body, html, div, main {
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+            position: static !important;
+          }
+          /* Setup dashboard container */
+          .dashboard-container { 
+            width: 166.6vw !important; /* compensate for 0.6 zoom */
+            zoom: 0.60; 
+            padding: 0 !important;
+            margin: 0 !important;
+            background: white !important;
+            border: none !important;
+            box-shadow: none !important;
+            display: block !important;
+          }
+          /* Restore gaps between rows in block mode */
+          .dashboard-container > * {
+            margin-bottom: 1.5rem !important;
+          }
+          /* Prevent cards from breaking internally */
+          .dashboard-container .shadow-sm {
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+          /* Ensure charts render statically instead of resizing to 0 */
+          .recharts-wrapper { width: 100% !important; height: 100% !important; }
+        }
+      `}} />
+      <div className="dashboard-container flex flex-col min-h-full w-full px-4 lg:px-6 pt-2 pb-24 bg-slate-50 gap-4 overflow-y-auto">
       
       {/* Header */}
-      <div className="flex justify-between items-center shrink-0">
+        <div className="flex justify-between items-center shrink-0">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">Dashboard Desain</h1>
           <p className="text-sm text-slate-500 mt-0.5">Ringkasan statistik dan aktivitas register desain</p>
         </div>
-        <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg shadow-sm border border-slate-200">
-          <Calendar className="w-4 h-4 text-slate-500 ml-1" />
+        <div className="flex items-center bg-white rounded-lg shadow-sm border border-slate-200 print-hide">
+          <Calendar className="w-4 h-4 text-slate-500 ml-3" />
+          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+            <SelectTrigger className="w-[120px] h-8 text-sm border-none shadow-none focus:ring-0 border-r border-slate-200 rounded-none bg-transparent">
+              <SelectValue placeholder="Bulan" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua Bulan</SelectItem>
+              <SelectItem value="01">Januari</SelectItem>
+              <SelectItem value="02">Februari</SelectItem>
+              <SelectItem value="03">Maret</SelectItem>
+              <SelectItem value="04">April</SelectItem>
+              <SelectItem value="05">Mei</SelectItem>
+              <SelectItem value="06">Juni</SelectItem>
+              <SelectItem value="07">Juli</SelectItem>
+              <SelectItem value="08">Agustus</SelectItem>
+              <SelectItem value="09">September</SelectItem>
+              <SelectItem value="10">Oktober</SelectItem>
+              <SelectItem value="11">November</SelectItem>
+              <SelectItem value="12">Desember</SelectItem>
+            </SelectContent>
+          </Select>
           <Select value={selectedYear} onValueChange={setSelectedYear}>
-            <SelectTrigger className="w-[100px] h-8 text-sm border-none shadow-none focus:ring-0">
+            <SelectTrigger className="w-[90px] h-8 text-sm border-none shadow-none focus:ring-0 bg-transparent rounded-r-lg">
               <SelectValue placeholder="Tahun" />
             </SelectTrigger>
             <SelectContent>
@@ -271,11 +550,20 @@ export default function DashboardDesignSummary() {
               ))}
             </SelectContent>
           </Select>
+          <div className="h-4 w-px bg-slate-200 mx-2" />
+          <Button variant="ghost" size="sm" onClick={exportToPowerPoint} className="h-8 px-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-none font-medium border-r border-slate-100">
+            <Download className="w-4 h-4 mr-1.5" />
+            PPT
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => window.print()} className="h-8 px-3 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-l-none font-medium">
+            <Printer className="w-4 h-4 mr-1.5" />
+            Cetak
+          </Button>
         </div>
       </div>
 
       {/* Row 1: Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 shrink-0">
+      <div className="grid grid-cols-2 lg:grid-cols-5 print:grid-cols-5 gap-4 shrink-0">
         {[
           { title: 'Total Desain', value: stats.total, desc: 'Semua di database', icon: Layers, colors: 'from-blue-500 to-blue-600' },
           { title: 'FREE', value: stats.free, desc: 'Desain tersedia', icon: CheckSquare, colors: 'from-emerald-500 to-emerald-600' },
@@ -296,11 +584,89 @@ export default function DashboardDesignSummary() {
         ))}
       </div>
 
+      {/* Row 1.5: IN LOCK Details (Dipindah ke atas agar terlihat) */}
+      {(() => {
+        const inLockItems = filteredData.filter(d => d.status === 'IN LOCK');
+        if (inLockItems.length === 0) return null;
+        
+        const grouped = inLockItems.reduce((acc, curr) => {
+          const key = `${curr.customer}-${curr.typeDesign}-${curr.designer}`;
+          if (!acc[key]) {
+            acc[key] = { customer: curr.customer || '-', typeDesign: curr.typeDesign || '-', designer: curr.designer || '-', count: 0 };
+          }
+          acc[key].count++;
+          return acc;
+        }, {} as Record<string, any>);
+
+        const getDesignerColor = (designer: string) => {
+          switch(designer) {
+            case 'D1 Riki': return 'bg-blue-700 text-blue-50 border-blue-800 font-medium';
+            case 'D2 Diaz': return 'bg-[#156e47] text-emerald-50 border-emerald-900 font-medium';
+            case 'D3 Rian': return 'bg-[#7a3b00] text-amber-50 border-amber-950 font-medium';
+            case 'D4 Darmawan': return 'bg-[#b30000] text-red-50 border-red-900 font-medium';
+            default: return 'bg-white text-slate-900 border-slate-200';
+          }
+        };
+
+        const getTypeDesignColor = (type: string) => {
+          switch(type) {
+            case 'CG': return 'bg-sky-200 text-sky-900 border-sky-300';
+            case 'CGI': return 'bg-yellow-200 text-yellow-900 border-yellow-300';
+            case 'CGI-A': return 'bg-orange-200 text-orange-900 border-orange-300';
+            case 'ST': return 'bg-emerald-200 text-emerald-900 border-emerald-300';
+            case 'CGL': return 'bg-slate-200 text-slate-900 border-slate-300';
+            case 'CO': return 'bg-purple-200 text-purple-900 border-purple-300';
+            default: return 'bg-white text-slate-900 border-slate-200';
+          }
+        };
+        
+        return (
+          <Card className="flex flex-col shadow-sm border-slate-200 overflow-hidden bg-white/60 backdrop-blur-sm transition-all duration-300 hover:shadow-md shrink-0">
+            <CardHeader className="pb-2 pt-4 px-4 border-b border-slate-100">
+              <CardTitle className="text-sm font-bold flex items-center gap-2">
+                <Clock className="w-4 h-4 text-rose-500" /> Informasi Desain IN LOCK
+                <span className="bg-rose-100 text-rose-700 text-[10px] px-2 py-0.5 rounded-full ml-auto">{inLockItems.length} Total</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0 overflow-x-auto max-h-[300px] overflow-y-auto custom-scrollbar">
+              <table className="w-full text-xs text-left relative">
+                <thead className="bg-slate-50 text-slate-500 border-b border-slate-200 sticky top-0 z-10 shadow-sm">
+                  <tr>
+                    <th className="px-4 py-2 font-semibold">Nama Customer</th>
+                    <th className="px-4 py-2 font-semibold">Tipe Desain</th>
+                    <th className="px-4 py-2 font-semibold">Desainer</th>
+                    <th className="px-4 py-2 font-semibold text-right">Jumlah IN LOCK</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {Object.values(grouped).sort((a: any, b: any) => b.count - a.count).map((item: any, i) => (
+                    <tr key={i} className="hover:bg-slate-50/50">
+                      <td className="px-4 py-2.5 font-medium text-slate-700">{item.customer}</td>
+                      <td className="px-4 py-2.5 text-slate-600">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border ${getTypeDesignColor(item.typeDesign)}`}>
+                          {item.typeDesign}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5 text-slate-600">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border ${getDesignerColor(item.designer)}`}>
+                          {item.designer}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-bold text-slate-700">{item.count}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </CardContent>
+          </Card>
+        );
+      })()}
+
       {/* Row 2: Main Grid Bento */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 min-h-0">
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 print:grid-cols-12 gap-4 min-h-0">
         
         {/* Col 1: Trend & Monthly Chart (Span 5) */}
-        <div className="lg:col-span-5 flex flex-col gap-4 min-h-0">
+        <div className="lg:col-span-5 print:col-span-5 flex flex-col gap-4 min-h-0">
           <Card className="flex-1 flex flex-col shadow-sm border-slate-200 overflow-hidden bg-white/60 backdrop-blur-sm transition-all duration-300 hover:shadow-md min-h-[280px]">
             <CardHeader className="pb-2 pt-4 px-4 shrink-0">
               <CardTitle className="text-sm font-bold flex items-center gap-2">
@@ -366,40 +732,57 @@ export default function DashboardDesignSummary() {
           </Card>
         </div>
 
-        {/* Col 2: Top 5 Tabs (Span 4) */}
-        <Card className="lg:col-span-4 flex flex-col shadow-sm border-slate-200 overflow-hidden bg-white/60 backdrop-blur-sm transition-all duration-300 hover:shadow-md min-h-[300px]">
-          <CardContent className="p-4 flex-1 flex flex-col h-full">
-            <Tabs defaultValue="item" className="h-full flex flex-col">
-              <div className="flex justify-between items-center mb-4 shrink-0">
-                <h2 className="text-sm font-bold text-slate-900">Top 5 Analitik</h2>
-                <TabsList className="h-8 bg-slate-100/80">
-                  <TabsTrigger value="item" className="text-[10px] px-3 h-6">Items</TabsTrigger>
-                  <TabsTrigger value="customer" className="text-[10px] px-3 h-6">Customer</TabsTrigger>
-                  <TabsTrigger value="designer" className="text-[10px] px-3 h-6">Designer</TabsTrigger>
-                </TabsList>
-              </div>
-              <div className="flex-1 min-h-0">
-                <TabsContent value="item" className="h-full mt-0 fade-in duration-300">
-                  {renderHorizontalBar(itemData, '#0ea5e9')}
-                </TabsContent>
-                <TabsContent value="customer" className="h-full mt-0 fade-in duration-300">
-                  {renderHorizontalBar(customerData, '#8b5cf6')}
-                </TabsContent>
-                <TabsContent value="designer" className="h-full mt-0 fade-in duration-300">
-                  {renderHorizontalBar(designerData, '#f43f5e', {
-                    'D1 Riki': '#1d4ed8',
-                    'D2 Diaz': '#156e47',
-                    'D3 Rian': '#7a3b00',
-                    'D4 Darmawan': '#b30000',
-                  })}
-                </TabsContent>
-              </div>
-            </Tabs>
-          </CardContent>
-        </Card>
+        {/* Col 2: Top 5 Analitik Separated (Span 4) */}
+        <div className="lg:col-span-4 print:col-span-4 flex flex-col gap-4 min-h-0">
+          
+          {/* Top 5 Items */}
+          <Card className="flex-1 flex flex-col shadow-sm border-slate-200 overflow-hidden bg-white/60 backdrop-blur-sm transition-all duration-300 hover:shadow-md min-h-[300px]">
+            <CardHeader className="pb-0 pt-4 px-4 shrink-0">
+              <CardTitle className="text-sm font-bold text-slate-900">Semua Items (IN LOCK)</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1 min-h-0 p-2">
+              {renderVerticalBar(itemData, '#0ea5e9')}
+            </CardContent>
+          </Card>
+
+          {/* Top 5 Customers */}
+          <Card className="flex-1 flex flex-col shadow-sm border-slate-200 overflow-hidden bg-white/60 backdrop-blur-sm transition-all duration-300 hover:shadow-md min-h-[220px]">
+            <CardHeader className="pb-0 pt-4 px-4 shrink-0">
+              <CardTitle className="text-sm font-bold text-slate-900">Top 5 Customers</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1 min-h-0 p-2">
+              {renderHorizontalBar(customerData, '#8b5cf6')}
+            </CardContent>
+          </Card>
+
+          {/* Top 5 Designers */}
+          <Card className="flex-1 flex flex-col shadow-sm border-slate-200 overflow-hidden bg-white/60 backdrop-blur-sm transition-all duration-300 hover:shadow-md min-h-[220px]">
+            <CardHeader className="pb-0 pt-4 px-4 shrink-0 flex flex-row items-center justify-between">
+              <CardTitle className="text-sm font-bold text-slate-900">Top 5 Designers</CardTitle>
+              <Select value={designerStatusFilter} onValueChange={setDesignerStatusFilter}>
+                <SelectTrigger className="w-[125px] h-7 text-[10px] bg-slate-50 border-slate-200 print-hide">
+                  <SelectValue placeholder="Semua Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL" className="text-[10px]">Semua Status</SelectItem>
+                  <SelectItem value="IN LOCK" className="text-[10px]">Hanya IN LOCK</SelectItem>
+                </SelectContent>
+              </Select>
+            </CardHeader>
+            <CardContent className="flex-1 min-h-0 p-2">
+              {renderHorizontalBar(designerData, '#f43f5e', {
+                'D1 Riki': '#1d4ed8',
+                'D2 Diaz': '#156e47',
+                'D3 Rian': '#7a3b00',
+                'D4 Darmawan': '#b30000',
+              })}
+            </CardContent>
+          </Card>
+
+        </div>
 
         {/* Col 3: Pie & Recent (Span 3) */}
-        <div className="lg:col-span-3 flex flex-col gap-4 min-h-0">
+        <div className="lg:col-span-3 print:col-span-3 flex flex-col gap-4 min-h-0">
           <Card className="flex-1 flex flex-col shadow-sm border-slate-200 overflow-hidden bg-white/60 backdrop-blur-sm transition-all duration-300 hover:shadow-md min-h-[250px]">
              <CardHeader className="pb-0 pt-4 px-4 shrink-0">
               <CardTitle className="text-sm font-bold">Distribusi Tipe Desain</CardTitle>
@@ -464,13 +847,16 @@ export default function DashboardDesignSummary() {
       </div>
 
       {/* Row 3: Design Gallery */}
-      <div className="shrink-0 mt-4">
+      <div className="shrink-0 mt-4 print:break-before-page print:mt-8">
         <Card className="flex flex-col shadow-sm border-slate-200 overflow-hidden bg-white/60 backdrop-blur-sm hover:shadow-md transition-all duration-300">
           <CardHeader className="pb-3 pt-4 px-4 flex flex-row items-center justify-between border-b border-slate-100">
             <CardTitle className="text-sm font-bold flex items-center gap-2">
-              <ImageIcon className="w-4 h-4 text-emerald-500" /> Galeri Desain Terbaru
+              <ImageIcon className="w-4 h-4 text-emerald-500" /> 
+              {designerStatusFilter === 'ALL' ? 'Galeri Desain Terbaru' : `Galeri Desain ${designerStatusFilter}`}
             </CardTitle>
-            <span className="bg-emerald-100 text-emerald-700 text-[10px] px-2.5 py-0.5 rounded-full font-bold shadow-sm">20 Terakhir</span>
+            <span className="bg-emerald-100 text-emerald-700 text-[10px] px-2.5 py-0.5 rounded-full font-bold shadow-sm">
+              {designerStatusFilter === 'ALL' ? '20 Terakhir' : `${galleryItems.length} Total`}
+            </span>
           </CardHeader>
           <CardContent className="p-4">
             {galleryItems.length > 0 ? (
@@ -522,6 +908,8 @@ export default function DashboardDesignSummary() {
           </CardContent>
         </Card>
       </div>
+
     </div>
+    </>
   );
 }
