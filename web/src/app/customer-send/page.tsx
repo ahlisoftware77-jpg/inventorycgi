@@ -40,6 +40,13 @@ function CustomerSendContent() {
   const { toast } = useToast();
   const designId = searchParams.get('id') as string;
 
+  const getApiUrl = (path: string) => {
+    if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+      return `https://inventorycgi.vercel.app${path}`;
+    }
+    return path;
+  };
+
   const [design, setDesign] = useState<RegisterDesignItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [links, setLinks] = useState<CustomerLink[]>([]);
@@ -94,9 +101,13 @@ function CustomerSendContent() {
   const uploadToDriveResumable = async (file: File): Promise<string> => {
     setUploadProgress(10);
     // Init
-    const initRes = await fetch('/api/upload-drive', {
+    const token = await auth.currentUser?.getIdToken();
+    const initRes = await fetch(getApiUrl('/api/upload-drive'), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
       body: JSON.stringify({
         action: 'init',
         fileName: file.name,
@@ -133,9 +144,13 @@ function CustomerSendContent() {
         const result = await chunkRes.json();
         setUploadProgress(90);
         // Finish permissions
-        await fetch('/api/upload-drive', {
+        const finishToken = await auth.currentUser?.getIdToken();
+        await fetch(getApiUrl('/api/upload-drive'), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            ...(finishToken ? { 'Authorization': `Bearer ${finishToken}` } : {})
+          },
           body: JSON.stringify({ action: 'finish', fileId: result.id })
         });
         setUploadProgress(100);
@@ -180,9 +195,13 @@ function CustomerSendContent() {
     if (!confirm('Hapus file original? Link yang ada akan rusak jika tidak ada file original baru.')) return;
     
     try {
-      await fetch('/api/delete-drive', {
+      const token = await auth.currentUser?.getIdToken();
+      await fetch(getApiUrl('/api/delete-drive'), {
          method: 'POST',
-         headers: { 'Content-Type': 'application/json' },
+         headers: { 
+           'Content-Type': 'application/json',
+           ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+         },
          body: JSON.stringify({ fileId: (design as any).originalFileId })
       });
       await updateDoc(doc(db, 'register_design', designId), {
@@ -264,7 +283,7 @@ function CustomerSendContent() {
         throw new Error('Konfigurasi SMTP email belum diatur di Pengaturan.');
       }
       
-      const downloadUrl = `${window.location.origin}/api/customer-download?id=${linkRef.id}`;
+      const downloadUrl = getApiUrl(`/api/customer-download?id=${linkRef.id}`);
       
       const htmlBody = `
         <div style="font-family: Arial, sans-serif; max-w-md; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
@@ -290,9 +309,12 @@ function CustomerSendContent() {
         senderEmail: emailSettings.senderEmail
       };
 
-      const emailRes = await fetch('/api/send-email', {
+      const emailRes = await fetch(getApiUrl('/api/send-email'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({
           smtp,
           to: [email],
