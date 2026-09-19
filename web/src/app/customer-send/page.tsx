@@ -309,6 +309,7 @@ function CustomerSendContent() {
         senderEmail: emailSettings.senderEmail
       };
 
+      const token = await auth.currentUser?.getIdToken();
       const emailRes = await fetch(getApiUrl('/api/send-email'), {
         method: 'POST',
         headers: { 
