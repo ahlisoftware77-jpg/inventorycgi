@@ -2638,7 +2638,7 @@ export default function RegisterDesignPage() {
                                 </Button>
                               </>
                             )}
-                            <Button variant="ghost" size="icon" onClick={() => router.push(`/customer-send/${row.id}`)} className="h-6 w-6 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/50 hover:text-purple-700 dark:hover:text-purple-300 shadow-sm border border-purple-100 dark:border-purple-800" title="Kirim Customer">
+                            <Button variant="ghost" size="icon" onClick={() => router.push(`/customer-send?id=${row.id}`)} className="h-6 w-6 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/50 hover:text-purple-700 dark:hover:text-purple-300 shadow-sm border border-purple-100 dark:border-purple-800" title="Kirim Customer">
                               <Send className="w-3.5 h-3.5" />
                             </Button>
                             <Button variant="ghost" size="icon" onClick={() => handleDeleteRow(row.id)} className="h-6 w-6 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 hover:text-red-700 dark:hover:text-red-300 shadow-sm border border-red-100 dark:border-red-800" title="Hapus Baris">

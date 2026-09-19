@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase/config';
 import { doc, getDoc, collection, query, where, getDocs, updateDoc, addDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import DashboardLayout from '@/components/dashboard/layout';
@@ -25,11 +25,11 @@ interface CustomerLink {
   downloadCount: number;
 }
 
-export default function CustomerSendPage() {
-  const params = useParams();
+function CustomerSendContent() {
+  const searchParams = useSearchParams();
   const router = useRouter();
   const { toast } = useToast();
-  const designId = params.id as string;
+  const designId = searchParams.get('id') as string;
 
   const [design, setDesign] = useState<RegisterDesignItem | null>(null);
   const [loading, setLoading] = useState(true);
@@ -442,5 +442,13 @@ export default function CustomerSendPage() {
         </Card>
       </div>
     </DashboardLayout>
+  );
+}
+
+export default function CustomerSendPage() {
+  return (
+    <Suspense fallback={<DashboardLayout><div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-blue-500 w-8 h-8" /></div></DashboardLayout>}>
+      <CustomerSendContent />
+    </Suspense>
   );
 }
