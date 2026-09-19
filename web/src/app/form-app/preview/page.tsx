@@ -102,6 +102,31 @@ function PreviewContent() {
                             if (first.designer) reportData.designer = first.designer;
                             if (first.customer) reportData.customer = first.customer;
                             if (first.generalNote) reportData.generalNote = first.generalNote;
+                            
+                            const targetStatus = searchParams.get('status');
+                            const dynamicItems = Array(32).fill("");
+                            let itemIndex = 0;
+                            
+                            snapReg.docs.forEach((docSnap) => {
+                                const d = docSnap.data();
+                                if (targetStatus && targetStatus !== "Semua" && targetStatus !== "null" && targetStatus !== "undefined") {
+                                    if (d.status !== targetStatus) return;
+                                }
+                                if (itemIndex < 32) {
+                                    if (d.designImageName) {
+                                        dynamicItems[itemIndex] = d.designImageName.replace(/\.[^/.]+$/, "");
+                                    } else {
+                                        let vStr = "";
+                                        if (d.version) {
+                                            const v = String(d.version).trim().toUpperCase();
+                                            vStr = "-" + (v.startsWith("V") ? v : "V" + v);
+                                        }
+                                        dynamicItems[itemIndex] = (d.itemName || "") + vStr;
+                                    }
+                                    itemIndex++;
+                                }
+                            });
+                            reportData.items = dynamicItems;
                         }
                     } catch (err) {
                         console.error("Error merging register_design data:", err);
