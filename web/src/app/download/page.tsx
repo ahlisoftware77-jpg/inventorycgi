@@ -1,19 +1,21 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useEffect, useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { db } from '@/lib/firebase/config';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, increment, serverTimestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Download, FileWarning, Loader2, CalendarClock } from 'lucide-react';
 
-export default function CustomerDownloadPage() {
-  const { id } = useParams() as { id: string };
+function DownloadContent() {
+  const searchParams = useSearchParams();
+  const id = searchParams.get('id');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [linkData, setLinkData] = useState<any>(null);
   const [designData, setDesignData] = useState<any>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     async function fetchLink() {
@@ -141,12 +143,29 @@ export default function CustomerDownloadPage() {
           <Button 
             className="w-full py-6 text-lg font-bold shadow-blue-200 shadow-lg hover:shadow-xl transition-all"
             size="lg"
-            onClick={() => {
-              window.location.href = `/api/customer-download?id=${id}`;
+            disabled={isDownloading}
+            onClick={async () => {
+              if (!id || !linkData?.originalFileId) return;
+              setIsDownloading(true);
+              try {
+                // Update download count in Firestore
+                const linkRef = doc(db, 'customer_links', id);
+                await updateDoc(linkRef, {
+                  downloadCount: increment(1),
+                  downloadedAt: serverTimestamp()
+                });
+                
+                // Redirect to Google Drive download URL
+                window.location.href = `https://drive.google.com/uc?export=download&id=${linkData.originalFileId}`;
+              } catch (e) {
+                console.error("Gagal memulai unduhan:", e);
+                alert("Terjadi kesalahan saat memulai unduhan. Silakan coba lagi.");
+                setIsDownloading(false);
+              }
             }}
           >
-            <Download className="w-5 h-5 mr-2" />
-            Unduh File Original
+            {isDownloading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Download className="w-5 h-5 mr-2" />}
+            {isDownloading ? 'Memproses...' : 'Unduh File Original'}
           </Button>
           
           <p className="text-xs text-center text-slate-400 mt-4">
@@ -155,5 +174,19 @@ export default function CustomerDownloadPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function CustomerDownloadPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="flex flex-col items-center gap-4 text-blue-600">
+          <Loader2 className="w-10 h-10 animate-spin" />
+        </div>
+      </div>
+    }>
+      <DownloadContent />
+    </Suspense>
   );
 }

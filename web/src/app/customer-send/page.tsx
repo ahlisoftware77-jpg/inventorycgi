@@ -287,7 +287,7 @@ function CustomerSendContent() {
         throw new Error('Konfigurasi SMTP email belum diatur di Pengaturan.');
       }
       
-      const downloadUrl = window.location.origin + `/download/${linkRef.id}`;
+      const downloadUrl = window.location.origin + `/download?id=${linkRef.id}`;
       
       const htmlBody = `
         <div style="font-family: Arial, sans-serif; max-w-md; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
