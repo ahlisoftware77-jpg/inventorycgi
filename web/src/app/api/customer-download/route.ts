@@ -3,9 +3,11 @@ import { google } from 'googleapis';
 import { db } from '@/lib/firebase/config';
 import { doc, getDoc, updateDoc, deleteDoc, increment, serverTimestamp } from 'firebase/firestore';
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: Request) {
   try {
-    const linkId = params.id;
+    const { searchParams } = new URL(request.url);
+    const linkId = searchParams.get('id');
+
     if (!linkId) {
       return new NextResponse('Invalid Link ID', { status: 400 });
     }
@@ -77,10 +79,16 @@ export async function GET(request: Request, { params }: { params: { id: string }
       );
     }
 
+    // GET CLIENT IP
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'Unknown IP';
+    const cleanIp = ip.split(',')[0].trim(); // In case of multiple IPs, get the first one
+
     // IF VALID: Update Tracking
+    const { arrayUnion } = await import('firebase/firestore');
     await updateDoc(linkRef, {
       downloadCount: increment(1),
-      downloadedAt: serverTimestamp()
+      downloadedAt: serverTimestamp(),
+      downloadIps: arrayUnion(cleanIp)
     });
 
     // REDIRECT TO DOWNLOAD

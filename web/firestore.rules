@@ -93,6 +93,10 @@ service cloud.firestore {
       allow read, write: if true;
     }
     
+    match /customer_contacts/{id} {
+      allow read, write: if true;
+    }
+    
     // Rules for public shared reports
     match /public_reports/{reportId} {
       allow read: if true;

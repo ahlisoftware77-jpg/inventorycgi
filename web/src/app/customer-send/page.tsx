@@ -10,8 +10,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ArrowLeft, Upload, Send, File, Clock, CheckCircle2, AlertTriangle, Trash2 } from 'lucide-react';
+import { Loader2, ArrowLeft, Upload, Send, File, Clock, CheckCircle2, AlertTriangle, Trash2, Users, Plus } from 'lucide-react';
 import type { RegisterDesignItem } from '@/app/register-design/page';
 
 interface CustomerLink {
@@ -23,6 +24,14 @@ interface CustomerLink {
   createdAt: any;
   downloadedAt: any;
   downloadCount: number;
+  downloadIps?: string[];
+}
+
+interface Contact {
+  id: string;
+  name: string;
+  email: string;
+  createdAt: any;
 }
 
 function CustomerSendContent() {
@@ -41,6 +50,12 @@ function CustomerSendContent() {
   const [isSending, setIsSending] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
+
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [isContactDialogOpen, setIsContactDialogOpen] = useState(false);
+  const [newContactName, setNewContactName] = useState('');
+  const [newContactEmail, setNewContactEmail] = useState('');
+  const [isSavingContact, setIsSavingContact] = useState(false);
 
   useEffect(() => {
     if (designId) {
@@ -64,6 +79,11 @@ function CustomerSendContent() {
       // sort by created descending
       linksData.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
       setLinks(linksData);
+
+      // Fetch contacts
+      const contactsSnap = await getDocs(collection(db, 'customer_contacts'));
+      const contactsData = contactsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Contact));
+      setContacts(contactsData);
     } catch (error: any) {
       console.error("Fetch Data Error:", error);
       toast({ variant: 'destructive', title: 'Error', description: 'Gagal memuat data: ' + error.message });
@@ -176,6 +196,40 @@ function CustomerSendContent() {
     }
   };
 
+  const handleSaveContact = async () => {
+    if (!newContactName || !newContactEmail) {
+      toast({ variant: 'destructive', title: 'Peringatan', description: 'Nama dan Email wajib diisi' });
+      return;
+    }
+    setIsSavingContact(true);
+    try {
+      const docRef = await addDoc(collection(db, 'customer_contacts'), {
+        name: newContactName,
+        email: newContactEmail,
+        createdAt: serverTimestamp()
+      });
+      setContacts([...contacts, { id: docRef.id, name: newContactName, email: newContactEmail, createdAt: new Date() }]);
+      setNewContactName('');
+      setNewContactEmail('');
+      toast({ title: 'Berhasil', description: 'Kontak berhasil disimpan' });
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Error', description: e.message });
+    } finally {
+      setIsSavingContact(false);
+    }
+  };
+
+  const handleDeleteContact = async (id: string) => {
+    if (!confirm('Hapus kontak ini?')) return;
+    try {
+      await deleteDoc(doc(db, 'customer_contacts', id));
+      setContacts(contacts.filter(c => c.id !== id));
+      toast({ title: 'Dihapus', description: 'Kontak dihapus' });
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Error', description: e.message });
+    }
+  };
+
   const handleSendLink = async () => {
     if (!email) {
       toast({ variant: 'destructive', title: 'Peringatan', description: 'Masukkan email tujuan.' });
@@ -195,6 +249,7 @@ function CustomerSendContent() {
       const linkRef = await addDoc(collection(db, 'customer_links'), {
         designId: designId,
         originalFileId: (design as any).originalFileId,
+        originalFileName: (design as any).originalFileName || 'File Tersimpan',
         customerEmail: email,
         expiresAt: expiresDate,
         createdAt: serverTimestamp(),
@@ -209,7 +264,7 @@ function CustomerSendContent() {
         throw new Error('Konfigurasi SMTP email belum diatur di Pengaturan.');
       }
       
-      const downloadUrl = `${window.location.origin}/api/customer-download/${linkRef.id}`;
+      const downloadUrl = `${window.location.origin}/api/customer-download?id=${linkRef.id}`;
       
       const htmlBody = `
         <div style="font-family: Arial, sans-serif; max-w-md; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
@@ -253,7 +308,29 @@ function CustomerSendContent() {
 
       toast({ title: 'Terkirim', description: 'Link berhasil dikirim ke ' + email });
       setEmail('');
-      fetchData(); // Refresh links
+      
+      // 4. Update local links state
+      const newLink: CustomerLink = {
+        id: linkRef.id,
+        designId: designId,
+        originalFileId: (design as any).originalFileId,
+        customerEmail: email,
+        expiresAt: { seconds: Math.floor(expiresDate.getTime() / 1000) },
+        createdAt: { seconds: Math.floor(Date.now() / 1000) },
+        downloadCount: 0,
+        downloadedAt: null
+      };
+      (newLink as any).originalFileName = (design as any).originalFileName || 'File Tersimpan';
+      
+      setLinks(prev => [newLink, ...prev]);
+
+      // 5. Clear original file from design to allow new uploads
+      await updateDoc(doc(db, 'register_design', designId), {
+        originalFileId: null,
+        originalFileName: null
+      });
+      setDesign(prev => prev ? { ...prev, originalFileId: undefined, originalFileName: undefined } as any : null);
+
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Gagal', description: error.message });
     } finally {
@@ -353,13 +430,57 @@ function CustomerSendContent() {
             </CardHeader>
             <CardContent className="p-6 space-y-4">
               <div className="space-y-2">
-                <Label className="text-xs font-bold text-slate-500 uppercase">Email Customer</Label>
+                <div className="flex justify-between items-center">
+                  <Label className="text-xs font-bold text-slate-500 uppercase">Email Customer</Label>
+                  <Dialog open={isContactDialogOpen} onOpenChange={setIsContactDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-purple-600 hover:text-purple-700 hover:bg-purple-50">
+                        <Users className="w-3 h-3 mr-1" /> Pilih Kontak
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>Buku Kontak Customer</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4 pt-2">
+                        <div className="flex gap-2">
+                          <Input placeholder="Nama Klien..." value={newContactName} onChange={e => setNewContactName(e.target.value)} className="flex-1" />
+                          <Input placeholder="Email..." value={newContactEmail} onChange={e => setNewContactEmail(e.target.value)} className="flex-1" />
+                          <Button onClick={handleSaveContact} disabled={isSavingContact} className="px-3 bg-purple-600 hover:bg-purple-700">
+                            {isSavingContact ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                          </Button>
+                        </div>
+                        <div className="max-h-[300px] overflow-y-auto space-y-2 pr-1">
+                          {contacts.length === 0 ? (
+                            <p className="text-sm text-center text-slate-500 py-6 italic border border-dashed rounded-lg">Belum ada kontak tersimpan</p>
+                          ) : (
+                            contacts.map(c => (
+                              <div key={c.id} className="flex items-center justify-between p-3 border rounded-xl hover:bg-slate-50 transition-colors">
+                                <div className="cursor-pointer flex-1" onClick={() => { setEmail(c.email); setIsContactDialogOpen(false); }}>
+                                  <p className="font-bold text-sm text-slate-800">{c.name}</p>
+                                  <p className="text-xs text-slate-500">{c.email}</p>
+                                </div>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-400 hover:text-red-600 hover:bg-red-50 shrink-0" onClick={() => handleDeleteContact(c.id)}>
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
                 <Input 
-                  placeholder="contoh@perusahaan.com" 
+                  placeholder="contoh@perusahaan.com atau pilih kontak" 
                   value={email} 
                   onChange={e => setEmail(e.target.value)}
                   className="bg-slate-50"
+                  list="contact-emails"
                 />
+                <datalist id="contact-emails">
+                  {contacts.map(c => <option key={c.id} value={c.email}>{c.name}</option>)}
+                </datalist>
               </div>
               <div className="space-y-2">
                 <Label className="text-xs font-bold text-slate-500 uppercase">Masa Aktif Tautan</Label>
@@ -409,6 +530,10 @@ function CustomerSendContent() {
                              <span className="text-[10px] bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded-full font-bold">Aktif</span>
                            )}
                          </div>
+                         <div className="text-xs text-slate-500 font-medium mb-1.5 flex items-center gap-1">
+                           <File className="w-3.5 h-3.5 text-blue-500" />
+                           {(link as any).originalFileName || 'File Tersimpan'}
+                         </div>
                          <div className="text-xs text-slate-500 flex flex-col sm:flex-row gap-2 sm:gap-4 mt-1.5">
                            <span><strong>Dikirim:</strong> {new Date(link.createdAt?.seconds * 1000).toLocaleString('id-ID')}</span>
                            <span><strong>Berakhir:</strong> {new Date(link.expiresAt?.seconds * 1000).toLocaleString('id-ID')}</span>
@@ -423,6 +548,11 @@ function CustomerSendContent() {
                             <div className="text-left text-xs">
                                <div className="text-[10px] text-emerald-600 font-bold flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Terakhir:</div>
                                <div className="text-slate-600">{new Date(link.downloadedAt?.seconds * 1000).toLocaleString('id-ID')}</div>
+                               {link.downloadIps && link.downloadIps.length > 0 && (
+                                 <div className="text-[10px] text-slate-500 mt-0.5 break-all max-w-[200px]" title={link.downloadIps.join(', ')}>
+                                   IP: {link.downloadIps[0]} {link.downloadIps.length > 1 ? `(+${link.downloadIps.length-1})` : ''}
+                                 </div>
+                               )}
                             </div>
                           ) : (
                             <div className="text-left text-xs text-slate-400 italic">Belum diunduh</div>
