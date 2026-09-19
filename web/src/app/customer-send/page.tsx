@@ -8,6 +8,7 @@ import DashboardLayout from '@/components/dashboard/layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -52,6 +53,7 @@ function CustomerSendContent() {
   const [links, setLinks] = useState<CustomerLink[]>([]);
   
   const [email, setEmail] = useState('');
+  const [customMessage, setCustomMessage] = useState('');
   const [expiresIn, setExpiresIn] = useState('1'); // Days
   const [isUploading, setIsUploading] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -267,6 +269,8 @@ function CustomerSendContent() {
 
       const linkRef = await addDoc(collection(db, 'customer_links'), {
         designId: designId,
+        designNo: design.designNo || '',
+        itemName: design.itemName || '',
         originalFileId: (design as any).originalFileId,
         originalFileName: (design as any).originalFileName || 'File Tersimpan',
         customerEmail: email,
@@ -283,12 +287,13 @@ function CustomerSendContent() {
         throw new Error('Konfigurasi SMTP email belum diatur di Pengaturan.');
       }
       
-      const downloadUrl = getApiUrl(`/api/customer-download?id=${linkRef.id}`);
+      const downloadUrl = window.location.origin + `/download/${linkRef.id}`;
       
       const htmlBody = `
         <div style="font-family: Arial, sans-serif; max-w-md; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
           <h2 style="color: #2563eb;">Download Desain Original</h2>
           <p>Yth. Customer,</p>
+          ${customMessage.trim() ? `<p>${customMessage.replace(/\n/g, '<br>')}</p>` : ''}
           <p>Berikut adalah tautan untuk mengunduh file original dari desain <strong>${design.designNo}</strong> - <strong>${design.itemName}</strong>.</p>
           <div style="text-align: center; margin: 30px 0;">
             <a href="${downloadUrl}" style="background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Download File</a>
@@ -331,6 +336,7 @@ function CustomerSendContent() {
 
       toast({ title: 'Terkirim', description: 'Link berhasil dikirim ke ' + email });
       setEmail('');
+      setCustomMessage('');
       
       // 4. Update local links state
       const newLink: CustomerLink = {
@@ -504,6 +510,16 @@ function CustomerSendContent() {
                 <datalist id="contact-emails">
                   {contacts.map(c => <option key={c.id} value={c.email}>{c.name}</option>)}
                 </datalist>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-bold text-slate-500 uppercase">Pesan Tambahan (Opsional)</Label>
+                <Textarea 
+                  placeholder="Ketik pesan khusus untuk pelanggan di sini..." 
+                  value={customMessage} 
+                  onChange={e => setCustomMessage(e.target.value)}
+                  className="bg-slate-50 resize-y"
+                  rows={3}
+                />
               </div>
               <div className="space-y-2">
                 <Label className="text-xs font-bold text-slate-500 uppercase">Masa Aktif Tautan</Label>

@@ -35,7 +35,7 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
   }, [pathname]);
 
   // Daftar halaman publik dan standalone
-  const isStandalonePage = pathname.startsWith('/public/') || pathname === '/login' || pathname === '/register' || pathname.startsWith('/form-app/preview') || isSharedGallery;
+  const isStandalonePage = pathname.startsWith('/public/') || pathname === '/login' || pathname === '/register' || pathname.startsWith('/form-app/preview') || pathname.startsWith('/download/') || isSharedGallery;
   
   // Sidebar ditampilan jika bukan halaman publik (dan user login ATAU masih loading di halaman privat)
   const showSidebar = !isStandalonePage && (user !== null || loading);

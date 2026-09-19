@@ -6,7 +6,7 @@ import DashboardLayout from '@/components/dashboard/layout';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { db, auth } from '@/lib/firebase/config';
-import { collection, getDocs, doc, setDoc, deleteDoc, updateDoc, query, orderBy, serverTimestamp, where, addDoc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc, deleteDoc, updateDoc, query, orderBy, serverTimestamp, where, addDoc, getDoc, writeBatch } from 'firebase/firestore';
 import { Trash2, Plus, Save, Layers, CheckSquare, Search, ChevronDown, Check, Eye, X, Pencil, Share2, ChevronUp, BarChart2, Download, Upload, FileSpreadsheet, Lock, Unlock, Loader2, MoreHorizontal, ChevronLeft, ChevronRight, Calendar, Image as ImageIcon, Printer, Send } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useToast } from '@/hooks/use-toast';
@@ -728,6 +728,22 @@ export default function RegisterDesignPage() {
   const [loadingTrash, setLoadingTrash] = useState(false);
   const [deleteProgress, setDeleteProgress] = useState<{current: number, total: number, isDeleting: boolean} | null>(null);
 
+
+  const [fillState, setFillState] = useState<{
+    isDragging: boolean;
+    field: string;
+    startIdx: number;
+    currentIdx: number;
+    value: any;
+  } | null>(null);
+  
+  const [hoveredCell, setHoveredCell] = useState<{
+    idx: number;
+    field: string;
+    value: any;
+    rect: DOMRect;
+  } | null>(null);
+
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -741,7 +757,7 @@ export default function RegisterDesignPage() {
           toast({ title: "Akses Ditolak", description: "Anda tidak memiliki izin untuk mengakses Register Design", variant: "destructive" });
           router.push('/');
         } else {
-          fetchData();
+          // fetchData will be handled by selectedYear effect
         }
       } else {
         const urlParams = new URLSearchParams(window.location.search);
@@ -755,6 +771,7 @@ export default function RegisterDesignPage() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, loadingUser, router, toast]);
+
 
   const handlePublicLogin = async () => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -788,7 +805,7 @@ export default function RegisterDesignPage() {
       if (hashedInput === data.hashedPasscode) {
         setIsPublicAuthOpen(false);
         setIsPublicAuthenticated(true);
-        fetchData();
+        // fetchData will be handled by selectedYear effect
         toast({ title: "Berhasil", description: "Akses diberikan." });
       } else {
         toast({ title: "Passcode Salah", description: "Passcode yang Anda masukkan tidak cocok.", variant: "destructive" });
@@ -842,6 +859,8 @@ export default function RegisterDesignPage() {
       toast({ title: "Redo Berhasil", description: `Menerapkan kembali nilai pada baris tersebut.`, duration: 2000 });
     };
   }, [undoStack, redoStack, data]);
+
+
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!scrollContainerRef.current) return;
@@ -921,41 +940,87 @@ export default function RegisterDesignPage() {
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
   const [targetDarNo, setTargetDarNo] = useState("");
   const [importProgress, setImportProgress] = useState<{current: number, total: number, isParsing?: boolean} | null>(null);
-  const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
+  const [selectedYear, setSelectedYear] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('registerDesignYear');
+      return saved ? saved : new Date().getFullYear().toString();
+    }
+    return new Date().getFullYear().toString();
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('registerDesignYear', selectedYear);
+    }
+  }, [selectedYear]);
   const [rowLimit, setRowLimit] = useState<number>(25);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('registerDesignPage');
+      return saved ? parseInt(saved, 10) : 1;
+    }
+    return 1;
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('registerDesignPage', currentPage.toString());
+    }
+  }, [currentPage]);
   const [isMassDeleteOpen, setIsMassDeleteOpen] = useState(false);
   const [massDeleteYear, setMassDeleteYear] = useState<string>("");
   const [massDeleteConfirm, setMassDeleteConfirm] = useState("");
   const [isMassDeleting, setIsMassDeleting] = useState(false);
 
-  const fetchData = async () => {
+  const [yearCache, setYearCache] = useState<Record<string, RegisterDesignItem[]>>({});
+  const prevYearRef = useRef(selectedYear);
+  const dataRef = useRef<RegisterDesignItem[]>([]);
+
+  useEffect(() => {
+    dataRef.current = data;
+  }, [data]);
+
+  const updateDataLists = (items: RegisterDesignItem[]) => {
+    const typeSet = new Set(["CG", "CGI", "CGI-A", "ST", "CGL", "CO"]);
+    const srcSet = new Set(["MidJourney", "Shutterstock", "Create"]);
+    const desSet = new Set(["D1 Riki", "D2 Diaz", "D3 Rian", "D4 Darmawan"]);
+    const techSet = new Set(["T1 Darta", "T2 Kardani", "T3 Rafli", "T4 Cepi"]);
+    const custSet = new Set<string>();
+    
+    items.forEach(i => {
+      if (i.typeDesign) typeSet.add(i.typeDesign);
+      if (i.designSource) srcSet.add(i.designSource);
+      if (i.designer) desSet.add(i.designer);
+      if (i.technician) techSet.add(i.technician);
+      if (i.customer) custSet.add(i.customer);
+    });
+    
+    setTypeDesignOptions(Array.from(typeSet).sort());
+    setDesignSourceOptions(Array.from(srcSet).sort());
+    setDesignerOptions(Array.from(desSet).sort());
+    setTechnicianOptions(Array.from(techSet).sort());
+    setCustomerOptions(Array.from(custSet).sort());
+  };
+
+  const fetchData = async (yearToFetch: string) => {
     try {
-      const q = query(collection(db, "register_design"), orderBy("createdAt", "desc"));
+      let q;
+      if (yearToFetch === "all") {
+        q = query(collection(db, "register_design"), orderBy("createdAt", "desc"));
+      } else {
+        q = query(
+          collection(db, "register_design"),
+          where("entryDate", ">=", `${yearToFetch}-01-01`),
+          where("entryDate", "<=", `${yearToFetch}-12-31`),
+          orderBy("entryDate", "desc")
+        );
+      }
       const snap = await getDocs(q);
       const items = snap.docs.map(d => ({ id: d.id, ...d.data() } as RegisterDesignItem));
+      
+      setYearCache(prev => ({ ...prev, [yearToFetch]: items }));
       setData(items);
-      
-      // Update datalists dynamically
-      const typeSet = new Set(["CG", "CGI", "CGI-A", "ST", "CGL", "CO"]);
-      const srcSet = new Set(["MidJourney", "Shutterstock", "Create"]);
-      const desSet = new Set(["D1 Riki", "D2 Diaz", "D3 Rian", "D4 Darmawan"]);
-      const techSet = new Set(["T1 Darta", "T2 Kardani", "T3 Rafli", "T4 Cepi"]);
-      const custSet = new Set<string>();
-      
-      items.forEach(i => {
-        if (i.typeDesign) typeSet.add(i.typeDesign);
-        if (i.designSource) srcSet.add(i.designSource);
-        if (i.designer) desSet.add(i.designer);
-        if (i.technician) techSet.add(i.technician);
-        if (i.customer) custSet.add(i.customer);
-      });
-      
-      setTypeDesignOptions(Array.from(typeSet).sort());
-      setDesignSourceOptions(Array.from(srcSet).sort());
-      setDesignerOptions(Array.from(desSet).sort());
-      setTechnicianOptions(Array.from(techSet).sort());
-      setCustomerOptions(Array.from(custSet).sort());
+      updateDataLists(items);
 
     } catch (e) {
       console.error(e);
@@ -966,12 +1031,30 @@ export default function RegisterDesignPage() {
   };
 
   useEffect(() => {
-    // fetchData is now called from auth effect
-  }, []);
+    if (!user && !isPublicAuthenticated) return;
+    
+    // Save current data to cache for the PREVIOUS year before switching
+    if (prevYearRef.current && prevYearRef.current !== selectedYear) {
+      if (dataRef.current.length > 0) {
+        setYearCache(prev => ({ ...prev, [prevYearRef.current]: dataRef.current }));
+      }
+    }
+    prevYearRef.current = selectedYear;
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search, searchCategory, selectedYear, rowLimit]);
+    const cacheHit = yearCache[selectedYear];
+    if (cacheHit && cacheHit.length > 0) {
+      setData(cacheHit);
+      updateDataLists(cacheHit);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    fetchData(selectedYear);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedYear, user, isPublicAuthenticated]);
+
+
 
   const handleOpenSign = async (darNo: string) => {
     try {
@@ -1333,7 +1416,7 @@ export default function RegisterDesignPage() {
     }
   };
 
-  const handleUpdateCell = async (id: string, field: keyof RegisterDesignItem, value: string, isHistoryAction = false) => {
+  const handleUpdateCell = async (id: string, field: keyof RegisterDesignItem, value: string, isHistoryAction = false, skipDb = false) => {
     if (isReadOnly) return;
     
     let updatePayload: any = { [field]: value, updatedAt: serverTimestamp() };
@@ -1459,12 +1542,13 @@ export default function RegisterDesignPage() {
     
     // Update Firebase
     try {
-      const promises = [updateDoc(doc(db, "register_design", id), updatePayload)];
+      const promises = [];
+      if (!skipDb) promises.push(updateDoc(doc(db, "register_design", id), updatePayload));
       
       if (shouldSyncDar) {
         data.forEach(d => {
           if (d.id !== id && d.darNo === currentRow.darNo) {
-            promises.push(updateDoc(doc(db, "register_design", d.id), { [field]: value, updatedAt: serverTimestamp() }));
+            if (!skipDb) promises.push(updateDoc(doc(db, "register_design", d.id), { [field]: value, updatedAt: serverTimestamp() }));
           }
         });
         
@@ -1482,7 +1566,7 @@ export default function RegisterDesignPage() {
              parsedValue = typeof value === 'string' ? value.split(',').map(x=>x.trim()).filter(Boolean) : [];
           }
           
-          promises.push(updateDoc(doc(db, "form_dar", snapDar.docs[0].id), {
+          if (!skipDb) promises.push(updateDoc(doc(db, "form_dar", snapDar.docs[0].id), {
             [formField]: parsedValue,
             updatedAt: serverTimestamp()
           }));
@@ -1492,7 +1576,7 @@ export default function RegisterDesignPage() {
       if (shouldSyncItemName) {
         data.forEach(d => {
           if (d.id !== id && d.itemName === currentRow.itemName) {
-            promises.push(updateDoc(doc(db, "register_design", d.id), { [field]: value, updatedAt: serverTimestamp() }));
+            if (!skipDb) promises.push(updateDoc(doc(db, "register_design", d.id), { [field]: value, updatedAt: serverTimestamp() }));
           }
         });
       }
@@ -1510,11 +1594,11 @@ export default function RegisterDesignPage() {
             })
             .filter(Boolean);
             
-          promises.push(updateDoc(doc(db, "form_dar", snapDar.docs[0].id), { items: updatedItemsArr }));
+          if (!skipDb) promises.push(updateDoc(doc(db, "form_dar", snapDar.docs[0].id), { items: updatedItemsArr }));
         }
       }
       
-      await Promise.all(promises);
+      if (!skipDb) await Promise.all(promises);
     } catch (e) {
       console.error(e);
       toast({ title: "Gagal menyimpan perubahan", variant: "destructive" });
@@ -1759,17 +1843,14 @@ export default function RegisterDesignPage() {
   };
 
   const yearOptions = React.useMemo(() => {
-    const years = new Set<string>();
-    data.forEach(d => {
-       const dateStr = d.entryDate || (d.createdAt && typeof (d.createdAt as any).toDate === 'function' ? (d.createdAt as any).toDate().toISOString() : "");
-       if (dateStr) {
-          const y = new Date(dateStr).getFullYear().toString();
-          if (y !== "NaN") years.add(y);
-       }
-    });
-    years.add(new Date().getFullYear().toString());
-    return Array.from(years).sort((a,b) => b.localeCompare(a));
-  }, [data]);
+    const currentYear = new Date().getFullYear();
+    const startYear = 2023;
+    const years = [];
+    for (let y = currentYear; y >= startYear; y--) {
+      years.push(y.toString());
+    }
+    return years;
+  }, []);
 
   const filteredData = React.useMemo(() => {
     return data.filter(d => {
@@ -2103,6 +2184,129 @@ export default function RegisterDesignPage() {
 
   const LayoutWrapper = user ? DashboardLayout : React.Fragment;
 
+  // Fill handle logic
+  const handleCellMouseEnter = (e: React.MouseEvent) => {
+    if (fillState && fillState.isDragging) return; // Don't show handle while dragging
+    
+    const td = (e.target as HTMLElement).closest('td');
+    if (!td || isReadOnly) return;
+    
+    const idx = td.getAttribute('data-row-idx');
+    const field = td.getAttribute('data-field');
+    
+    if (idx && field) {
+      const parsedIdx = parseInt(idx);
+      const val = paginatedData[parsedIdx] ? paginatedData[parsedIdx][field as keyof RegisterDesignItem] : null;
+      setHoveredCell({
+        idx: parsedIdx,
+        field,
+        value: val,
+        rect: td.getBoundingClientRect()
+      });
+    }
+  };
+
+  const handleTableMouseLeave = (e: React.MouseEvent) => {
+    const related = e.relatedTarget as HTMLElement;
+    if (related && related.classList && related.classList.contains('fill-handle')) return;
+    if (fillState && fillState.isDragging) return;
+    setHoveredCell(null);
+  };
+  
+  const startFillDrag = (e: React.MouseEvent, idx: number, field: string, value: any) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setFillState({
+      isDragging: true,
+      field,
+      startIdx: idx,
+      currentIdx: idx,
+      value
+    });
+    setHoveredCell(null);
+  };
+  
+  const handleTbodyMouseOver = (e: React.MouseEvent) => {
+    if (!fillState || !fillState.isDragging) return;
+    
+    const td = (e.target as HTMLElement).closest('td');
+    if (!td) return;
+    
+    const field = td.getAttribute('data-field');
+    const idx = td.getAttribute('data-row-idx');
+    
+    if (field === fillState.field && idx) {
+      const parsedIdx = parseInt(idx);
+      if (parsedIdx !== fillState.currentIdx) {
+        setFillState(prev => prev ? { ...prev, currentIdx: parsedIdx } : null);
+        
+        // Visual Selection Overlay Logic
+        const tbody = e.currentTarget as HTMLElement;
+        const tds = tbody.querySelectorAll('.fill-highlight');
+        tds.forEach(t => t.classList.remove('fill-highlight', 'ring-2', 'ring-blue-500', '!bg-blue-100', 'dark:!bg-blue-900', 'opacity-80', 'z-30'));
+        
+        const min = Math.min(fillState.startIdx, parsedIdx);
+        const max = Math.max(fillState.startIdx, parsedIdx);
+        
+        for (let i = min; i <= max; i++) {
+          const el = tbody.querySelector(`td[data-row-idx="${i}"][data-field="${field}"]`);
+          if (el) {
+            el.classList.add('fill-highlight', 'ring-2', 'ring-blue-500', '!bg-blue-100', 'dark:!bg-blue-900', 'opacity-80', 'z-30');
+          }
+        }
+      }
+    }
+  };
+  
+  useEffect(() => {
+    const handleWindowMouseUp = async () => {
+      if (!fillState || !fillState.isDragging) return;
+      
+      const { startIdx, currentIdx, field, value } = fillState;
+      setFillState(null);
+      
+      // Clear visual selection
+      const tds = document.querySelectorAll('.fill-highlight');
+      tds.forEach(t => t.classList.remove('fill-highlight', 'ring-2', 'ring-blue-500', '!bg-blue-100', 'dark:!bg-blue-900', 'opacity-80', 'z-30'));
+      
+      const minIdx = Math.min(startIdx, currentIdx);
+      const maxIdx = Math.max(startIdx, currentIdx);
+      
+      if (minIdx === maxIdx) return; // No drag distance
+      
+      const batch = writeBatch(db);
+      let updateCount = 0;
+      
+      for (let i = minIdx; i <= maxIdx; i++) {
+        const row = paginatedData[i];
+        if (!row || row.isLocked) continue;
+        
+        // Prepare local update (skip DB logic by passing skipDb=true)
+        handleUpdateCell(row.id, field as keyof RegisterDesignItem, value, true, true);
+        
+        // Add to batch
+        const docRef = doc(db, 'register_design', row.id);
+        batch.update(docRef, {
+          [field]: value,
+          updatedAt: serverTimestamp()
+        });
+        updateCount++;
+      }
+      
+      if (updateCount > 0) {
+        try {
+          await batch.commit();
+          toast({ title: "Berhasil", description: `Menyalin ke ${updateCount} baris.` });
+        } catch (e: any) {
+          toast({ variant: 'destructive', title: "Gagal Update", description: e.message });
+        }
+      }
+    };
+    
+    window.addEventListener('mouseup', handleWindowMouseUp);
+    return () => window.removeEventListener('mouseup', handleWindowMouseUp);
+  }, [fillState, paginatedData, db, toast]);
+
   return (
     <LayoutWrapper>
       <div className={`flex flex-col ${user ? 'h-[calc(100vh-77px)]' : 'h-screen'} bg-white dark:bg-slate-900 shadow-sm border-b border-slate-200 dark:border-slate-700`}>
@@ -2118,7 +2322,7 @@ export default function RegisterDesignPage() {
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
             <div className="relative w-full sm:w-auto flex items-center bg-white dark:bg-slate-900 dark:bg-slate-100 border border-slate-200 dark:border-slate-700 rounded-md overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500">
-              <Select value={searchCategory} onValueChange={setSearchCategory}>
+              <Select value={searchCategory} onValueChange={(v) => { setSearchCategory(v); setCurrentPage(1); }}>
                 <SelectTrigger className="w-[110px] sm:w-[130px] border-none shadow-none focus:ring-0 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 h-8 rounded-none border-r border-slate-200 dark:border-slate-700">
                   <SelectValue placeholder="Kategori" />
                 </SelectTrigger>
@@ -2145,7 +2349,7 @@ export default function RegisterDesignPage() {
                 <Input 
                   type="search"
                   value={search}
-                  onChange={e => setSearch(e.target.value)}
+                  onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
                   placeholder={searchCategory === 'all' ? "Cari apapun..." : "Cari..."}
                   autoComplete="off"
                   autoCorrect="off"
@@ -2161,7 +2365,7 @@ export default function RegisterDesignPage() {
             </div>
 
             <div className="flex items-center gap-1.5">
-              <Select value={selectedYear} onValueChange={setSelectedYear}>
+              <Select value={selectedYear} onValueChange={(v) => { setSelectedYear(v); setCurrentPage(1); }}>
                 <SelectTrigger className="w-[90px] h-8 text-[11px] font-semibold bg-white dark:bg-slate-900 dark:bg-slate-100 border-slate-200 dark:border-slate-700">
                   <SelectValue placeholder="Tahun" />
                 </SelectTrigger>
@@ -2172,7 +2376,7 @@ export default function RegisterDesignPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={rowLimit.toString()} onValueChange={(v) => setRowLimit(parseInt(v))}>
+              <Select value={rowLimit.toString()} onValueChange={(v) => { setRowLimit(parseInt(v)); setCurrentPage(1); }}>
                 <SelectTrigger className="w-[95px] h-8 text-[11px] font-semibold bg-white dark:bg-slate-900 dark:bg-slate-100 border-slate-200 dark:border-slate-700">
                   <SelectValue placeholder="Baris" />
                 </SelectTrigger>
@@ -2577,7 +2781,7 @@ export default function RegisterDesignPage() {
                 )}
               </tr>
             </thead>
-            <tbody>
+            <tbody onMouseOver={handleTbodyMouseOver} onMouseMove={handleCellMouseEnter} onMouseLeave={handleTableMouseLeave} className="relative">
               {loading ? (
                 <tr><td colSpan={24} className="p-8 text-center text-slate-500 dark:text-slate-400 font-bold">Memuat data...</td></tr>
               ) : filteredData.length === 0 ? (
@@ -2592,39 +2796,39 @@ export default function RegisterDesignPage() {
                           <input type="checkbox" checked={selectedIds.has(row.id)} onChange={() => toggleSelect(row.id)} className="w-4 h-4 cursor-pointer accent-red-600" />
                         </td>
                       )}
-                      <td className={`p-1 border-r font-black text-blue-700 bg-[#f4f8ff] group-hover:bg-blue-50 dark:bg-blue-900/30 z-10 ${!isReadOnly ? 'sticky left-10' : ''} shadow-[4px_0_8px_rgba(0,0,0,0.02)]`}>
+                      <td className={`relative p-1 border-r font-black text-blue-700 bg-[#f4f8ff] group-hover:bg-blue-50 dark:bg-blue-900/30 z-10 ${!isReadOnly ? 'sticky left-10' : ''} shadow-[4px_0_8px_rgba(0,0,0,0.02)]`} data-row-idx={idx} data-field="darNo">
                         <CellInput handleUpdateCell={handleUpdateCell} row={row} field="darNo" width="w-24" />
                       </td>
-                      <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="entryDate" width="w-28" type="date" /></td>
+                      <td className="relative p-1 border-r" data-row-idx={idx} data-field="entryDate"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="entryDate" width="w-28" type="date" /></td>
                       <td className="p-1 border-r text-[10px] text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 text-center">{row.createdBy || '-'}</td>
-                      <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="typeDesign" options={typeDesignOptions} colorFn={getTypeDesignColor} width="w-20" /></td>
-                      <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="designNo" width="w-24" /></td>
-                      <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="itemName" width="w-40" /></td>
-                      <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="designSource" options={designSourceOptions} width="w-24" /></td>
-                      <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="customer" options={customerOptions} width="w-32" /></td>
-                      <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="designer" options={designerOptions} colorFn={getDesignerColor} width="w-28" /></td>
+                      <td className="relative p-1 border-r" data-row-idx={idx} data-field="typeDesign"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="typeDesign" options={typeDesignOptions} colorFn={getTypeDesignColor} width="w-20" /></td>
+                      <td className="relative p-1 border-r" data-row-idx={idx} data-field="designNo"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="designNo" width="w-24" /></td>
+                      <td className="relative p-1 border-r" data-row-idx={idx} data-field="itemName"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="itemName" width="w-40" /></td>
+                      <td className="relative p-1 border-r" data-row-idx={idx} data-field="designSource"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="designSource" options={designSourceOptions} width="w-24" /></td>
+                      <td className="relative p-1 border-r" data-row-idx={idx} data-field="customer"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="customer" options={customerOptions} width="w-32" /></td>
+                      <td className="relative p-1 border-r" data-row-idx={idx} data-field="designer"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="designer" options={designerOptions} colorFn={getDesignerColor} width="w-28" /></td>
 
-                      <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="technician" options={technicianOptions} colorFn={getTechnicianColor} width="w-28" /></td>
-                      <td className="p-1 border-r bg-slate-50 dark:bg-slate-800/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="benefit" options={baseTujuanOptions} width="w-32" /></td>
+                      <td className="relative p-1 border-r" data-row-idx={idx} data-field="technician"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="technician" options={technicianOptions} colorFn={getTechnicianColor} width="w-28" /></td>
+                      <td className="relative p-1 border-r bg-slate-50 dark:bg-slate-800/50" data-row-idx={idx} data-field="benefit"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="benefit" options={baseTujuanOptions} width="w-32" /></td>
                       <td className="p-1 border-r bg-slate-50 dark:bg-slate-800/50"><CellImageUpload handleUpdateCell={handleUpdateCell} row={row} /></td>
-                      <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="version" width="w-20" /></td>
-                      <td className="p-1 border-r"><CellSelect handleUpdateCell={handleUpdateCell} row={row} field="status" options={["IN LOCK", "IN USE", "FREE", "ARCHIVE"]} colorFn={getStatusColor} width="w-24" /></td>
+                      <td className="relative p-1 border-r" data-row-idx={idx} data-field="version"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="version" width="w-20" /></td>
+                      <td className="relative p-1 border-r" data-row-idx={idx} data-field="status"><CellSelect handleUpdateCell={handleUpdateCell} row={row} field="status" options={["IN LOCK", "IN USE", "FREE", "ARCHIVE"]} colorFn={getStatusColor} width="w-24" /></td>
 
-                      <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="requiredDate" width="w-28" type="date" /></td>
-                      <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="closingDate" width="w-28" type="date" /></td>
-                      <td className="p-1 border-r bg-slate-50 dark:bg-slate-800/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="type" options={baseTypeOptions} width="w-24" /></td>
-                      <td className="p-1 border-r bg-slate-50 dark:bg-slate-800/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="sizeChecks" options={baseSizeOptions} customOptions={sizeCustomOptions} width="w-32" /></td>
-                      <td className="p-1 border-r bg-slate-50 dark:bg-slate-800/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="glazeChecks" options={baseGlazeOptions} customOptions={glazeCustomOptions} width="w-32" /></td>
-                      <td className="p-1 border-r bg-slate-50 dark:bg-slate-800/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="surfaceChecks" options={baseSurfaceOptions} customOptions={surfaceCustomOptions} width="w-32" /></td>
-                      <td className="p-1 border-r bg-slate-50 dark:bg-slate-800/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="guPtvChecks" options={baseGuPtvOptions} customOptions={guPtvCustomOptions} width="w-32" /></td>
-                      <td className="p-1 border-r bg-slate-50 dark:bg-slate-800/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="inkChecks" options={baseInkOptions} customOptions={inkCustomOptions} width="w-32" /></td>
-                      <td className="p-1 border-r bg-slate-50 dark:bg-slate-800/50"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="sendBy" options={baseSendByOptions} width="w-24" /></td>
-                      <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="benefitText" width="w-40" /></td>
-                      <td className="p-1 border-r bg-slate-50 dark:bg-slate-800/50"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="generalNote" width="w-48" /></td>
-                      <td className="p-1 border-r"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="lastTimeReq" width="w-28" type="date" /></td>
-                      <td className="p-1 border-r"><CellGridInput handleUpdateCell={handleUpdateCell} row={row} field="feedbackDetails" title="Feedback" rowsCount={4} /></td>
-                      <td className="p-1 border-r"><CellGridInput handleUpdateCell={handleUpdateCell} row={row} field="lastDesignSupp" title="Support" rowsCount={6} /></td>
-                      <td className="p-1 border-r"><CellGridInput handleUpdateCell={handleUpdateCell} row={row} field="note2" title="Note 2" rowsCount={3} /></td>
+                      <td className="relative p-1 border-r" data-row-idx={idx} data-field="requiredDate"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="requiredDate" width="w-28" type="date" /></td>
+                      <td className="relative p-1 border-r" data-row-idx={idx} data-field="closingDate"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="closingDate" width="w-28" type="date" /></td>
+                      <td className="relative p-1 border-r bg-slate-50 dark:bg-slate-800/50" data-row-idx={idx} data-field="type"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="type" options={baseTypeOptions} width="w-24" /></td>
+                      <td className="relative p-1 border-r bg-slate-50 dark:bg-slate-800/50" data-row-idx={idx} data-field="sizeChecks"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="sizeChecks" options={baseSizeOptions} customOptions={sizeCustomOptions} width="w-32" /></td>
+                      <td className="relative p-1 border-r bg-slate-50 dark:bg-slate-800/50" data-row-idx={idx} data-field="glazeChecks"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="glazeChecks" options={baseGlazeOptions} customOptions={glazeCustomOptions} width="w-32" /></td>
+                      <td className="relative p-1 border-r bg-slate-50 dark:bg-slate-800/50" data-row-idx={idx} data-field="surfaceChecks"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="surfaceChecks" options={baseSurfaceOptions} customOptions={surfaceCustomOptions} width="w-32" /></td>
+                      <td className="relative p-1 border-r bg-slate-50 dark:bg-slate-800/50" data-row-idx={idx} data-field="guPtvChecks"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="guPtvChecks" options={baseGuPtvOptions} customOptions={guPtvCustomOptions} width="w-32" /></td>
+                      <td className="relative p-1 border-r bg-slate-50 dark:bg-slate-800/50" data-row-idx={idx} data-field="inkChecks"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="inkChecks" options={baseInkOptions} customOptions={inkCustomOptions} width="w-32" /></td>
+                      <td className="relative p-1 border-r bg-slate-50 dark:bg-slate-800/50" data-row-idx={idx} data-field="sendBy"><CellMultiSelect handleUpdateCell={handleUpdateCell} row={row} field="sendBy" options={baseSendByOptions} width="w-24" /></td>
+                      <td className="relative p-1 border-r" data-row-idx={idx} data-field="benefitText"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="benefitText" width="w-40" /></td>
+                      <td className="relative p-1 border-r bg-slate-50 dark:bg-slate-800/50" data-row-idx={idx} data-field="generalNote"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="generalNote" width="w-48" /></td>
+                      <td className="relative p-1 border-r" data-row-idx={idx} data-field="lastTimeReq"><CellInput handleUpdateCell={handleUpdateCell} row={row} field="lastTimeReq" width="w-28" type="date" /></td>
+                      <td className="relative p-1 border-r" data-row-idx={idx} data-field="feedbackDetails"><CellGridInput handleUpdateCell={handleUpdateCell} row={row} field="feedbackDetails" title="Feedback" rowsCount={4} /></td>
+                      <td className="relative p-1 border-r" data-row-idx={idx} data-field="lastDesignSupp"><CellGridInput handleUpdateCell={handleUpdateCell} row={row} field="lastDesignSupp" title="Support" rowsCount={6} /></td>
+                      <td className="relative p-1 border-r" data-row-idx={idx} data-field="note2"><CellGridInput handleUpdateCell={handleUpdateCell} row={row} field="note2" title="Note 2" rowsCount={3} /></td>
                       {!isReadOnly && (
                         <td className="p-1 text-center sticky right-0 bg-white dark:bg-slate-900 dark:bg-slate-100 group-hover:bg-blue-50 dark:bg-blue-900/30 z-10 shadow-[-4px_0_12px_rgba(0,0,0,0.02)]">
                           <div className="flex items-center justify-center gap-1">
@@ -3116,6 +3320,18 @@ export default function RegisterDesignPage() {
           </div>
         </div>
       )}
+        {/* Drag Fill Overlays */}
+        {!isReadOnly && hoveredCell && !fillState && (
+          <div 
+            className="fill-handle fixed bg-blue-600 w-3 h-3 cursor-crosshair z-[100] border border-white hover:scale-125 transition-transform"
+            style={{ 
+              top: hoveredCell.rect.bottom - 6, 
+              left: hoveredCell.rect.right - 6 
+            }}
+            onMouseDown={(e) => startFillDrag(e, hoveredCell.idx, hoveredCell.field, hoveredCell.value)}
+          />
+        )}
+
     </LayoutWrapper>
   );
 }
