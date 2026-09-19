@@ -92,7 +92,12 @@ function PreviewContent() {
                         const qReg = query(collection(db, "register_design"), where("darNo", "==", darNoParam));
                         const snapReg = await getDocs(qReg);
                         if (!snapReg.empty) {
-                            const first = snapReg.docs[0].data();
+                            const sortedDocs = snapReg.docs.map(d => d.data()).sort((a, b) => {
+                                const aSec = a.createdAt?.seconds || 0;
+                                const bSec = b.createdAt?.seconds || 0;
+                                return aSec - bSec;
+                            });
+                            const first = sortedDocs[0];
                             if (first.benefitText) reportData.benefit = first.benefitText;
                             if (first.benefit) reportData.purpose = first.benefit.split(',').map((s:string)=>s.trim()).filter(Boolean);
                             if (first.sendBy) reportData.sendBy = first.sendBy.split(',').map((s:string)=>s.trim()).filter(Boolean);
@@ -107,8 +112,7 @@ function PreviewContent() {
                             const dynamicItems = Array(32).fill("");
                             let itemIndex = 0;
                             
-                            snapReg.docs.forEach((docSnap) => {
-                                const d = docSnap.data();
+                            sortedDocs.forEach((d) => {
                                 if (targetStatus && targetStatus !== "Semua" && targetStatus !== "null" && targetStatus !== "undefined") {
                                     if (d.status !== targetStatus) return;
                                 }
@@ -151,8 +155,13 @@ function PreviewContent() {
                 const snap = await getDocs(q);
                 const targetStatus = searchParams.get('status');
 
-                const fetchedImages = snap.docs.map((doc, idx) => {
-                    const data = doc.data();
+                const sortedData = snap.docs.map(d => d.data()).sort((a, b) => {
+                    const aSec = a.createdAt?.seconds || 0;
+                    const bSec = b.createdAt?.seconds || 0;
+                    return aSec - bSec;
+                });
+
+                const fetchedImages = sortedData.map((data, idx) => {
                     
                     if (targetStatus && targetStatus !== "Semua" && targetStatus !== "null" && targetStatus !== "undefined") {
                         if (data.status !== targetStatus) return null;
