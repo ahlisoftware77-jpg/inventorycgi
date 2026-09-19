@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { Ratelimit } from '@upstash/ratelimit';
-import { Redis } from '@upstash/redis';
+import { Redis } from '@upstash/redis/cloudflare';
 
 let redis: Redis | null = null;
 let uploadLimiter: Ratelimit | null = null;
