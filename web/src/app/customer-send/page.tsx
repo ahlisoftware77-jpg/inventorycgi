@@ -53,7 +53,8 @@ function CustomerSendContent() {
   const [links, setLinks] = useState<CustomerLink[]>([]);
   
   const [email, setEmail] = useState('');
-  const [customMessage, setCustomMessage] = useState('');
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailBody, setEmailBody] = useState('');
   const [expiresIn, setExpiresIn] = useState('1'); // Days
   const [isUploading, setIsUploading] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -78,7 +79,20 @@ function CustomerSendContent() {
       // Fetch design
       const dDoc = await getDoc(doc(db, 'register_design', designId));
       if (dDoc.exists()) {
-        setDesign({ id: dDoc.id, ...dDoc.data() } as RegisterDesignItem);
+        const dData = { id: dDoc.id, ...dDoc.data() } as RegisterDesignItem;
+        setDesign(dData);
+        
+        const fileName = (dData as any).originalFileName || `${dData.designNo} - ${dData.itemName}`;
+        if (!emailSubject) setEmailSubject(`Download File: ${fileName}`);
+        if (!emailBody) setEmailBody(
+`Yth. Customer,
+
+Berikut adalah tautan untuk mengunduh file ${fileName}.
+
+Silakan klik tombol di bawah untuk memulai unduhan.
+
+Salam hangat,
+Tim Desain`);
       }
 
       // Fetch links
@@ -182,6 +196,19 @@ function CustomerSendContent() {
         originalFileName: file.name
       });
       setDesign(prev => prev ? { ...prev, originalFileId: fileId, originalFileName: file.name } as any : null);
+      
+      // Auto update subject and body when a new file is uploaded
+      setEmailSubject(`Download File: ${file.name}`);
+      setEmailBody(
+`Yth. Customer,
+
+Berikut adalah tautan untuk mengunduh file ${file.name}.
+
+Silakan klik tombol di bawah untuk memulai unduhan.
+
+Salam hangat,
+Tim Desain`);
+
       toast({ title: 'Berhasil', description: 'File original berhasil diunggah.' });
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Gagal Upload', description: error.message });
@@ -288,18 +315,17 @@ function CustomerSendContent() {
       }
       
       const downloadUrl = window.location.origin + `/download?id=${linkRef.id}`;
-      
+
       const htmlBody = `
         <div style="font-family: Arial, sans-serif; max-w-md; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-          <h2 style="color: #2563eb;">Download Desain Original</h2>
-          <p>Yth. Customer,</p>
-          ${customMessage.trim() ? `<p>${customMessage.replace(/\n/g, '<br>')}</p>` : ''}
-          <p>Berikut adalah tautan untuk mengunduh file original dari desain <strong>${design.designNo}</strong> - <strong>${design.itemName}</strong>.</p>
+          <h2 style="color: #2563eb;">${emailSubject}</h2>
+          <div style="color: #333; line-height: 1.5;">
+            ${emailBody.replace(/\n/g, '<br>')}
+          </div>
           <div style="text-align: center; margin: 30px 0;">
             <a href="${downloadUrl}" style="background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Download File</a>
           </div>
           <p style="color: #ef4444; font-size: 12px;">Penting: Tautan ini akan otomatis kedaluwarsa pada <strong>${expiresDate.toLocaleString('id-ID')}</strong>.</p>
-          <p>Salam hangat,<br>Tim Desain</p>
         </div>
       `;
 
@@ -324,7 +350,7 @@ function CustomerSendContent() {
         body: JSON.stringify({
           smtp,
           to: [email],
-          subject: `Download Desain ${design.designNo}`,
+          subject: emailSubject,
           html: htmlBody
         })
       });
@@ -336,7 +362,6 @@ function CustomerSendContent() {
 
       toast({ title: 'Terkirim', description: 'Link berhasil dikirim ke ' + email });
       setEmail('');
-      setCustomMessage('');
       
       // 4. Update local links state
       const newLink: CustomerLink = {
@@ -388,227 +413,306 @@ function CustomerSendContent() {
 
   return (
     <DashboardLayout>
-      <div className="p-4 sm:p-8 space-y-6 max-w-5xl mx-auto">
-        <div className="flex items-center gap-4 mb-6">
-          <Button variant="ghost" size="icon" onClick={() => router.push('/register-design')} className="rounded-full bg-slate-100 hover:bg-slate-200">
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <div>
-            <h1 className="text-2xl font-black text-slate-800 dark:text-white">Kirim Desain Original</h1>
-            <p className="text-sm font-medium text-slate-500">Desain: {design.designNo} - {design.itemName}</p>
+      <div className="p-2 min-h-[calc(100vh-4rem)] w-full max-w-[1600px] mx-auto bg-slate-50/30 dark:bg-slate-950/30 relative">
+        {/* Decorative ambient blurred orbs */}
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-400/10 rounded-full blur-3xl pointer-events-none"></div>
+        
+        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
+          <div className="flex items-center gap-4">
+            <Button variant="outline" size="icon" onClick={() => router.push('/register-design')} className="rounded-xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200 dark:border-slate-700 hover:scale-105 hover:shadow-md transition-all duration-300">
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-slate-800 to-slate-500 dark:from-white dark:to-slate-400 tracking-tight">
+                Kirim Desain Original
+              </h1>
+              <p className="text-sm font-medium text-slate-500 mt-1 flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 font-bold border border-blue-200 dark:border-blue-800">{design.designNo}</span>
+                {design.itemName}
+              </p>
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* BAGIAN UPLOAD FILE */}
-          <Card className="border-slate-200 shadow-sm">
-            <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-4">
-              <CardTitle className="text-lg flex items-center gap-2"><Upload className="w-5 h-5 text-blue-500" /> 1. Upload File Original</CardTitle>
-              <CardDescription>Penyimpanan file asli (.psd, .ai, .zip) max 2GB.</CardDescription>
-            </CardHeader>
-            <CardContent className="p-6">
-              {(design as any).originalFileId ? (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3 overflow-hidden">
-                    <div className="bg-emerald-100 p-2 rounded-lg">
-                      <File className="w-6 h-6 text-emerald-600" />
-                    </div>
-                    <div className="overflow-hidden">
-                      <h4 className="font-bold text-sm text-slate-800 truncate">{(design as any).originalFileName || 'File Tersimpan'}</h4>
-                      <p className="text-xs text-emerald-600 font-medium flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Siap dikirim</p>
-                    </div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-10">
+          
+          {/* KOLOM KIRI (Upload & Send) */}
+          <div className="lg:col-span-4 space-y-6">
+            
+            {/* BAGIAN UPLOAD FILE */}
+            <Card className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-slate-200/60 dark:border-slate-800/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] rounded-2xl overflow-hidden hover:shadow-lg transition-all duration-300">
+              <CardHeader className="bg-gradient-to-r from-blue-50/50 to-transparent dark:from-blue-900/10 border-b border-slate-100 dark:border-slate-800/60 pb-5">
+                <CardTitle className="text-lg flex items-center gap-3 font-bold text-slate-800 dark:text-slate-100">
+                  <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-lg text-blue-600 dark:text-blue-400">
+                    <Upload className="w-5 h-5" />
                   </div>
-                  <Button variant="ghost" size="icon" onClick={handleDeleteOriginal} className="text-red-500 hover:text-red-700 hover:bg-red-50">
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center hover:bg-slate-50 transition-colors">
-                    <input 
-                      type="file" 
-                      ref={fileInputRef} 
-                      className="hidden" 
-                      onChange={handleFileUpload} 
-                      disabled={isUploading}
-                    />
-                    <Upload className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-                    <h3 className="font-bold text-slate-700 mb-1">Pilih File Master</h3>
-                    <p className="text-xs text-slate-500 mb-4">Mendukung file besar hingga 2GB.</p>
-                    <Button onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto">
-                      {isUploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <File className="w-4 h-4 mr-2" />}
-                      {isUploading ? `Mengunggah ${uploadProgress}%` : 'Cari File'}
+                  1. Upload File
+                </CardTitle>
+                <CardDescription className="pl-12 text-xs">Penyimpanan master file (.psd, .ai, .zip) max 2GB.</CardDescription>
+              </CardHeader>
+              <CardContent className="p-6">
+                {(design as any).originalFileId ? (
+                  <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-950/30 dark:to-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4 flex items-center justify-between group transition-all duration-300 hover:shadow-md">
+                    <div className="flex items-center gap-4 overflow-hidden">
+                      <div className="bg-white dark:bg-emerald-900 p-2.5 rounded-xl shadow-sm border border-emerald-100 dark:border-emerald-700">
+                        <File className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                      </div>
+                      <div className="overflow-hidden">
+                        <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate group-hover:text-emerald-700 dark:group-hover:text-emerald-300 transition-colors">{(design as any).originalFileName || 'File Tersimpan'}</h4>
+                        <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1.5 mt-0.5"><CheckCircle2 className="w-3.5 h-3.5" /> Tersimpan & Siap dikirim</p>
+                      </div>
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={handleDeleteOriginal} className="text-red-500 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 opacity-70 group-hover:opacity-100 transition-opacity">
+                      <Trash2 className="w-4 h-4" />
                     </Button>
-                    
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl p-8 text-center hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:border-blue-400 dark:hover:border-blue-500 transition-all duration-300 group cursor-pointer" onClick={() => !isUploading && fileInputRef.current?.click()}>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        className="hidden"
+                        onChange={handleFileUpload}
+                        disabled={isUploading}
+                      />
+                      <div className="w-16 h-16 mx-auto bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/30 transition-all duration-300">
+                        <Upload className="w-7 h-7 text-slate-400 group-hover:text-blue-500 transition-colors" />
+                      </div>
+                      <h3 className="font-bold text-slate-700 dark:text-slate-200 mb-1">Pilih File Master</h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mb-5">Klik atau seret file besar hingga 2GB.</p>
+                      
+                      <Button disabled={isUploading} className="bg-slate-800 hover:bg-slate-900 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200 w-full rounded-xl h-11 transition-all duration-300 hover:shadow-lg">
+                        {isUploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <File className="w-4 h-4 mr-2" />}
+                        {isUploading ? `Mengunggah ${uploadProgress}%` : 'Cari File Komputer'}
+                      </Button>
+                    </div>
+
                     {isUploading && (
-                      <div className="mt-4 w-full bg-slate-100 rounded-full h-1.5">
-                         <div className="bg-blue-500 h-1.5 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
+                      <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden shadow-inner">
+                        <div className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
                       </div>
                     )}
                   </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                )}
+              </CardContent>
+            </Card>
 
-          {/* BAGIAN KIRIM EMAIL */}
-          <Card className="border-slate-200 shadow-sm">
-            <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-4">
-              <CardTitle className="text-lg flex items-center gap-2"><Send className="w-5 h-5 text-purple-500" /> 2. Kirim Link Tautan</CardTitle>
-              <CardDescription>Kirim link download ke email customer.</CardDescription>
-            </CardHeader>
-            <CardContent className="p-6 space-y-4">
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <Label className="text-xs font-bold text-slate-500 uppercase">Email Customer</Label>
-                  <Dialog open={isContactDialogOpen} onOpenChange={setIsContactDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-purple-600 hover:text-purple-700 hover:bg-purple-50">
-                        <Users className="w-3 h-3 mr-1" /> Pilih Kontak
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-md">
-                      <DialogHeader>
-                        <DialogTitle>Buku Kontak Customer</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4 pt-2">
-                        <div className="flex gap-2">
-                          <Input placeholder="Nama Klien..." value={newContactName} onChange={e => setNewContactName(e.target.value)} className="flex-1" />
-                          <Input placeholder="Email..." value={newContactEmail} onChange={e => setNewContactEmail(e.target.value)} className="flex-1" />
-                          <Button onClick={handleSaveContact} disabled={isSavingContact} className="px-3 bg-purple-600 hover:bg-purple-700">
-                            {isSavingContact ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                          </Button>
-                        </div>
-                        <div className="max-h-[300px] overflow-y-auto space-y-2 pr-1">
-                          {contacts.length === 0 ? (
-                            <p className="text-sm text-center text-slate-500 py-6 italic border border-dashed rounded-lg">Belum ada kontak tersimpan</p>
-                          ) : (
-                            contacts.map(c => (
-                              <div key={c.id} className="flex items-center justify-between p-3 border rounded-xl hover:bg-slate-50 transition-colors">
-                                <div className="cursor-pointer flex-1" onClick={() => { setEmail(c.email); setIsContactDialogOpen(false); }}>
-                                  <p className="font-bold text-sm text-slate-800">{c.name}</p>
-                                  <p className="text-xs text-slate-500">{c.email}</p>
-                                </div>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-400 hover:text-red-600 hover:bg-red-50 shrink-0" onClick={() => handleDeleteContact(c.id)}>
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-                <Input 
-                  placeholder="contoh@perusahaan.com atau pilih kontak" 
-                  value={email} 
-                  onChange={e => setEmail(e.target.value)}
-                  className="bg-slate-50"
-                  list="contact-emails"
-                />
-                <datalist id="contact-emails">
-                  {contacts.map(c => <option key={c.id} value={c.email}>{c.name}</option>)}
-                </datalist>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs font-bold text-slate-500 uppercase">Pesan Tambahan (Opsional)</Label>
-                <Textarea 
-                  placeholder="Ketik pesan khusus untuk pelanggan di sini..." 
-                  value={customMessage} 
-                  onChange={e => setCustomMessage(e.target.value)}
-                  className="bg-slate-50 resize-y"
-                  rows={3}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs font-bold text-slate-500 uppercase">Masa Aktif Tautan</Label>
-                <Select value={expiresIn} onValueChange={setExpiresIn}>
-                  <SelectTrigger className="bg-slate-50">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">1 Hari</SelectItem>
-                    <SelectItem value="3">3 Hari</SelectItem>
-                    <SelectItem value="7">7 Hari</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-[10px] text-amber-600 flex items-center gap-1 mt-1">
-                  <AlertTriangle className="w-3 h-3" /> File akan terhapus otomatis setelah lewat masa aktif.
-                </p>
-              </div>
-              
-              <Button onClick={handleSendLink} disabled={isSending || !(design as any).originalFileId} className="w-full bg-purple-600 hover:bg-purple-700 mt-2 h-12">
-                {isSending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
-                Kirim Tautan Download
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* RIWAYAT PENGIRIMAN */}
-        <Card className="border-slate-200 shadow-sm">
-          <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-4">
-             <CardTitle className="text-lg flex items-center gap-2"><Clock className="w-5 h-5 text-slate-500" /> Riwayat & Status Unduhan</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-             {links.length === 0 ? (
-               <div className="p-8 text-center text-slate-500 text-sm">Belum ada link yang dikirim untuk desain ini.</div>
-             ) : (
-               <div className="divide-y divide-slate-100">
-                 {links.map(link => {
-                   const isExpired = link.expiresAt?.seconds * 1000 < Date.now();
-                   return (
-                     <div key={link.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50 transition-colors">
-                       <div>
-                         <div className="flex items-center gap-2 mb-1">
-                           <span className="font-bold text-slate-800">{link.customerEmail}</span>
-                           {isExpired ? (
-                             <span className="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-bold">Kedaluwarsa</span>
-                           ) : (
-                             <span className="text-[10px] bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded-full font-bold">Aktif</span>
-                           )}
-                         </div>
-                         <div className="text-xs text-slate-500 font-medium mb-1.5 flex items-center gap-1">
-                           <File className="w-3.5 h-3.5 text-blue-500" />
-                           {(link as any).originalFileName || 'File Tersimpan'}
-                         </div>
-                         <div className="text-xs text-slate-500 flex flex-col sm:flex-row gap-2 sm:gap-4 mt-1.5">
-                           <span><strong>Dikirim:</strong> {new Date(link.createdAt?.seconds * 1000).toLocaleString('id-ID')}</span>
-                           <span><strong>Berakhir:</strong> {new Date(link.expiresAt?.seconds * 1000).toLocaleString('id-ID')}</span>
-                         </div>
-                       </div>
-                       <div className="flex items-center gap-4 shrink-0 bg-slate-100 p-2 rounded-lg border border-slate-200">
-                          <div className="text-center px-2">
-                             <div className="text-[10px] font-bold text-slate-400 uppercase">Diunduh</div>
-                             <div className="font-black text-slate-700">{link.downloadCount}x</div>
+            {/* BAGIAN KIRIM EMAIL */}
+            <Card className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-slate-200/60 dark:border-slate-800/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] rounded-2xl overflow-hidden hover:shadow-lg transition-all duration-300">
+              <CardHeader className="bg-gradient-to-r from-purple-50/50 to-transparent dark:from-purple-900/10 border-b border-slate-100 dark:border-slate-800/60 pb-5">
+                <CardTitle className="text-lg flex items-center gap-3 font-bold text-slate-800 dark:text-slate-100">
+                  <div className="p-2 bg-purple-100 dark:bg-purple-900/50 rounded-lg text-purple-600 dark:text-purple-400">
+                    <Send className="w-5 h-5" />
+                  </div>
+                  2. Kirim Link Tautan
+                </CardTitle>
+                <CardDescription className="pl-12 text-xs">Buat akses khusus untuk customer.</CardDescription>
+              </CardHeader>
+              <CardContent className="p-6 space-y-5">
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <Label className="text-xs font-bold text-slate-500 dark:text-slate-400 tracking-wider">Email Customer</Label>
+                    <Dialog open={isContactDialogOpen} onOpenChange={setIsContactDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-7 px-3 text-xs rounded-full bg-purple-50 text-purple-600 hover:text-purple-700 hover:bg-purple-100 dark:bg-purple-900/20 dark:text-purple-400 dark:hover:bg-purple-900/40 transition-colors">
+                          <Users className="w-3.5 h-3.5 mr-1.5" /> Pilih Kontak
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-md rounded-2xl p-0 overflow-hidden border-none shadow-2xl">
+                        <DialogHeader className="p-6 bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
+                          <DialogTitle className="text-lg font-black">Buku Kontak Customer</DialogTitle>
+                        </DialogHeader>
+                        <div className="p-6 space-y-5 bg-white dark:bg-slate-950">
+                          <div className="flex flex-col sm:flex-row gap-3">
+                            <Input placeholder="Nama Klien..." value={newContactName} onChange={e => setNewContactName(e.target.value)} className="flex-1 rounded-xl bg-slate-50 dark:bg-slate-900" />
+                            <Input placeholder="Email..." value={newContactEmail} onChange={e => setNewContactEmail(e.target.value)} className="flex-1 rounded-xl bg-slate-50 dark:bg-slate-900" />
+                            <Button onClick={handleSaveContact} disabled={isSavingContact} className="px-4 rounded-xl bg-purple-600 hover:bg-purple-700 text-white shadow-md shadow-purple-200 dark:shadow-none">
+                              {isSavingContact ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                            </Button>
                           </div>
-                          {link.downloadedAt ? (
-                            <div className="text-left text-xs">
-                               <div className="text-[10px] text-emerald-600 font-bold flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Terakhir:</div>
-                               <div className="text-slate-600">{new Date(link.downloadedAt?.seconds * 1000).toLocaleString('id-ID')}</div>
-                               {link.downloadIps && link.downloadIps.length > 0 && (
-                                 <div className="text-[10px] text-slate-500 mt-0.5 break-all max-w-[200px]" title={link.downloadIps.join(', ')}>
-                                   IP: {link.downloadIps[0]} {link.downloadIps.length > 1 ? `(+${link.downloadIps.length-1})` : ''}
-                                 </div>
-                               )}
-                            </div>
-                          ) : (
-                            <div className="text-left text-xs text-slate-400 italic">Belum diunduh</div>
-                          )}
-                          {!isExpired && (
-                             <Button variant="ghost" size="icon" onClick={() => handleRevokeLink(link.id)} className="text-red-500 hover:text-red-700 hover:bg-red-50 ml-2" title="Cabut Link">
-                                <Trash2 className="w-4 h-4" />
-                             </Button>
-                          )}
-                       </div>
+                          <div className="max-h-[300px] overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                            {contacts.length === 0 ? (
+                              <div className="text-sm text-center text-slate-400 py-10 italic border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-xl">Belum ada kontak tersimpan</div>
+                            ) : (
+                              contacts.map(c => (
+                                <div key={c.id} className="flex items-center justify-between p-3.5 border border-slate-100 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors group">
+                                  <div className="cursor-pointer flex-1" onClick={() => { setEmail(c.email); setIsContactDialogOpen(false); }}>
+                                    <p className="font-bold text-sm text-slate-800 dark:text-slate-200 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">{c.name}</p>
+                                    <p className="text-xs text-slate-500 mt-0.5">{c.email}</p>
+                                  </div>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 opacity-0 group-hover:opacity-100 transition-all" onClick={() => handleDeleteContact(c.id)}>
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                  <Input 
+                    placeholder="Masukkan email..." 
+                    value={email} 
+                    onChange={e => setEmail(e.target.value)}
+                    className="h-11 rounded-xl bg-slate-50/50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 focus-visible:ring-purple-500"
+                    list="contact-emails"
+                  />
+                  <datalist id="contact-emails">
+                    {contacts.map(c => <option key={c.id} value={c.email}>{c.name}</option>)}
+                  </datalist>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-slate-500 dark:text-slate-400 tracking-wider">Subjek Email</Label>
+                  <Input 
+                    value={emailSubject} 
+                    onChange={e => setEmailSubject(e.target.value)}
+                    className="h-11 rounded-xl bg-slate-50/50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 focus-visible:ring-purple-500"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-slate-500 dark:text-slate-400 tracking-wider">Badan Email</Label>
+                  <Textarea 
+                    value={emailBody} 
+                    onChange={e => setEmailBody(e.target.value)}
+                    className="bg-slate-50/50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-xl resize-none focus-visible:ring-purple-500 min-h-[160px]"
+                  />
+                  <p className="text-[10px] text-slate-400 flex items-center gap-1 mt-1">
+                    Enter (baris baru) otomatis diubah jadi spasi ke bawah. Tombol link "Download File" akan disisipkan di paling bawah.
+                  </p>
+                </div>
+                
+                <div className="space-y-2 pb-2">
+                  <Label className="text-xs font-bold text-slate-500 dark:text-slate-400 tracking-wider">Masa Berlaku</Label>
+                  <Select value={expiresIn} onValueChange={setExpiresIn}>
+                    <SelectTrigger className="h-11 bg-slate-50/50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-xl focus-visible:ring-purple-500 font-medium">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                      <SelectItem value="1">1 Hari (24 Jam)</SelectItem>
+                      <SelectItem value="3">3 Hari</SelectItem>
+                      <SelectItem value="7">7 Hari (1 Minggu)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div className="flex items-start gap-1.5 mt-2 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-500 p-2 rounded-lg border border-amber-100 dark:border-amber-900/50">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" /> 
+                    <p className="text-[10px] leading-relaxed">Tautan rusak otomatis jika lewat waktu. Mengamankan file Anda dari akses publik.</p>
+                  </div>
+                </div>
+                
+                <Button onClick={handleSendLink} disabled={isSending || !(design as any).originalFileId} className="w-full h-12 text-sm font-bold rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg shadow-purple-200 dark:shadow-none hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 group">
+                  {isSending ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Send className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />}
+                  Kirim Akses Download
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* KOLOM KANAN (Riwayat Pengiriman) */}
+          <div className="lg:col-span-8">
+            <Card className="h-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-slate-200/60 dark:border-slate-800/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] rounded-2xl overflow-hidden">
+              <CardHeader className="bg-slate-50/50 dark:bg-slate-800/30 border-b border-slate-100 dark:border-slate-800/60 pb-5 px-6">
+                 <div className="flex items-center justify-between">
+                   <CardTitle className="text-lg flex items-center gap-3 font-bold text-slate-800 dark:text-slate-100">
+                     <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-400">
+                       <Clock className="w-5 h-5" />
                      </div>
-                   );
-                 })}
-               </div>
-             )}
-          </CardContent>
-        </Card>
+                     Riwayat & Status Unduhan
+                   </CardTitle>
+                   <div className="px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-bold text-xs rounded-full border border-blue-100 dark:border-blue-800/50">
+                     {links.length} Akses Diberikan
+                   </div>
+                 </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                 {links.length === 0 ? (
+                   <div className="p-12 text-center text-slate-400 flex flex-col items-center justify-center min-h-[400px]">
+                     <div className="w-24 h-24 bg-slate-50 dark:bg-slate-800/50 rounded-full flex items-center justify-center mb-4">
+                       <Send className="w-10 h-10 text-slate-300 dark:text-slate-600" />
+                     </div>
+                     <h3 className="text-lg font-bold text-slate-700 dark:text-slate-300 mb-2">Belum Ada Tautan</h3>
+                     <p className="text-sm max-w-sm">Anda belum memberikan akses download kepada siapapun untuk desain ini. Mulai dengan form di sebelah kiri.</p>
+                   </div>
+                 ) : (
+                   <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                     {links.map(link => {
+                       const isExpired = link.expiresAt?.seconds * 1000 < Date.now();
+                       return (
+                         <div key={link.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-5 hover:bg-blue-50/30 dark:hover:bg-slate-800/30 transition-colors group">
+                           <div className="flex-1 min-w-0">
+                             <div className="flex items-center gap-3 mb-1.5">
+                               <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 font-bold text-xs uppercase shrink-0">
+                                 {link.customerEmail.charAt(0)}
+                               </div>
+                               <span className="font-bold text-slate-800 dark:text-slate-200 truncate text-base">{link.customerEmail}</span>
+                               {isExpired ? (
+                                 <span className="text-[10px] bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 px-2.5 py-0.5 rounded-full font-bold border border-red-200 dark:border-red-800/50 shrink-0">Kedaluwarsa</span>
+                               ) : (
+                                 <span className="text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-2.5 py-0.5 rounded-full font-bold border border-emerald-200 dark:border-emerald-800/50 shrink-0 flex items-center gap-1">
+                                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div> Aktif
+                                 </span>
+                               )}
+                             </div>
+                             
+                             <div className="pl-11 space-y-1.5">
+                               <div className="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1.5">
+                                 <File className="w-3.5 h-3.5 text-blue-500" />
+                                 <span className="truncate max-w-[250px] inline-block align-bottom">{(link as any).originalFileName || 'File Tersimpan'}</span>
+                               </div>
+                               <div className="flex items-center gap-3 text-[11px] text-slate-400 dark:text-slate-500 font-medium">
+                                 <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> Dikirim: {new Date(link.createdAt?.seconds * 1000).toLocaleString('id-ID', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'})}</span>
+                                 <span className="w-1 h-1 bg-slate-300 rounded-full hidden sm:block"></span>
+                                 <span className={`flex items-center gap-1 ${isExpired ? 'text-red-400' : ''}`}>Berakhir: {new Date(link.expiresAt?.seconds * 1000).toLocaleString('id-ID', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'})}</span>
+                               </div>
+                             </div>
+                           </div>
+                           
+                           <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 shrink-0 self-start sm:self-auto ml-11 sm:ml-0">
+                              <div className="text-center px-3 border-r border-slate-200 dark:border-slate-700">
+                                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Diunduh</div>
+                                 <div className="font-black text-lg text-slate-700 dark:text-slate-200 leading-none">{link.downloadCount}<span className="text-xs text-slate-400 font-medium ml-0.5">x</span></div>
+                              </div>
+                              <div className="min-w-[120px]">
+                                {link.downloadedAt ? (
+                                  <div className="text-left text-xs">
+                                     <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 mb-0.5"><CheckCircle2 className="w-3 h-3" /> Terakhir:</div>
+                                     <div className="text-slate-600 dark:text-slate-300 font-medium">{new Date(link.downloadedAt?.seconds * 1000).toLocaleString('id-ID', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'})}</div>
+                                     {link.downloadIps && link.downloadIps.length > 0 && (
+                                       <div className="mt-2 border-t border-slate-100 dark:border-slate-800/50 pt-1.5">
+                                         <div className="text-[9px] font-bold text-slate-400 dark:text-slate-500 mb-1 uppercase tracking-wider">Histori IP ({link.downloadIps.length}):</div>
+                                         <div className="flex flex-wrap gap-1 max-w-[180px] max-h-[50px] overflow-y-auto custom-scrollbar pr-1">
+                                           {link.downloadIps.map((ip, i) => (
+                                             <span key={i} className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-[10px] font-mono rounded text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700" title={`IP Pengunduh ke-${i+1}`}>
+                                                {ip}
+                                             </span>
+                                           ))}
+                                         </div>
+                                       </div>
+                                     )}
+                                  </div>
+                                ) : (
+                                  <div className="text-left text-xs text-slate-400 italic flex items-center h-full">Belum pernah diunduh</div>
+                                )}
+                              </div>
+                              {!isExpired && (
+                                 <Button variant="ghost" size="icon" onClick={() => handleRevokeLink(link.id)} className="text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 ml-2 rounded-lg opacity-0 group-hover:opacity-100 transition-all focus:opacity-100" title="Cabut Tautan">
+                                    <Trash2 className="w-4 h-4" />
+                                 </Button>
+                              )}
+                           </div>
+                         </div>
+                       );
+                     })}
+                   </div>
+                 )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   );
