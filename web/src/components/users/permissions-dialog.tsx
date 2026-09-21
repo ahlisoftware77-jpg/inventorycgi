@@ -50,6 +50,7 @@ const allPages = [
   { label: 'Stempel', href: '/stamps' },
   { label: 'Thermal Print', href: '/thermal-print-58' },
   { label: 'File Sharing', href: '/file-sharing' },
+  { label: 'Customer Send', href: '/customer-send' },
 ];
 
 const actionPermissions: { key: keyof UserPermissions; label: string }[] = [
