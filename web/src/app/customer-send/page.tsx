@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ArrowLeft, Upload, Send, File, Clock, CheckCircle2, AlertTriangle, Trash2, Users, Plus, Layers, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, ArrowLeft, Upload, Send, File, Clock, CheckCircle2, AlertTriangle, Trash2, Users, Plus, Layers, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import type { RegisterDesignItem } from '@/app/register-design/page';
 
 interface CustomerLink {
@@ -95,6 +95,7 @@ function CustomerSendContent() {
   const [links, setLinks] = useState<CustomerLink[]>([]);
   
   const [email, setEmail] = useState('');
+  const [customSenderName, setCustomSenderName] = useState('');
   const [emailSubject, setEmailSubject] = useState('');
   const [emailBody, setEmailBody] = useState('');
   const [expiresIn, setExpiresIn] = useState('1'); // Days
@@ -106,6 +107,7 @@ function CustomerSendContent() {
 
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [isContactDialogOpen, setIsContactDialogOpen] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [newContactName, setNewContactName] = useState('');
   const [newContactEmail, setNewContactEmail] = useState('');
   const [isSavingContact, setIsSavingContact] = useState(false);
@@ -129,6 +131,49 @@ function CustomerSendContent() {
     };
     fetchAllIds();
   }, []);
+
+  const getPreviewHtml = () => {
+    const previewDate = new Date();
+    previewDate.setDate(previewDate.getDate() + parseInt(expiresIn));
+    const downloadUrl = '#';
+    const logoUrl = typeof window !== 'undefined' ? window.location.origin + '/logo_cgi_transparent.png' : '';
+    
+    return `
+      <div style="font-family: 'Inter', Helvetica, Arial, sans-serif; background-color: #f8fafc; padding: 40px 20px; text-align: center; color: #1e293b; max-height: 80vh; overflow-y: auto;">
+        <div style="max-width: 600px; margin: 0 auto; background: white; padding: 40px 30px; border-radius: 24px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); position: relative; overflow: hidden;">
+          <!-- Watermark -->
+          <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0.15; pointer-events: none; z-index: 0; user-select: none; width: 80%; max-width: 400px;">
+            <img src="${logoUrl}" alt="Watermark" style="width: 100%; height: auto; opacity: 1;" />
+          </div>
+          
+          <div style="position: relative; z-index: 1;">
+            <h2 style="color: #4f46e5; margin-bottom: 24px; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">${emailSubject || 'Subjek Email'}</h2>
+            
+            <div style="color: #475569; line-height: 1.8; font-size: 16px; margin-bottom: 32px; text-align: center;">
+              ${(emailBody || 'Badan email akan muncul di sini').replace(/\n/g, '<br>')}
+            </div>
+            
+            <div style="margin: 40px 0;">
+              <a href="${downloadUrl}" style="background: linear-gradient(135deg, #6366f1, #8b5cf6, #d946ef); color: white; padding: 16px 36px; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 16px; box-shadow: 0 4px 14px 0 rgba(99, 102, 241, 0.39); display: inline-block;">
+                UNDUH FILE SEKARANG
+              </a>
+            </div>
+            
+            <div style="background-color: #fef2f2; border: 1px solid #fee2e2; border-radius: 12px; padding: 16px; margin-top: 32px;">
+              <p style="color: #ef4444; font-size: 14px; margin: 0; line-height: 1.5;">
+                <strong>Penting:</strong> Tautan unduhan ini akan otomatis kedaluwarsa pada<br>
+                <strong style="font-size: 16px; display: block; margin-top: 4px;">${previewDate.toLocaleString('id-ID')}</strong>
+              </p>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top: 24px; font-size: 12px; color: #94a3b8;">
+          Email ini dikirim otomatis oleh sistem Inventory CGI.<br>
+          Mohon tidak membalas email ini secara langsung.
+        </div>
+      </div>
+    `;
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -159,6 +204,12 @@ Tim Desain`);
       // sort by created descending
       linksData.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
       setLinks(linksData);
+
+      // Fetch default sender name
+      const settingsDoc = await getDoc(doc(db, 'settings', 'general'));
+      if (settingsDoc.exists() && !customSenderName) {
+        setCustomSenderName(settingsDoc.data().senderName || '');
+      }
 
       // Fetch contacts
       const contactsSnap = await getDocs(collection(db, 'customer_contacts'));
@@ -359,17 +410,41 @@ Tim Desain`);
       }
       
       const downloadUrl = window.location.origin + `/download?id=${linkRef.id}`;
+      const logoUrl = window.location.origin + '/logo_cgi_transparent.png';
 
       const htmlBody = `
-        <div style="font-family: Arial, sans-serif; max-w-md; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-          <h2 style="color: #2563eb;">${emailSubject}</h2>
-          <div style="color: #333; line-height: 1.5;">
-            ${emailBody.replace(/\n/g, '<br>')}
+        <div style="font-family: 'Inter', Helvetica, Arial, sans-serif; background-color: #f8fafc; padding: 40px 20px; text-align: center; color: #1e293b;">
+          <div style="max-width: 600px; margin: 0 auto; background: white; padding: 40px 30px; border-radius: 24px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); position: relative; overflow: hidden;">
+            <!-- Watermark -->
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0.15; pointer-events: none; z-index: 0; user-select: none; width: 80%; max-width: 400px;">
+              <img src="${logoUrl}" alt="Watermark" style="width: 100%; height: auto; opacity: 1;" />
+            </div>
+            
+            <div style="position: relative; z-index: 1;">
+              <h2 style="color: #4f46e5; margin-bottom: 24px; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">${emailSubject}</h2>
+              
+              <div style="color: #475569; line-height: 1.8; font-size: 16px; margin-bottom: 32px; text-align: center;">
+                ${emailBody.replace(/\n/g, '<br>')}
+              </div>
+              
+              <div style="margin: 40px 0;">
+                <a href="${downloadUrl}" style="background: linear-gradient(135deg, #6366f1, #8b5cf6, #d946ef); color: white; padding: 16px 36px; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 16px; box-shadow: 0 4px 14px 0 rgba(99, 102, 241, 0.39); display: inline-block;">
+                  UNDUH FILE SEKARANG
+                </a>
+              </div>
+              
+              <div style="background-color: #fef2f2; border: 1px solid #fee2e2; border-radius: 12px; padding: 16px; margin-top: 32px;">
+                <p style="color: #ef4444; font-size: 14px; margin: 0; line-height: 1.5;">
+                  <strong>Penting:</strong> Tautan unduhan ini akan otomatis kedaluwarsa pada<br>
+                  <strong style="font-size: 16px; display: block; margin-top: 4px;">${expiresDate.toLocaleString('id-ID')}</strong>
+                </p>
+              </div>
+            </div>
           </div>
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${downloadUrl}" style="background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Download File</a>
+          <div style="margin-top: 24px; font-size: 12px; color: #94a3b8;">
+            Email ini dikirim otomatis oleh sistem Inventory CGI.<br>
+            Mohon tidak membalas email ini secara langsung.
           </div>
-          <p style="color: #ef4444; font-size: 12px;">Penting: Tautan ini akan otomatis kedaluwarsa pada <strong>${expiresDate.toLocaleString('id-ID')}</strong>.</p>
         </div>
       `;
 
@@ -380,7 +455,7 @@ Tim Desain`);
         secure: emailSettings.smtpSecure,
         user: emailSettings.smtpUser,
         pass: emailSettings.smtpPass,
-        senderName: emailSettings.senderName,
+        senderName: customSenderName || emailSettings.senderName,
         senderEmail: emailSettings.senderEmail
       };
 
@@ -747,6 +822,16 @@ Tim Desain`);
                 </div>
                 
                 <div className="space-y-2">
+                  <Label className="text-xs font-bold text-slate-500 dark:text-slate-400 tracking-wider">Nama Pengirim</Label>
+                  <Input
+                    value={customSenderName}
+                    onChange={e => setCustomSenderName(e.target.value)}
+                    placeholder="Contoh: Tim Desain YadiApp"
+                    className="h-11 rounded-xl bg-slate-50/50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 focus-visible:ring-purple-500"
+                  />
+                </div>
+
+                <div className="space-y-2">
                   <Label className="text-xs font-bold text-slate-500 dark:text-slate-400 tracking-wider">Subjek Email</Label>
                   <Input 
                     value={emailSubject} 
@@ -756,7 +841,19 @@ Tim Desain`);
                 </div>
                 
                 <div className="space-y-2">
-                  <Label className="text-xs font-bold text-slate-500 dark:text-slate-400 tracking-wider">Badan Email</Label>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-bold text-slate-500 dark:text-slate-400 tracking-wider">Badan Email</Label>
+                    <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+                      <DialogTrigger asChild>
+                        <Button type="button" variant="outline" size="sm" className="h-7 text-[10px] rounded-lg px-2 flex items-center gap-1 border-purple-200 text-purple-600 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-400 dark:hover:bg-purple-900/30">
+                          <Eye className="w-3 h-3" /> Preview
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl w-[90vw] p-0 border-none bg-transparent shadow-2xl">
+                        <div className="w-full bg-slate-100 rounded-3xl overflow-hidden" dangerouslySetInnerHTML={{ __html: getPreviewHtml() }} />
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                   <Textarea 
                     value={emailBody} 
                     onChange={e => setEmailBody(e.target.value)}
