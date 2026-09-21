@@ -47,8 +47,10 @@ export default function RegisterDesignGalleryPage() {
   
   const [isPublicAuthOpen, setIsPublicAuthOpen] = useState(false);
   const [publicPasscode, setPublicPasscode] = useState('');
+  const [isPublicPasscodeValidating, setIsPublicPasscodeValidating] = useState(false);
   const [isPublicAuthenticated, setIsPublicAuthenticated] = useState(false);
   const isReadOnly = !user;
+  const canDelete = user && (user.role === 'Admin' || user.permissions?.canAccessRegisterDesign || user.department?.toLowerCase().includes('design'));
 
   // Lightbox
   const [lightboxItem, setLightboxItem] = useState<RegisterDesignItem | null>(null);
@@ -772,7 +774,7 @@ export default function RegisterDesignGalleryPage() {
                                 {lightboxItem.designImageName || `Desain_${lightboxItem.designNo || 'Gambar'}.jpg`}
                               </p>
                             )}
-                            {lightboxItem.designImage && !isReadOnly && (
+                            {lightboxItem.designImage && canDelete && (
                               <button 
                                 onClick={() => handleDeleteImage(lightboxItem)}
                                 disabled={isDeleting}

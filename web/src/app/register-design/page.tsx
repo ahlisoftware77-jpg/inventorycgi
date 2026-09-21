@@ -695,8 +695,9 @@ const extractDriveId = (url: string) => {
 export default function RegisterDesignPage() {
   const { user, loading: loadingUser } = useAuth();
   const router = useRouter();
-  const isAdmin = user?.email === 'triyadi72@gmail.com';
-  const isReadOnly = !user;
+  const isAdmin = user?.email === 'triyadi72@gmail.com' || user?.role === 'Admin';
+  const hasAccess = user && (isAdmin || user.permissions?.canAccessRegisterDesign);
+  const isReadOnly = !hasAccess;
   const { toast } = useToast();
   const [data, setData] = useState<RegisterDesignItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -752,16 +753,19 @@ export default function RegisterDesignPage() {
 
   useEffect(() => {
     if (!loadingUser) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const shareId = urlParams.get('shareId');
+
       if (user) {
-        if (user.role !== 'Admin' && !user.permissions?.canAccessRegisterDesign) {
-          toast({ title: "Akses Ditolak", description: "Anda tidak memiliki izin untuk mengakses Register Design", variant: "destructive" });
-          router.push('/');
-        } else {
-          // fetchData will be handled by selectedYear effect
+        if (!hasAccess) {
+          if (shareId) {
+            setIsPublicAuthOpen(true);
+          } else {
+            toast({ title: "Akses Ditolak", description: "Anda tidak memiliki izin untuk mengakses Register Design", variant: "destructive" });
+            router.push('/');
+          }
         }
       } else {
-        const urlParams = new URLSearchParams(window.location.search);
-        const shareId = urlParams.get('shareId');
         if (shareId) {
           setIsPublicAuthOpen(true);
         } else {

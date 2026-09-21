@@ -413,25 +413,58 @@ Tim Desain`);
 
   return (
     <DashboardLayout>
-      <div className="p-2 min-h-[calc(100vh-4rem)] w-full max-w-[1600px] mx-auto bg-slate-50/30 dark:bg-slate-950/30 relative">
+      <div className="p-2 min-h-[calc(100vh-4rem)] w-full max-w-[1600px] mx-auto bg-gradient-to-br from-indigo-50/60 via-purple-50/40 to-pink-50/50 dark:from-indigo-950/30 dark:via-purple-950/20 dark:to-pink-950/30 relative overflow-hidden">
         {/* Decorative ambient blurred orbs */}
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-400/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute top-[-10%] left-[-5%] w-[500px] h-[500px] bg-blue-400/20 dark:bg-blue-600/10 rounded-full blur-[100px] pointer-events-none animate-pulse" style={{ animationDuration: '8s' }}></div>
+        <div className="absolute top-[20%] right-[-10%] w-[600px] h-[600px] bg-purple-400/20 dark:bg-purple-600/10 rounded-full blur-[120px] pointer-events-none animate-pulse" style={{ animationDuration: '12s' }}></div>
+        <div className="absolute bottom-[-10%] left-[20%] w-[700px] h-[700px] bg-pink-400/20 dark:bg-pink-600/10 rounded-full blur-[130px] pointer-events-none animate-pulse" style={{ animationDuration: '10s' }}></div>
         
-        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
-          <div className="flex items-center gap-4">
-            <Button variant="outline" size="icon" onClick={() => router.push('/register-design')} className="rounded-xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200 dark:border-slate-700 hover:scale-105 hover:shadow-md transition-all duration-300">
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <div>
-              <h1 className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-slate-800 to-slate-500 dark:from-white dark:to-slate-400 tracking-tight">
-                Kirim Desain Original
-              </h1>
-              <p className="text-sm font-medium text-slate-500 mt-1 flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 font-bold border border-blue-200 dark:border-blue-800">{design.designNo}</span>
-                {design.itemName}
-              </p>
+        <div className="relative z-10 mb-8 space-y-4">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <Button variant="outline" size="icon" onClick={() => router.push('/register-design')} className="rounded-xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200 dark:border-slate-700 hover:scale-105 hover:shadow-md transition-all duration-300">
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+              <div>
+                <h1 className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 tracking-tight">
+                  Kirim Desain Original
+                </h1>
+                <p className="text-sm font-medium text-slate-500 mt-1 flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 font-bold border border-blue-200 dark:border-blue-800">{design.designNo}</span>
+                  {design.itemName}
+                </p>
+              </div>
             </div>
+          </div>
+          
+          {/* INFORMASI DESAIN DETAIL */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 bg-white/60 dark:bg-slate-900/60 backdrop-blur-2xl border border-white/40 dark:border-slate-700/40 p-4 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
+             <div className="bg-gradient-to-br from-blue-50/80 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/10 p-3.5 rounded-2xl border border-blue-100/50 dark:border-blue-800/30 hover:-translate-y-0.5 hover:shadow-md hover:shadow-blue-100 dark:hover:shadow-none transition-all duration-300">
+                <p className="text-[10px] uppercase font-black text-blue-500 mb-1 tracking-wider flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Sumber Desain</p>
+                <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{design.designSource || '-'}</p>
+             </div>
+             <div className="bg-gradient-to-br from-purple-50/80 to-purple-100/50 dark:from-purple-900/20 dark:to-purple-800/10 p-3.5 rounded-2xl border border-purple-100/50 dark:border-purple-800/30 hover:-translate-y-0.5 hover:shadow-md hover:shadow-purple-100 dark:hover:shadow-none transition-all duration-300">
+                <p className="text-[10px] uppercase font-black text-purple-500 mb-1 tracking-wider flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span> Customer / Designer</p>
+                <p className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate">
+                  {design.customer || '-'} <span className="text-purple-300 dark:text-purple-700 mx-1">/</span> {design.designer || '-'}
+                </p>
+             </div>
+             <div className="bg-gradient-to-br from-amber-50/80 to-amber-100/50 dark:from-amber-900/20 dark:to-amber-800/10 p-3.5 rounded-2xl border border-amber-100/50 dark:border-amber-800/30 hover:-translate-y-0.5 hover:shadow-md hover:shadow-amber-100 dark:hover:shadow-none transition-all duration-300">
+                <p className="text-[10px] uppercase font-black text-amber-500 mb-1 tracking-wider flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Teknisi</p>
+                <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{design.technician || '-'}</p>
+             </div>
+             <div className="bg-gradient-to-br from-emerald-50/80 to-emerald-100/50 dark:from-emerald-900/20 dark:to-emerald-800/10 p-3.5 rounded-2xl border border-emerald-100/50 dark:border-emerald-800/30 hover:-translate-y-0.5 hover:shadow-md hover:shadow-emerald-100 dark:hover:shadow-none transition-all duration-300">
+                <p className="text-[10px] uppercase font-black text-emerald-500 mb-1 tracking-wider flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Tujuan</p>
+                <p className="text-sm font-bold text-slate-700 dark:text-slate-200 line-clamp-1" title={design.benefitText || design.benefit || '-'}>
+                  {design.benefitText || design.benefit || '-'}
+                </p>
+             </div>
+             <div className="bg-gradient-to-br from-rose-50/80 to-rose-100/50 dark:from-rose-900/20 dark:to-rose-800/10 p-3.5 rounded-2xl border border-rose-100/50 dark:border-rose-800/30 hover:-translate-y-0.5 hover:shadow-md hover:shadow-rose-100 dark:hover:shadow-none transition-all duration-300">
+                <p className="text-[10px] uppercase font-black text-rose-500 mb-1 tracking-wider flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Spesifikasi</p>
+                <p className="text-sm font-bold text-slate-700 dark:text-slate-200 line-clamp-1" title={`${design.typeDesign || ''} ${design.sizeChecks === 'Custom cm' && design.sizeCm1 && design.sizeCm2 ? design.sizeCm1 + 'x' + design.sizeCm2 + 'cm' : (design.sizeChecks || '')}`}>
+                  {design.typeDesign || '-'} <span className="text-rose-400 font-medium ml-1">{design.sizeChecks ? `(${design.sizeChecks === 'Custom cm' && design.sizeCm1 && design.sizeCm2 ? `${design.sizeCm1}x${design.sizeCm2}cm` : design.sizeChecks})` : ''}</span>
+                </p>
+             </div>
           </div>
         </div>
 
@@ -441,8 +474,8 @@ Tim Desain`);
           <div className="lg:col-span-4 space-y-6">
             
             {/* BAGIAN UPLOAD FILE */}
-            <Card className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-slate-200/60 dark:border-slate-800/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] rounded-2xl overflow-hidden hover:shadow-lg transition-all duration-300">
-              <CardHeader className="bg-gradient-to-r from-blue-50/50 to-transparent dark:from-blue-900/10 border-b border-slate-100 dark:border-slate-800/60 pb-5">
+            <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-3xl border-blue-100/60 dark:border-blue-900/40 shadow-xl shadow-blue-900/5 dark:shadow-blue-900/20 rounded-3xl overflow-hidden hover:shadow-2xl hover:shadow-blue-900/10 transition-all duration-500 relative group">
+              <CardHeader className="bg-gradient-to-br from-blue-100/50 via-white/50 to-transparent dark:from-blue-900/20 dark:via-slate-900/20 border-b border-blue-100/50 dark:border-blue-900/30 pb-5 relative z-10">
                 <CardTitle className="text-lg flex items-center gap-3 font-bold text-slate-800 dark:text-slate-100">
                   <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-lg text-blue-600 dark:text-blue-400">
                     <Upload className="w-5 h-5" />
@@ -499,9 +532,9 @@ Tim Desain`);
               </CardContent>
             </Card>
 
-            {/* BAGIAN KIRIM EMAIL */}
-            <Card className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-slate-200/60 dark:border-slate-800/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] rounded-2xl overflow-hidden hover:shadow-lg transition-all duration-300">
-              <CardHeader className="bg-gradient-to-r from-purple-50/50 to-transparent dark:from-purple-900/10 border-b border-slate-100 dark:border-slate-800/60 pb-5">
+            {/* BAGIAN KIRIM LINK */}
+            <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-3xl border-purple-100/60 dark:border-purple-900/40 shadow-xl shadow-purple-900/5 dark:shadow-purple-900/20 rounded-3xl overflow-hidden hover:shadow-2xl hover:shadow-purple-900/10 transition-all duration-500 relative group">
+              <CardHeader className="bg-gradient-to-br from-purple-100/50 via-white/50 to-transparent dark:from-purple-900/20 dark:via-slate-900/20 border-b border-purple-100/50 dark:border-purple-900/30 pb-5 relative z-10">
                 <CardTitle className="text-lg flex items-center gap-3 font-bold text-slate-800 dark:text-slate-100">
                   <div className="p-2 bg-purple-100 dark:bg-purple-900/50 rounded-lg text-purple-600 dark:text-purple-400">
                     <Send className="w-5 h-5" />
@@ -520,34 +553,57 @@ Tim Desain`);
                           <Users className="w-3.5 h-3.5 mr-1.5" /> Pilih Kontak
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-md rounded-2xl p-0 overflow-hidden border-none shadow-2xl">
-                        <DialogHeader className="p-6 bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
-                          <DialogTitle className="text-lg font-black">Buku Kontak Customer</DialogTitle>
+                      <DialogContent className="max-w-md rounded-3xl p-0 overflow-hidden border border-purple-100/50 dark:border-purple-900/30 shadow-2xl shadow-purple-900/10 dark:shadow-purple-900/50">
+                        <DialogHeader className="p-6 bg-gradient-to-r from-purple-600 to-indigo-600 text-white">
+                          <DialogTitle className="text-xl font-black flex items-center gap-2">
+                            <Users className="w-5 h-5 text-purple-200" /> Buku Kontak Klien
+                          </DialogTitle>
+                          <p className="text-xs text-purple-200 font-medium opacity-90 mt-1">Simpan email klien untuk pengiriman yang lebih cepat dan bebas typo.</p>
                         </DialogHeader>
-                        <div className="p-6 space-y-5 bg-white dark:bg-slate-950">
-                          <div className="flex flex-col sm:flex-row gap-3">
-                            <Input placeholder="Nama Klien..." value={newContactName} onChange={e => setNewContactName(e.target.value)} className="flex-1 rounded-xl bg-slate-50 dark:bg-slate-900" />
-                            <Input placeholder="Email..." value={newContactEmail} onChange={e => setNewContactEmail(e.target.value)} className="flex-1 rounded-xl bg-slate-50 dark:bg-slate-900" />
-                            <Button onClick={handleSaveContact} disabled={isSavingContact} className="px-4 rounded-xl bg-purple-600 hover:bg-purple-700 text-white shadow-md shadow-purple-200 dark:shadow-none">
-                              {isSavingContact ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                            </Button>
+                        <div className="p-6 space-y-6 bg-white dark:bg-slate-950">
+                          {/* Form Tambah Kontak */}
+                          <div className="p-4 bg-purple-50/50 dark:bg-purple-900/10 rounded-2xl border border-purple-100 dark:border-purple-900/30 space-y-3">
+                            <p className="text-xs font-bold text-purple-700 dark:text-purple-400 uppercase tracking-wider">Tambah Baru</p>
+                            <div className="flex flex-col sm:flex-row gap-2">
+                              <Input placeholder="Nama..." value={newContactName} onChange={e => setNewContactName(e.target.value)} className="flex-1 h-9 rounded-xl bg-white dark:bg-slate-900 border-purple-200 dark:border-purple-800 focus-visible:ring-purple-500 shadow-sm text-sm" />
+                              <Input placeholder="Email..." value={newContactEmail} onChange={e => setNewContactEmail(e.target.value)} className="flex-1 h-9 rounded-xl bg-white dark:bg-slate-900 border-purple-200 dark:border-purple-800 focus-visible:ring-purple-500 shadow-sm text-sm" />
+                              <Button onClick={handleSaveContact} disabled={isSavingContact} className="px-3 h-9 rounded-xl bg-purple-600 hover:bg-purple-700 text-white shadow-md shadow-purple-200 dark:shadow-none hover:scale-105 transition-all">
+                                {isSavingContact ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                              </Button>
+                            </div>
                           </div>
-                          <div className="max-h-[300px] overflow-y-auto space-y-2 pr-1 custom-scrollbar">
-                            {contacts.length === 0 ? (
-                              <div className="text-sm text-center text-slate-400 py-10 italic border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-xl">Belum ada kontak tersimpan</div>
-                            ) : (
-                              contacts.map(c => (
-                                <div key={c.id} className="flex items-center justify-between p-3.5 border border-slate-100 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors group">
-                                  <div className="cursor-pointer flex-1" onClick={() => { setEmail(c.email); setIsContactDialogOpen(false); }}>
-                                    <p className="font-bold text-sm text-slate-800 dark:text-slate-200 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">{c.name}</p>
-                                    <p className="text-xs text-slate-500 mt-0.5">{c.email}</p>
+                          
+                          {/* Daftar Kontak */}
+                          <div className="space-y-3">
+                            <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-1">Daftar Tersimpan ({contacts.length})</p>
+                            <div className="max-h-[260px] overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                              {contacts.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center text-center py-10 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800">
+                                  <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-2">
+                                    <Users className="w-5 h-5 text-slate-400" />
                                   </div>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 opacity-0 group-hover:opacity-100 transition-all" onClick={() => handleDeleteContact(c.id)}>
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
+                                  <p className="text-sm font-bold text-slate-600 dark:text-slate-300">Belum ada kontak</p>
+                                  <p className="text-xs text-slate-400 mt-1 max-w-[200px]">Mulai simpan klien agar lebih mudah saat mengirim desain.</p>
                                 </div>
-                              ))
-                            )}
+                              ) : (
+                                contacts.map(c => (
+                                  <div key={c.id} className="flex items-center justify-between p-3 border border-slate-100 dark:border-slate-800 rounded-2xl hover:bg-white dark:hover:bg-slate-900 hover:shadow-md hover:border-purple-200 dark:hover:border-purple-800/50 hover:-translate-y-0.5 transition-all group bg-slate-50/50 dark:bg-slate-900/30 cursor-pointer" onClick={() => { setEmail(c.email); setIsContactDialogOpen(false); }}>
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/40 dark:to-indigo-900/40 text-purple-600 dark:text-purple-300 flex items-center justify-center font-bold text-sm shadow-sm border border-purple-200/50 dark:border-purple-800/50">
+                                        {c.name.charAt(0).toUpperCase()}
+                                      </div>
+                                      <div>
+                                        <p className="font-bold text-sm text-slate-800 dark:text-slate-200 group-hover:text-purple-700 dark:group-hover:text-purple-400 transition-colors">{c.name}</p>
+                                        <p className="text-[11px] text-slate-500 mt-0.5 font-medium">{c.email}</p>
+                                      </div>
+                                    </div>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 opacity-0 group-hover:opacity-100 transition-all" onClick={(e) => { e.stopPropagation(); handleDeleteContact(c.id); }} title="Hapus Kontak">
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                ))
+                              )}
+                            </div>
                           </div>
                         </div>
                       </DialogContent>
@@ -612,10 +668,10 @@ Tim Desain`);
             </Card>
           </div>
 
-          {/* KOLOM KANAN (Riwayat Pengiriman) */}
+          {/* KOLOM KANAN (Riwayat & Log) */}
           <div className="lg:col-span-8">
-            <Card className="h-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-slate-200/60 dark:border-slate-800/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] rounded-2xl overflow-hidden">
-              <CardHeader className="bg-slate-50/50 dark:bg-slate-800/30 border-b border-slate-100 dark:border-slate-800/60 pb-5 px-6">
+            <Card className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-3xl border-indigo-100/60 dark:border-indigo-900/40 shadow-xl shadow-indigo-900/5 dark:shadow-indigo-900/20 rounded-3xl overflow-hidden h-full flex flex-col hover:shadow-2xl hover:shadow-indigo-900/10 transition-all duration-500 relative group">
+              <CardHeader className="bg-gradient-to-br from-indigo-100/50 via-white/50 to-transparent dark:from-indigo-900/20 dark:via-slate-900/20 border-b border-indigo-100/50 dark:border-indigo-900/30 pb-5 px-6 relative z-10">
                  <div className="flex items-center justify-between">
                    <CardTitle className="text-lg flex items-center gap-3 font-bold text-slate-800 dark:text-slate-100">
                      <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-400">
