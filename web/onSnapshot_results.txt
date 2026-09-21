@@ -1,0 +1,175 @@
+e:\yadiapp-project\inventory - Copy\web\src\app\computer-details\page.tsx:4: import { collection, onSnapshot, query, where, QueryConstraint, Timestamp } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\app\computer-details\page.tsx:57: const unsubscribe = onSnapshot(q, (snapshot) => {
+e:\yadiapp-project\inventory - Copy\web\src\app\cost-center\page.tsx:4: import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\app\cost-center\page.tsx:66: const unsub = onSnapshot(doc(db, 'settings', 'general'), (docSnap) => {
+e:\yadiapp-project\inventory - Copy\web\src\app\it-problem-form\page.tsx:35: import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, doc, updateDoc, getDoc, deleteDoc, where } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\app\it-problem-form\page.tsx:173: const unsubGen = onSnapshot(doc(db, 'settings', 'general'), (snap) => {
+e:\yadiapp-project\inventory - Copy\web\src\app\it-problem-form\page.tsx:501: const unsub = onSnapshot(qHistory, (snap) => {
+e:\yadiapp-project\inventory - Copy\web\src\app\kategori\page.tsx:5: import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\app\kategori\page.tsx:74: const unsub = onSnapshot(doc(db, 'settings', 'general'), (docSnap) => {
+e:\yadiapp-project\inventory - Copy\web\src\app\public\asset\page copy 2.tsx:11: import { doc, onSnapshot } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\app\public\asset\page copy 2.tsx:74: const unsubscribe = onSnapshot(docRef, (snap) => {
+e:\yadiapp-project\inventory - Copy\web\src\app\public\asset\page copy 3.tsx:6: import { doc, onSnapshot } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\app\public\asset\page copy 3.tsx:49: const unsub = onSnapshot(doc(db, 'assets', assetId), (snap) => {
+e:\yadiapp-project\inventory - Copy\web\src\app\public\asset\page copy.tsx:5: import { doc, onSnapshot, Timestamp } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\app\public\asset\page copy.tsx:78: const unsub = onSnapshot(doc(db, 'assets', assetId), (snap) => {
+e:\yadiapp-project\inventory - Copy\web\src\app\public\asset\page-default.tsx:6: import { doc, onSnapshot } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\app\public\asset\page-default.tsx:49: const unsub = onSnapshot(doc(db, 'assets', assetId), (snap) => {
+e:\yadiapp-project\inventory - Copy\web\src\app\public\asset\page-ori3.tsx:6: import { doc, onSnapshot } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\app\public\asset\page-ori3.tsx:49: const unsub = onSnapshot(doc(db, 'assets', assetId), (snap) => {
+e:\yadiapp-project\inventory - Copy\web\src\app\public\asset\page10.tsx:6: import { doc, onSnapshot } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\app\public\asset\page10.tsx:50: const unsubscribe = onSnapshot(doc(db, 'assets', assetId), async (docSnap) => {
+e:\yadiapp-project\inventory - Copy\web\src\app\public\asset\page11.tsx:9: import { doc, onSnapshot } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\app\public\asset\page11.tsx:38: const unsub = onSnapshot(doc(db, 'assets', assetId), (snap) => {
+e:\yadiapp-project\inventory - Copy\web\src\app\public\asset\page12ok.tsx:4: import { doc, onSnapshot } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\app\public\asset\page12ok.tsx:42: const unsub = onSnapshot(doc(db, 'assets', assetId), (snap) => {
+e:\yadiapp-project\inventory - Copy\web\src\app\public\asset\page13ov.tsx:12: import { doc, onSnapshot } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\app\public\asset\page13ov.tsx:53: const unsub = onSnapshot(doc(db, 'assets', assetId), (snap) => {
+e:\yadiapp-project\inventory - Copy\web\src\app\public\asset\page6.tsx:9: import { doc, onSnapshot } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\app\public\asset\page6.tsx:41: const unsub = onSnapshot(doc(db, 'assets', assetId), (snap) => {
+e:\yadiapp-project\inventory - Copy\web\src\app\public\asset\page8.tsx:5: import { doc, onSnapshot, Timestamp } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\app\public\asset\page8.tsx:78: const unsub = onSnapshot(doc(db, 'assets', assetId), (snap) => {
+e:\yadiapp-project\inventory - Copy\web\src\app\public\asset\page9.tsx:4: import { doc, onSnapshot } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\app\public\asset\page9.tsx:97: const unsub = onSnapshot(doc(db, 'assets', assetId), async (snap) => {
+e:\yadiapp-project\inventory - Copy\web\src\app\public\inventory\signature\page.tsx:11: import { doc, onSnapshot, updateDoc, serverTimestamp, query, collection, where, getDocs, writeBatch } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\app\public\inventory\signature\page.tsx:76: const unsubGen = onSnapshot(doc(db, 'settings', 'general'), (snap) => {
+e:\yadiapp-project\inventory - Copy\web\src\app\public\inventory\signature\page.tsx:85: const unsubscribe = onSnapshot(doc(db, 'inventory_requests', requestId), async (docSnap) => {
+e:\yadiapp-project\inventory - Copy\web\src\app\settings\page.tsx:6: import { doc, getDoc, setDoc, onSnapshot, getDocs, collection } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\app\thermal-print-58\page.tsx:10: import { doc, onSnapshot, Timestamp, collection, query, where, getDocs } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\app\thermal-print-58\page.tsx:144: const unsubGen = onSnapshot(doc(db, 'settings', 'general'), (snap) => {
+e:\yadiapp-project\inventory - Copy\web\src\app\thermal-print-58\page.tsx:177: const unsubAssets = onSnapshot(collection(db, 'assets'), (snapshot) => {
+e:\yadiapp-project\inventory - Copy\web\src\app\thermal-print-58\page.tsx:193: const unsubscribe = onSnapshot(docRef, (docSnap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\announcements\announcement-list.tsx:4: import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\announcements\announcement-list.tsx:29: const unsubscribe = onSnapshot(q, (snapshot) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\assets\asset-card-preview.tsx:4: import { doc, onSnapshot, collection, query, where, orderBy } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\assets\asset-card-preview.tsx:138: const unsubGeneral = onSnapshot(doc(db, 'settings', 'general'), (docSnap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\assets\asset-card-preview.tsx:215: const unsub = onSnapshot(doc(db, 'assets', assetId), async (snap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\assets\asset-card-preview.tsx:239: const unsubMaintenance = onSnapshot(mQuery, (snapshot) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\assets\asset-detail-card.tsx:45: import { Timestamp, addDoc, collection, doc, serverTimestamp, setDoc, query, where, getDocs, onSnapshot, orderBy, updateDoc } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\assets\asset-detail-card.tsx:173: const unsubLabels = onSnapshot(doc(db, 'settings', 'general'), (snap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\assets\asset-detail-card.tsx:196: const unsubscribeM = onSnapshot(mQuery, (snapshot) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\assets\asset-detail-dialog.tsx:4: import { doc, onSnapshot, Timestamp, collection, query, where, orderBy, getDocs } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\assets\asset-detail-dialog.tsx:165: const unsubLabels = onSnapshot(doc(db, 'settings', 'general'), (snap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\assets\asset-detail-dialog.tsx:174: const unsubscribe = onSnapshot(docRef, (docSnap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\assets\asset-detail-dialog.tsx:196: const unsubscribeM = onSnapshot(mQuery, (snapshot) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\assets\asset-detail.tsx:4: import { doc, onSnapshot, Timestamp, updateDoc, serverTimestamp, addDoc, collection, query, where, getDocs, getDoc, orderBy } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\assets\asset-detail.tsx:242: const unsubGen = onSnapshot(doc(db, 'settings', 'general'), (snap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\assets\asset-detail.tsx:258: const unsubscribe = onSnapshot(docRef, async (docSnap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\assets\asset-detail.tsx:302: const unsubscribeM = onSnapshot(mQuery, (snapshot) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\assets\asset-form.tsx:40: import { addDoc, collection, doc, serverTimestamp, setDoc, Timestamp, getDocs, query, where, onSnapshot } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\assets\asset-form.tsx:197: const unsub = onSnapshot(doc(db, 'settings', 'general'), (docSnap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\assets\asset-report.tsx:12: import { collection, query, onSnapshot, where, orderBy, Timestamp, limit, doc } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\assets\asset-report.tsx:111: const unsubGen = onSnapshot(doc(db, 'settings', 'general'), (snap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\assets\asset-report.tsx:118: const unsubAssets = onSnapshot(query(collection(db, 'assets')), (snap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\assets\asset-report.tsx:123: const unsubLogs = onSnapshot(query(collection(db, 'system_logs'), orderBy('timestamp', 'desc'), limit(1000)), (snap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\assets\asset-report.tsx:128: const unsubMaint = onSnapshot(query(collection(db, 'maintenance_schedules'), orderBy('scheduledDate', 'desc')), (snap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\assets\bulk-update-location-dialog.tsx:6: import { writeBatch, doc, onSnapshot, serverTimestamp } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\assets\bulk-update-location-dialog.tsx:39: const unsub = onSnapshot(doc(db, 'settings', 'general'), (docSnap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\assets\bulk-update-status-dialog.tsx:6: import { writeBatch, doc, serverTimestamp, onSnapshot } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\assets\bulk-update-status-dialog.tsx:39: const unsub = onSnapshot(doc(db, 'settings', 'general'), (docSnap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\assets\iso-14064-content.tsx:11: import { collection, onSnapshot, query, where, getDocs, addDoc, serverTimestamp, doc } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\assets\iso-14064-content.tsx:223: const unsubscribe = onSnapshot(q, (snapshot) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\assets\public-asset-view.tsx:9: import { doc, onSnapshot, collection, query, where, orderBy, Timestamp } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\assets\public-asset-view.tsx:110: const unsubGen = onSnapshot(doc(db, 'settings', 'general'), (snap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\assets\public-asset-view.tsx:123: const unsubAsset = onSnapshot(doc(db, 'assets', assetId), async (snap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\assets\public-asset-view.tsx:151: const unsubMaintenance = onSnapshot(mQuery, (snapshot) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\assets\public-catalog.tsx:6: import { collection, onSnapshot, query, where } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\assets\public-catalog.tsx:65: const unsubscribe = onSnapshot(q, (snapshot) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\auth\login-form.tsx:12: import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\auth\login-form.tsx:47: const unsub = onSnapshot(generalDocRef, (docSnap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\auth\register-form.tsx:12: import { doc, setDoc, onSnapshot } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\auth\register-form.tsx:57: const unsub = onSnapshot(generalDocRef, (docSnap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\compare-excel\compare-table.tsx:7: import { collection, onSnapshot, query, where, doc, updateDoc, writeBatch, deleteDoc } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\compare-excel\compare-table.tsx:210: const unsubAset = onSnapshot(asetQuery, (snapshot) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\compare-excel\compare-table.tsx:215: const unsubFixAsset = onSnapshot(query(collection(db, 'data_fix_asset_accounting')), (snapshot) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\computer-details\computer-detail.tsx:4: import { doc, onSnapshot, Timestamp, collection, query, where, getDocs } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\computer-details\computer-detail.tsx:74: const unsubAsset = onSnapshot(assetRef, (docSnap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\computer-details\computer-detail.tsx:89: const unsubSoftware = onSnapshot(softwareRef, (snapshot) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\computer-details\computer-detail.tsx:94: const unsubMaintenance = onSnapshot(maintenanceRef, (snapshot) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\dashboard\dashboard-content.tsx:5: import { onSnapshot, collection, query, where, QueryConstraint } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\dashboard\dashboard-content.tsx:78: const unsubAssets = onSnapshot(assetQuery, (snapshot) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\dashboard\design-type-chart.tsx:14: import { collection, onSnapshot } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\dashboard\design-type-chart.tsx:21: const unsub = onSnapshot(collection(db, 'register_design'), (snapshot) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\dashboard\header.tsx:9: import { doc, onSnapshot } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\dashboard\header.tsx:46: const unsubGeneral = onSnapshot(generalDocRef, (docSnap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\dashboard\header.tsx:53: const unsubMarquee = onSnapshot(marqueeDocRef, (docSnap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\dashboard\header.tsx:71: const unsubUser = onSnapshot(doc(db, 'users', user.uid), (docSnap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\dashboard\sidebar-nav.tsx:58: import { collection, doc, onSnapshot, query, where, Timestamp, getDoc } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\dashboard\sidebar-nav.tsx:168: const generalSnap = onSnapshot(doc(db, 'settings', 'general'), (doc) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\dashboard\sidebar-nav.tsx:185: const unsubscribe = onSnapshot(announcementsQuery, (snapshot) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\dashboard\sidebar-nav.tsx:199: const unsubscribe = onSnapshot(q, (snapshot) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\dashboard\sidebar-nav.tsx:222: const unsubscribe = onSnapshot(q, (snapshot) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\dashboard\sidebar-nav.tsx:231: const unsubscribe = onSnapshot(q, (snapshot) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\dashboard\sidebar-nav.tsx:240: const unsubscribe = onSnapshot(q, (snapshot) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\dashboard\todo-list.tsx:8: import { collection, onSnapshot, query, orderBy, limit, updateDoc, doc, deleteDoc } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\dashboard\todo-list.tsx:31: const unsubscribe = onSnapshot(q, (snapshot) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\file-sharing\file-share-list.tsx:7: import { collection, onSnapshot, query, addDoc, updateDoc, deleteDoc, doc, getDocs, where } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\file-sharing\file-share-list.tsx:42: const unsubscribe = onSnapshot(q, (snapshot) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\file-sharing\file-share-logs.tsx:5: import { collection, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\file-sharing\file-share-logs.tsx:19: const unsubscribe = onSnapshot(q, (snapshot) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\helpdesk\helpdesk-table.tsx:4: import { collection, onSnapshot, query, where, QueryConstraint, addDoc, serverTimestamp, doc, getDocs, limit } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\helpdesk\public-ticket-view.tsx:10: import { doc, onSnapshot, collection, query, where, getDoc } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\helpdesk\public-ticket-view.tsx:104: onSnapshot(doc(db, 'settings', 'general'), (snap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\helpdesk\public-ticket-view.tsx:108: const unsubscribe = onSnapshot(doc(db, 'helpdesk_tickets', ticketId), (docSnap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\helpdesk\public-ticket-view.tsx:114: onSnapshot(q, (snap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\helpdesk\public-ticket-view.tsx:125: onSnapshot(qMaint, (snap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\helpdesk\ticket-detail.tsx:4: import { doc, onSnapshot, updateDoc, Timestamp, arrayUnion, collection, query, where, getDocs, deleteDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\helpdesk\ticket-detail.tsx:184: const unsubscribe = onSnapshot(docRef, (docSnap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\helpdesk\ticket-detail.tsx:202: const unsubMaint = onSnapshot(qMaint, (snap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\helpdesk\ticket-detail.tsx:222: const unsubscribe = onSnapshot(q, (snap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\inventory\inventory-form.tsx:32: import { addDoc, collection, doc, serverTimestamp, setDoc, getDocs, query, where, onSnapshot, writeBatch, Timestamp } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\inventory\inventory-form.tsx:86: const unsub = onSnapshot(doc(db, 'settings', 'general'), (docSnap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\inventory\inventory-history-dialog.tsx:11: import { collection, query, where, orderBy, onSnapshot, limit, doc, updateDoc, Timestamp } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\inventory\inventory-history-dialog.tsx:68: const unsubscribe = onSnapshot(q, (snapshot) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\inventory\inventory-report.tsx:11: import { collection, query, where, getDocs, Timestamp, doc, onSnapshot } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\inventory\inventory-report.tsx:97: const unsub = onSnapshot(doc(db, 'settings', 'general'), (snap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\inventory\inventory-requests-table.tsx:10: import { collection, onSnapshot, query, doc, writeBatch, increment, serverTimestamp, addDoc, updateDoc, Timestamp, deleteDoc, where, getDocs } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\inventory\inventory-requests-table.tsx:144: const unsubscribe = onSnapshot(q, (snapshot) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\inventory\inventory-table.tsx:10: import { collection, onSnapshot, query, where, Timestamp, doc } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\inventory\inventory-table.tsx:82: const unsubSettings = onSnapshot(doc(db, 'settings', 'general'), (docSnap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\inventory\inventory-table.tsx:101: const unsubInventory = onSnapshot(inventoryQuery, (snapshot) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\inventory\inventory-table.tsx:108: const unsubRequests = onSnapshot(requestsQuery, (snapshot) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\inventory\public-inventory-content.tsx:9: import { collection, onSnapshot, query, where, addDoc, serverTimestamp, writeBatch, doc } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\inventory\public-inventory-content.tsx:72: const unsubSettings = onSnapshot(doc(db, 'settings', 'general'), (docSnap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\inventory\public-inventory-content.tsx:86: const unsubscribe = onSnapshot(q, (snapshot) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\inventory\public-inventory-report.tsx:12: import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\inventory\public-inventory-report.tsx:100: const unsubGen = onSnapshot(doc(db, 'settings', 'general'), (snap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\iso\iso-14064-content.tsx:11: import { collection, onSnapshot, query, where, getDocs, addDoc, serverTimestamp, doc } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\iso\iso-14064-content.tsx:233: const unsubscribe = onSnapshot(q, (snapshot) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\logs\log-table.tsx:11: import { collection, onSnapshot, query, orderBy, limit, getDocs, where, writeBatch, doc, Timestamp, startAfter } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\maintenance\asset-audit-client.tsx:64: import { collection, query, onSnapshot, doc, setDoc, writeBatch, where, getDocs, serverTimestamp, deleteField, updateDoc } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\maintenance\asset-audit-client.tsx:285: const unsubSettings = onSnapshot(doc(db, 'settings', 'general'), (snap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\maintenance\asset-audit-client.tsx:373: const unsubscribe = onSnapshot(q, (snapshot) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\maintenance\asset-audit-client.tsx:439: return onSnapshot(auditDataQuery, (snapshot) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\maintenance\asset-audit-client.tsx:471: return onSnapshot(signatureDocRef, (docSnap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\maintenance\maintenance-calendar.tsx:12: import { collection, onSnapshot, query, orderBy, where, QueryConstraint, addDoc, serverTimestamp, doc, updateDoc, getDoc, arrayUnion, Timestamp, writeBatch } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\maintenance\maintenance-calendar.tsx:160: const unsubscribe = onSnapshot(q, (snapshot) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\maintenance\maintenance-schedule-form.tsx:27: import { collection, doc, serverTimestamp, Timestamp, getDocs, query, where, QueryConstraint, writeBatch, arrayUnion, addDoc, onSnapshot, setDoc } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\maintenance\maintenance-schedule-form.tsx:147: const unsub = onSnapshot(doc(db, 'settings', 'general'), (docSnap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\maintenance\public-audit-signature.tsx:12: import { doc, onSnapshot, setDoc, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\maintenance\public-audit-signature.tsx:105: const unsubGen = onSnapshot(doc(db, 'settings', 'general'), (snap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\maintenance\public-audit-signature.tsx:120: return onSnapshot(doc(db, 'audits', periodId, 'signatures', d), (snap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\maintenance\public-maintenance-signature-view.tsx:12: import { doc, onSnapshot, updateDoc, serverTimestamp, arrayUnion, Timestamp } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\maintenance\public-maintenance-signature-view.tsx:82: const unsubGen = onSnapshot(doc(db, 'settings', 'general'), (snap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\maintenance\public-maintenance-signature-view.tsx:91: const unsubscribe = onSnapshot(doc(db, 'maintenance_schedules', scheduleId), (docSnap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\mutations\mutation-form.tsx:36: import { doc, onSnapshot, serverTimestamp, updateDoc } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\mutations\mutation-form.tsx:122: const unsub = onSnapshot(doc(db, 'settings', 'general'), (docSnap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\mutations\mutation-table.tsx:13: import { onSnapshot, collection, query, where, doc, updateDoc, serverTimestamp, getDoc, QueryConstraint, addDoc, writeBatch, deleteDoc } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\mutations\mutation-table.tsx:316: const unsubscribe = onSnapshot(q, async (snapshot) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\notes\notes-content.tsx:6: import { collection, onSnapshot, query, orderBy, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\notes\notes-content.tsx:24: const unsubscribe = onSnapshot(q, (snapshot) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\providers\notification-listener.tsx:4: import { collection, query, where, onSnapshot, Timestamp } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\providers\notification-listener.tsx:67: const unsubHelpdesk = onSnapshot(helpdeskQuery, (snapshot) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\providers\notification-listener.tsx:93: const unsubAssets = onSnapshot(assetQuery, (snapshot) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\recycle-bin\recycle-bin-list.tsx:4: import { collection, query, onSnapshot, orderBy, doc, writeBatch } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\recycle-bin\recycle-bin-list.tsx:50: const unsubscribe = onSnapshot(q, (snapshot) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\reports\public-report-viewer.tsx:10: import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\reports\public-report-viewer.tsx:112: onSnapshot(doc(db, 'settings', 'general'), (snap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\users\permissions-dialog.tsx:19: import { doc, updateDoc, onSnapshot } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\users\permissions-dialog.tsx:86: const unsub = onSnapshot(doc(db, 'settings', 'general'), (snap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\users\user-detail-card.tsx:12: import { doc, updateDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\users\user-detail-card.tsx:34: const unsub = onSnapshot(doc(db, 'settings', 'general'), (docSnap) => {
+e:\yadiapp-project\inventory - Copy\web\src\components\users\user-table.tsx:6: import { onSnapshot, collection, query } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\users\user-table.tsx:52: const unsubscribe = onSnapshot(
+e:\yadiapp-project\inventory - Copy\web\src\components\waiting-list\waiting-list-table.tsx:4: import { onSnapshot, collection, query, where, doc, updateDoc, serverTimestamp, getDoc, QueryConstraint, addDoc, writeBatch } from 'firebase/firestore';
+e:\yadiapp-project\inventory - Copy\web\src\components\waiting-list\waiting-list-table.tsx:81: const unsubscribe = onSnapshot(

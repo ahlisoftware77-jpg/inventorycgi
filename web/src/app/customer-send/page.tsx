@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, ArrowLeft, Upload, Send, File, Clock, CheckCircle2, AlertTriangle, Trash2, Users, Plus, Layers, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import type { RegisterDesignItem } from '@/app/register-design/page';
+import { useAuth } from '@/hooks/use-auth';
 
 interface CustomerLink {
   id: string;
@@ -26,6 +27,8 @@ interface CustomerLink {
   downloadedAt: any;
   downloadCount: number;
   downloadIps?: string[];
+  senderName?: string;
+  senderId?: string;
 }
 
 const getStatusColor = (val: string) => {
@@ -82,6 +85,7 @@ function CustomerSendContent() {
   const router = useRouter();
   const { toast } = useToast();
   const designId = searchParams.get('id') as string;
+  const { user } = useAuth();
 
   const getApiUrl = (path: string) => {
     if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
@@ -399,7 +403,9 @@ Tim Desain`);
         expiresAt: expiresDate,
         createdAt: serverTimestamp(),
         downloadCount: 0,
-        downloadedAt: null
+        downloadedAt: null,
+        senderName: user?.displayName || (user as any)?.name || user?.email || 'Unknown',
+        senderId: user?.uid || ''
       });
 
       // 2. Fetch SMTP settings
@@ -491,7 +497,9 @@ Tim Desain`);
         expiresAt: { seconds: Math.floor(expiresDate.getTime() / 1000) },
         createdAt: { seconds: Math.floor(Date.now() / 1000) },
         downloadCount: 0,
-        downloadedAt: null
+        downloadedAt: null,
+        senderName: user?.displayName || (user as any)?.name || user?.email || 'Unknown',
+        senderId: user?.uid || ''
       };
       (newLink as any).originalFileName = (design as any).originalFileName || 'File Tersimpan';
       
@@ -945,6 +953,9 @@ Tim Desain`);
                                  <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> Dikirim: {new Date(link.createdAt?.seconds * 1000).toLocaleString('id-ID', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'})}</span>
                                  <span className="w-1 h-1 bg-slate-300 rounded-full hidden sm:block"></span>
                                  <span className={`flex items-center gap-1 ${isExpired ? 'text-red-400' : ''}`}>Berakhir: {new Date(link.expiresAt?.seconds * 1000).toLocaleString('id-ID', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'})}</span>
+                               </div>
+                               <div className="flex items-center gap-3 text-[11px] text-slate-400 dark:text-slate-500 font-medium">
+                                 <span className="flex items-center gap-1"><Users className="w-3 h-3" /> Oleh: <span className="font-bold text-slate-600 dark:text-slate-300">{(link as any).senderName || 'Sistem / Tidak Diketahui'}</span></span>
                                </div>
                              </div>
                            </div>
