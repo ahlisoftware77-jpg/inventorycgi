@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { db, auth } from '@/lib/firebase/config';
-import { doc, getDoc, collection, query, where, getDocs, updateDoc, addDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, updateDoc, addDoc, deleteDoc, serverTimestamp, orderBy } from 'firebase/firestore';
 import DashboardLayout from '@/components/dashboard/layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ArrowLeft, Upload, Send, File, Clock, CheckCircle2, AlertTriangle, Trash2, Users, Plus } from 'lucide-react';
+import { Loader2, ArrowLeft, Upload, Send, File, Clock, CheckCircle2, AlertTriangle, Trash2, Users, Plus, Layers, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { RegisterDesignItem } from '@/app/register-design/page';
 
 interface CustomerLink {
@@ -27,6 +27,48 @@ interface CustomerLink {
   downloadCount: number;
   downloadIps?: string[];
 }
+
+const getStatusColor = (val: string) => {
+  switch(val) {
+    case 'IN LOCK': return 'bg-rose-500 text-white border-rose-600';
+    case 'IN USE': return 'bg-emerald-500 text-white border-emerald-600';
+    case 'FREE': return 'bg-blue-500 text-white border-blue-600';
+    case 'ARCHIVE': return 'bg-sky-400 text-white border-sky-500';
+    default: return 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
+  }
+};
+
+const getTypeDesignColor = (val: string) => {
+  switch(val) {
+    case 'CG': return 'bg-sky-200 text-sky-900 border-sky-300';
+    case 'CGI': return 'bg-yellow-200 text-yellow-900 border-yellow-300';
+    case 'CGI-A': return 'bg-orange-200 text-orange-900 border-orange-300';
+    case 'ST': return 'bg-emerald-200 text-emerald-900 border-emerald-300';
+    case 'CGL': return 'bg-slate-200 dark:bg-slate-950 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-600';
+    case 'CO': return 'bg-purple-200 text-purple-900 border-purple-300';
+    default: return 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
+  }
+};
+
+const getDesignerColor = (val: string) => {
+  switch(val) {
+    case 'D1 Riki': return 'bg-blue-700 text-blue-50 border-blue-800 font-medium';
+    case 'D2 Diaz': return 'bg-[#156e47] text-emerald-50 border-emerald-900 font-medium';
+    case 'D3 Rian': return 'bg-[#7a3b00] text-amber-50 border-amber-950 font-medium';
+    case 'D4 Darmawan': return 'bg-[#b30000] text-red-50 border-red-900 font-medium';
+    default: return 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
+  }
+};
+
+const getTechnicianColor = (val: string) => {
+  switch(val) {
+    case 'T1 Darta': return 'bg-[#cce5ff] text-blue-900 border-[#b8daff] font-medium';
+    case 'T2 Kardani': return 'bg-[#d4edda] text-emerald-900 border-[#c3e6cb] font-medium';
+    case 'T3 Rafli': return 'bg-[#ffe8cc] text-orange-900 border-[#ffdfb3] font-medium';
+    case 'T4 Cepi': return 'bg-[#fff3cd] text-yellow-900 border-[#ffeeba] font-medium';
+    default: return 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
+  }
+};
 
 interface Contact {
   id: string;
@@ -58,6 +100,7 @@ function CustomerSendContent() {
   const [expiresIn, setExpiresIn] = useState('1'); // Days
   const [isUploading, setIsUploading] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [allIds, setAllIds] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
 
@@ -72,6 +115,20 @@ function CustomerSendContent() {
       fetchData();
     }
   }, [designId]);
+
+  useEffect(() => {
+    const fetchAllIds = async () => {
+      try {
+        const q = query(collection(db, 'register_design'), orderBy('createdAt', 'desc'));
+        const snap = await getDocs(q);
+        const ids = snap.docs.map(doc => doc.id);
+        setAllIds(ids);
+      } catch (e) {
+        console.error("Gagal memuat list ID", e);
+      }
+    };
+    fetchAllIds();
+  }, []);
 
   const fetchData = async () => {
     setLoading(true);
@@ -420,7 +477,7 @@ Tim Desain`);
         <div className="absolute bottom-[-10%] left-[20%] w-[700px] h-[700px] bg-pink-400/20 dark:bg-pink-600/10 rounded-full blur-[130px] pointer-events-none animate-pulse" style={{ animationDuration: '10s' }}></div>
         
         <div className="relative z-10 mb-8 space-y-4">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <Button variant="outline" size="icon" onClick={() => router.push('/register-design')} className="rounded-xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200 dark:border-slate-700 hover:scale-105 hover:shadow-md transition-all duration-300">
                 <ArrowLeft className="w-5 h-5" />
@@ -435,36 +492,117 @@ Tim Desain`);
                 </p>
               </div>
             </div>
+            
+            {/* NEXT / PREV ITEM */}
+            {allIds.length > 0 && (
+              <div className="flex items-center gap-2 bg-white/60 dark:bg-slate-800/60 p-1.5 rounded-2xl backdrop-blur-md border border-slate-200 dark:border-slate-700 shadow-sm">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => {
+                    const idx = allIds.indexOf(designId || '');
+                    if (idx > 0) router.push(`/customer-send?id=${allIds[idx - 1]}`);
+                  }}
+                  disabled={allIds.indexOf(designId || '') <= 0}
+                  className="h-9 px-3 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-xl transition-colors disabled:opacity-30"
+                >
+                  <ChevronLeft className="w-4 h-4 mr-1" /> Prev
+                </Button>
+                <div className="w-px h-5 bg-slate-200 dark:bg-slate-700"></div>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => {
+                    const idx = allIds.indexOf(designId || '');
+                    if (idx !== -1 && idx < allIds.length - 1) router.push(`/customer-send?id=${allIds[idx + 1]}`);
+                  }}
+                  disabled={allIds.indexOf(designId || '') === -1 || allIds.indexOf(designId || '') === allIds.length - 1}
+                  className="h-9 px-3 hover:bg-pink-50 dark:hover:bg-pink-900/30 hover:text-pink-600 dark:hover:text-pink-400 rounded-xl transition-colors disabled:opacity-30"
+                >
+                  Next <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              </div>
+            )}
           </div>
           
           {/* INFORMASI DESAIN DETAIL */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 bg-white/60 dark:bg-slate-900/60 backdrop-blur-2xl border border-white/40 dark:border-slate-700/40 p-4 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
-             <div className="bg-gradient-to-br from-blue-50/80 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/10 p-3.5 rounded-2xl border border-blue-100/50 dark:border-blue-800/30 hover:-translate-y-0.5 hover:shadow-md hover:shadow-blue-100 dark:hover:shadow-none transition-all duration-300">
-                <p className="text-[10px] uppercase font-black text-blue-500 mb-1 tracking-wider flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Sumber Desain</p>
-                <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{design.designSource || '-'}</p>
-             </div>
-             <div className="bg-gradient-to-br from-purple-50/80 to-purple-100/50 dark:from-purple-900/20 dark:to-purple-800/10 p-3.5 rounded-2xl border border-purple-100/50 dark:border-purple-800/30 hover:-translate-y-0.5 hover:shadow-md hover:shadow-purple-100 dark:hover:shadow-none transition-all duration-300">
-                <p className="text-[10px] uppercase font-black text-purple-500 mb-1 tracking-wider flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span> Customer / Designer</p>
-                <p className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate">
-                  {design.customer || '-'} <span className="text-purple-300 dark:text-purple-700 mx-1">/</span> {design.designer || '-'}
-                </p>
-             </div>
-             <div className="bg-gradient-to-br from-amber-50/80 to-amber-100/50 dark:from-amber-900/20 dark:to-amber-800/10 p-3.5 rounded-2xl border border-amber-100/50 dark:border-amber-800/30 hover:-translate-y-0.5 hover:shadow-md hover:shadow-amber-100 dark:hover:shadow-none transition-all duration-300">
-                <p className="text-[10px] uppercase font-black text-amber-500 mb-1 tracking-wider flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Teknisi</p>
-                <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{design.technician || '-'}</p>
-             </div>
-             <div className="bg-gradient-to-br from-emerald-50/80 to-emerald-100/50 dark:from-emerald-900/20 dark:to-emerald-800/10 p-3.5 rounded-2xl border border-emerald-100/50 dark:border-emerald-800/30 hover:-translate-y-0.5 hover:shadow-md hover:shadow-emerald-100 dark:hover:shadow-none transition-all duration-300">
-                <p className="text-[10px] uppercase font-black text-emerald-500 mb-1 tracking-wider flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Tujuan</p>
-                <p className="text-sm font-bold text-slate-700 dark:text-slate-200 line-clamp-1" title={design.benefitText || design.benefit || '-'}>
-                  {design.benefitText || design.benefit || '-'}
-                </p>
-             </div>
-             <div className="bg-gradient-to-br from-rose-50/80 to-rose-100/50 dark:from-rose-900/20 dark:to-rose-800/10 p-3.5 rounded-2xl border border-rose-100/50 dark:border-rose-800/30 hover:-translate-y-0.5 hover:shadow-md hover:shadow-rose-100 dark:hover:shadow-none transition-all duration-300">
-                <p className="text-[10px] uppercase font-black text-rose-500 mb-1 tracking-wider flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Spesifikasi</p>
-                <p className="text-sm font-bold text-slate-700 dark:text-slate-200 line-clamp-1" title={`${design.typeDesign || ''} ${design.sizeChecks === 'Custom cm' && design.sizeCm1 && design.sizeCm2 ? design.sizeCm1 + 'x' + design.sizeCm2 + 'cm' : (design.sizeChecks || '')}`}>
-                  {design.typeDesign || '-'} <span className="text-rose-400 font-medium ml-1">{design.sizeChecks ? `(${design.sizeChecks === 'Custom cm' && design.sizeCm1 && design.sizeCm2 ? `${design.sizeCm1}x${design.sizeCm2}cm` : design.sizeChecks})` : ''}</span>
-                </p>
-             </div>
+          <div className="relative">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 bg-white/60 dark:bg-slate-900/60 backdrop-blur-2xl border border-white/40 dark:border-slate-700/40 p-4 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.3)] transition-all duration-500">
+                  <div className="bg-gradient-to-br from-blue-50/80 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/10 p-3.5 rounded-2xl border border-blue-100/50 dark:border-blue-800/30 hover:-translate-y-0.5 hover:shadow-md hover:shadow-blue-100 dark:hover:shadow-none transition-all duration-300">
+                    <p className="text-[10px] uppercase font-black text-blue-500 mb-1 tracking-wider flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Sumber Desain</p>
+                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{design.designSource || '-'}</p>
+                  </div>
+                  <div className="bg-gradient-to-br from-purple-50/80 to-purple-100/50 dark:from-purple-900/20 dark:to-purple-800/10 p-3.5 rounded-2xl border border-purple-100/50 dark:border-purple-800/30 hover:-translate-y-0.5 hover:shadow-md hover:shadow-purple-100 dark:hover:shadow-none transition-all duration-300">
+                    <p className="text-[10px] uppercase font-black text-purple-500 mb-1 tracking-wider flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span> Cust / Designer</p>
+                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate flex items-center gap-1" title={`${design.customer || '-'} / ${design.designer || '-'}`}>
+                      {design.customer || '-'} <span className="text-purple-300 dark:text-purple-700 mx-1">/</span> 
+                      {design.designer ? (
+                        <span className={`px-2 py-0.5 rounded-md border text-xs shadow-sm ${getDesignerColor(design.designer)}`}>
+                          {design.designer}
+                        </span>
+                      ) : '-'}
+                    </p>
+                  </div>
+                  <div className="bg-gradient-to-br from-amber-50/80 to-amber-100/50 dark:from-amber-900/20 dark:to-amber-800/10 p-3.5 rounded-2xl border border-amber-100/50 dark:border-amber-800/30 hover:-translate-y-0.5 hover:shadow-md hover:shadow-amber-100 dark:hover:shadow-none transition-all duration-300">
+                    <p className="text-[10px] uppercase font-black text-amber-500 mb-1 tracking-wider flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Teknisi</p>
+                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center">
+                      {design.technician ? (
+                        <span className={`px-2 py-0.5 rounded-md border text-xs shadow-sm ${getTechnicianColor(design.technician)}`}>
+                          {design.technician}
+                        </span>
+                      ) : '-'}
+                    </p>
+                  </div>
+                  <div className="bg-gradient-to-br from-emerald-50/80 to-emerald-100/50 dark:from-emerald-900/20 dark:to-emerald-800/10 p-3.5 rounded-2xl border border-emerald-100/50 dark:border-emerald-800/30 hover:-translate-y-0.5 hover:shadow-md hover:shadow-emerald-100 dark:hover:shadow-none transition-all duration-300">
+                    <p className="text-[10px] uppercase font-black text-emerald-500 mb-1 tracking-wider flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Tujuan</p>
+                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200 line-clamp-1" title={design.benefitText || design.benefit || '-'}>
+                      {design.benefitText || design.benefit || '-'}
+                    </p>
+                  </div>
+                  <div className="bg-gradient-to-br from-rose-50/80 to-rose-100/50 dark:from-rose-900/20 dark:to-rose-800/10 p-3.5 rounded-2xl border border-rose-100/50 dark:border-rose-800/30 hover:-translate-y-0.5 hover:shadow-md hover:shadow-rose-100 dark:hover:shadow-none transition-all duration-300">
+                    <p className="text-[10px] uppercase font-black text-rose-500 mb-1 tracking-wider flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Spesifikasi</p>
+                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200 line-clamp-1 flex items-center" title={`${design.typeDesign || ''} ${design.sizeChecks === 'Custom cm' && design.sizeCm1 && design.sizeCm2 ? design.sizeCm1 + 'x' + design.sizeCm2 + 'cm' : (design.sizeChecks || '')}`}>
+                      {design.typeDesign ? (
+                        <span className={`px-2 py-0.5 rounded-md border text-xs shadow-sm mr-1.5 ${getTypeDesignColor(design.typeDesign)}`}>
+                          {design.typeDesign}
+                        </span>
+                      ) : '-'} 
+                      <span className="text-rose-400 font-medium">{design.sizeChecks ? `(${design.sizeChecks === 'Custom cm' && design.sizeCm1 && design.sizeCm2 ? `${design.sizeCm1}x${design.sizeCm2}cm` : design.sizeChecks})` : ''}</span>
+                    </p>
+                  </div>
+                  <div className="bg-gradient-to-br from-cyan-50/80 to-cyan-100/50 dark:from-cyan-900/20 dark:to-cyan-800/10 p-3.5 rounded-2xl border border-cyan-100/50 dark:border-cyan-800/30 hover:-translate-y-0.5 hover:shadow-md hover:shadow-cyan-100 dark:hover:shadow-none transition-all duration-300">
+                    <p className="text-[10px] uppercase font-black text-cyan-500 mb-1 tracking-wider flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-cyan-500"></span> Status</p>
+                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center">
+                      {design.status ? (
+                        <span className={`px-2 py-0.5 rounded-md border text-xs shadow-sm ${getStatusColor(design.status)}`}>
+                          {design.status}
+                        </span>
+                      ) : '-'}
+                    </p>
+                  </div>
+                  <div className="bg-gradient-to-br from-fuchsia-50/80 to-fuchsia-100/50 dark:from-fuchsia-900/20 dark:to-fuchsia-800/10 p-3.5 rounded-2xl border border-fuchsia-100/50 dark:border-fuchsia-800/30 hover:-translate-y-0.5 hover:shadow-md hover:shadow-fuchsia-100 dark:hover:shadow-none transition-all duration-300">
+                    <p className="text-[10px] uppercase font-black text-fuchsia-500 mb-1 tracking-wider flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-fuchsia-500"></span> Mesin / Tipe</p>
+                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{design.type || '-'}</p>
+                  </div>
+                  <div className="bg-gradient-to-br from-lime-50/80 to-lime-100/50 dark:from-lime-900/20 dark:to-lime-800/10 p-3.5 rounded-2xl border border-lime-100/50 dark:border-lime-800/30 hover:-translate-y-0.5 hover:shadow-md hover:shadow-lime-100 dark:hover:shadow-none transition-all duration-300">
+                    <p className="text-[10px] uppercase font-black text-lime-600 mb-1 tracking-wider flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-lime-500"></span> Material Glaze</p>
+                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200 line-clamp-1" title={`${design.glazeChecks || ''} ${design.glazeResidue || ''}`}>
+                      {design.glazeChecks || '-'} {design.glazeResidue ? <span className="text-lime-500 font-medium ml-1">({design.glazeResidue})</span> : ''}
+                    </p>
+                  </div>
+                  <div className="bg-gradient-to-br from-orange-50/80 to-orange-100/50 dark:from-orange-900/20 dark:to-orange-800/10 p-3.5 rounded-2xl border border-orange-100/50 dark:border-orange-800/30 hover:-translate-y-0.5 hover:shadow-md hover:shadow-orange-100 dark:hover:shadow-none transition-all duration-300">
+                    <p className="text-[10px] uppercase font-black text-orange-500 mb-1 tracking-wider flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span> Efek Permukaan</p>
+                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200 line-clamp-1" title={`${design.surfaceChecks || ''} ${design.surfaceTemp || ''}`}>
+                      {design.surfaceChecks || '-'} {design.surfaceTemp ? <span className="text-orange-400 font-medium ml-1">({design.surfaceTemp})</span> : ''}
+                    </p>
+                  </div>
+                  <div className="bg-gradient-to-br from-slate-100/80 to-slate-200/50 dark:from-slate-800/40 dark:to-slate-700/20 p-3.5 rounded-2xl border border-slate-200/50 dark:border-slate-700/50 hover:-translate-y-0.5 hover:shadow-md hover:shadow-slate-200 dark:hover:shadow-none transition-all duration-300">
+                    <p className="text-[10px] uppercase font-black text-slate-500 mb-1 tracking-wider flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span> Keterangan</p>
+                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300 line-clamp-1" title={design.feedback || design.feedbackDetails || '-'}>
+                      {design.feedback || design.feedbackDetails || '-'}
+                    </p>
+                  </div>
+            </div>
           </div>
         </div>
 
