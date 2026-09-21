@@ -192,47 +192,34 @@ Tim Desain`);
     if (!initRes.ok) throw new Error(initData.error || 'Failed to init upload');
     
     const uploadUrl = initData.uploadUrl;
-    
-    // Upload bytes
-    const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks
-    const fileSize = file.size;
-    let start = 0;
-    
-    while (start < fileSize) {
-      const end = Math.min(start + CHUNK_SIZE, fileSize);
-      const chunk = file.slice(start, end);
-      
-      const chunkRes = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers: {
-          'Content-Range': `bytes ${start}-${end - 1}/${fileSize}`
-        },
-        body: chunk
-      });
-      
-      if (chunkRes.status === 308) {
-        start = end;
-        setUploadProgress(10 + Math.round((start / fileSize) * 80));
-      } else if (chunkRes.status === 200 || chunkRes.status === 201) {
-        const result = await chunkRes.json();
-        setUploadProgress(90);
-        // Finish permissions
-        const finishToken = await auth.currentUser?.getIdToken();
-        await fetch(getApiUrl('/api/upload-drive'), {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            ...(finishToken ? { 'Authorization': `Bearer ${finishToken}` } : {})
-          },
-          body: JSON.stringify({ action: 'finish', fileId: result.id })
-        });
-        setUploadProgress(100);
-        return result.id;
-      } else {
-        throw new Error('Upload chunk failed');
-      }
+
+    // Upload bytes (Bypass Vercel, directly to Google Drive)
+    setUploadProgress(10);
+    const uploadRes = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type },
+      body: file
+    });
+
+    if (!uploadRes.ok) {
+      throw new Error('Gagal mengunggah file. Status: ' + uploadRes.status);
     }
-    throw new Error('Upload failed');
+    
+    setUploadProgress(90);
+    const result = await uploadRes.json();
+    
+    // Finish permissions
+    const finishToken = await auth.currentUser?.getIdToken();
+    await fetch(getApiUrl('/api/upload-drive'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(finishToken ? { 'Authorization': `Bearer ${finishToken}` } : {})
+      },
+      body: JSON.stringify({ action: 'finish', fileId: result.id })
+    });
+    setUploadProgress(100);
+    return result.id;
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
