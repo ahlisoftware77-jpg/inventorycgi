@@ -5,13 +5,14 @@ import DashboardLayout from '@/components/dashboard/layout';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { db, auth } from '@/lib/firebase/config';
-import { collection, getDocs, query, orderBy, doc, updateDoc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, doc, updateDoc, getDoc, where } from 'firebase/firestore';
 import { Search, Loader2, X, ZoomIn, Calendar, Layers, Tag, User, Image as ImageIcon, Trash2, ExternalLink, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MultiSelect } from '@/components/ui/multi-select';
 import { RegisterDesignItem } from '../page';
 
 async function hashString(str: string) {
@@ -31,19 +32,44 @@ export default function RegisterDesignGalleryPage() {
   const [loading, setLoading] = useState(true);
   
   // Filters
-  const [search, setSearch] = useState("");
-  const [selectedYear, setSelectedYear] = useState<string>("all");
-  const [selectedType, setSelectedType] = useState<string>("all");
-  const [selectedDesigner, setSelectedDesigner] = useState<string>("all");
-  const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  const [search, setSearch] = useState(() => typeof window !== 'undefined' ? sessionStorage.getItem('gallery_search') || "" : "");
+  const [selectedYear, setSelectedYear] = useState<string>(() => typeof window !== 'undefined' ? sessionStorage.getItem('gallery_year') || new Date().getFullYear().toString() : new Date().getFullYear().toString());
+  const [selectedType, setSelectedType] = useState<string[]>(() => {
+    try { return JSON.parse(sessionStorage.getItem('gallery_type_arr') || '["all"]'); } catch { return ["all"]; }
+  });
+  const [selectedDesigner, setSelectedDesigner] = useState<string[]>(() => {
+    try { return JSON.parse(sessionStorage.getItem('gallery_designer_arr') || '["all"]'); } catch { return ["all"]; }
+  });
+  const [selectedStatus, setSelectedStatus] = useState<string[]>(() => {
+    try { return JSON.parse(sessionStorage.getItem('gallery_status_arr') || '["all"]'); } catch { return ["all"]; }
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('gallery_search', search);
+      sessionStorage.setItem('gallery_year', selectedYear);
+      sessionStorage.setItem('gallery_type_arr', JSON.stringify(selectedType));
+      sessionStorage.setItem('gallery_designer_arr', JSON.stringify(selectedDesigner));
+      sessionStorage.setItem('gallery_status_arr', JSON.stringify(selectedStatus));
+    }
+  }, [search, selectedYear, selectedType, selectedDesigner, selectedStatus]);
   const [displayLimit, setDisplayLimit] = useState<string>("25");
   const [currentPage, setCurrentPage] = useState(1);
   
   // Options
   const statusOptions = ['FREE', 'IN USE', 'IN LOCK', 'ARCHIVE'];
-  const [yearOptions, setYearOptions] = useState<string[]>([]);
+  const yearOptions = React.useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const startYear = 2023;
+    const years = [];
+    for (let y = currentYear; y >= startYear; y--) {
+      years.push(y.toString());
+    }
+    return years;
+  }, []);
   const [typeOptions, setTypeOptions] = useState<string[]>([]);
   const [designerOptions, setDesignerOptions] = useState<string[]>([]);
+  const [yearCache, setYearCache] = useState<Record<string, RegisterDesignItem[]>>({});
   
   const [isPublicAuthOpen, setIsPublicAuthOpen] = useState(false);
   const [publicPasscode, setPublicPasscode] = useState('');
@@ -114,12 +140,30 @@ export default function RegisterDesignGalleryPage() {
         } else {
           router.push('/login');
         }
-      } else {
-        fetchData();
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, loadingUser, router, toast]);
+
+  useEffect(() => {
+    if (!user && !isPublicAuthenticated) return;
+    
+    if (yearCache[selectedYear]) {
+      const itemsWithImages = yearCache[selectedYear];
+      setData(itemsWithImages);
+      
+      const types = new Set<string>();
+      const designers = new Set<string>();
+      itemsWithImages.forEach(d => {
+        if (d.typeDesign) types.add(d.typeDesign);
+        if (d.designer) designers.add(d.designer);
+      });
+      setTypeOptions(Array.from(types).sort());
+      setDesignerOptions(Array.from(designers).sort());
+    } else {
+      fetchData(selectedYear);
+    }
+  }, [selectedYear, user, isPublicAuthenticated]);
 
   const handlePublicLogin = async () => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -153,7 +197,6 @@ export default function RegisterDesignGalleryPage() {
       if (hashedInput === data.hashedPasscode) {
         setIsPublicAuthOpen(false);
         setIsPublicAuthenticated(true);
-        fetchData();
         toast({ title: "Berhasil", description: "Akses diberikan." });
       } else {
         toast({ title: "Passcode Salah", description: "Passcode yang Anda masukkan tidak cocok.", variant: "destructive" });
@@ -177,35 +220,41 @@ export default function RegisterDesignGalleryPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [lightboxItem]);
 
-  const fetchData = async () => {
+  const fetchData = async (yearToFetch: string) => {
     try {
-      const q = query(collection(db, "register_design"), orderBy("createdAt", "desc"));
+      setLoading(true);
+      let q;
+      if (yearToFetch === "all") {
+        q = query(collection(db, "register_design"), orderBy("createdAt", "desc"));
+      } else {
+        q = query(
+          collection(db, "register_design"),
+          where("entryDate", ">=", `${yearToFetch}-01-01`),
+          where("entryDate", "<=", `${yearToFetch}-12-31`),
+          orderBy("entryDate", "desc")
+        );
+      }
+      
       const snap = await getDocs(q);
       const items = snap.docs.map(d => ({ id: d.id, ...d.data() } as RegisterDesignItem));
-      
+
       // Filter only items with images
       const itemsWithImages = items.filter(item => !!item.designImage);
-      setData(itemsWithImages);
       
-      const years = new Set<string>();
+      setYearCache(prev => ({ ...prev, [yearToFetch]: itemsWithImages }));
+      setData(itemsWithImages);
+
       const types = new Set<string>();
       const designers = new Set<string>();
-      
+
       itemsWithImages.forEach(d => {
-        const dateStr = d.entryDate || (d.createdAt && typeof (d.createdAt as any).toDate === 'function' ? (d.createdAt as any).toDate().toISOString() : "");
-        if (dateStr) {
-           const y = new Date(dateStr).getFullYear().toString();
-           if (y !== "NaN") years.add(y);
-        }
         if (d.typeDesign) types.add(d.typeDesign);
         if (d.designer) designers.add(d.designer);
       });
-      
-      years.add(new Date().getFullYear().toString());
-      setYearOptions(Array.from(years).sort((a,b) => b.localeCompare(a)));
+
       setTypeOptions(Array.from(types).sort());
       setDesignerOptions(Array.from(designers).sort());
-      
+
     } catch (e) {
       console.error(e);
       toast({ title: "Gagal mengambil data", variant: "destructive" });
@@ -226,13 +275,13 @@ export default function RegisterDesignGalleryPage() {
       if (selectedYear !== "all" && itemYear !== selectedYear) return false;
 
       // Type Filter
-      if (selectedType !== "all" && d.typeDesign !== selectedType) return false;
+      if (!selectedType.includes("all") && !selectedType.includes(d.typeDesign || '')) return false;
 
       // Designer Filter
-      if (selectedDesigner !== "all" && d.designer !== selectedDesigner) return false;
+      if (!selectedDesigner.includes("all") && !selectedDesigner.includes(d.designer || '')) return false;
 
       // Status Filter
-      if (selectedStatus !== "all" && d.status !== selectedStatus) return false;
+      if (!selectedStatus.includes("all") && !selectedStatus.includes(d.status || '')) return false;
 
       // Search Filter
       if (!search) return true;
@@ -349,45 +398,36 @@ export default function RegisterDesignGalleryPage() {
               </div>
 
               <div className="w-[130px]">
-                <Select value={selectedType} onValueChange={setSelectedType}>
-                  <SelectTrigger className="h-9 text-xs bg-white/80 border-[#d4af37]/40 text-slate-700 focus:ring-[#d4af37] font-medium shadow-sm">
-                    <SelectValue placeholder="Tipe Desain" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white border-[#d4af37]/30 text-slate-700 text-xs">
-                    <SelectItem value="all" className="font-medium text-[#8b6508] focus:bg-amber-50">Semua Tipe</SelectItem>
-                    {typeOptions.map(t => (
-                      <SelectItem key={t} value={t} className="focus:bg-amber-50 focus:text-slate-900">{t}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <MultiSelect
+                  options={typeOptions.map(t => ({ label: t, value: t }))}
+                  selected={selectedType}
+                  onChange={setSelectedType}
+                  placeholder="Tipe Desain"
+                  allValue="all"
+                  className="bg-white/80 border-[#d4af37]/40 text-slate-700 font-medium shadow-sm w-full"
+                />
               </div>
 
               <div className="w-[130px]">
-                <Select value={selectedDesigner} onValueChange={setSelectedDesigner}>
-                  <SelectTrigger className="h-9 text-xs bg-white/80 border-[#d4af37]/40 text-slate-700 focus:ring-[#d4af37] font-medium shadow-sm">
-                    <SelectValue placeholder="Desainer" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white border-[#d4af37]/30 text-slate-700 text-xs">
-                    <SelectItem value="all" className="font-medium text-[#8b6508] focus:bg-amber-50">Semua Desainer</SelectItem>
-                    {designerOptions.map(d => (
-                      <SelectItem key={d} value={d} className="focus:bg-amber-50 focus:text-slate-900">{d}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <MultiSelect
+                  options={designerOptions.map(d => ({ label: d, value: d }))}
+                  selected={selectedDesigner}
+                  onChange={setSelectedDesigner}
+                  placeholder="Desainer"
+                  allValue="all"
+                  className="bg-white/80 border-[#d4af37]/40 text-slate-700 font-medium shadow-sm w-full"
+                />
               </div>
 
               <div className="w-[120px]">
-                <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                  <SelectTrigger className="h-9 text-xs bg-white/80 border-[#d4af37]/40 text-slate-700 focus:ring-[#d4af37] font-medium shadow-sm">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white border-[#d4af37]/30 text-slate-700 text-xs">
-                    <SelectItem value="all" className="font-medium text-[#8b6508] focus:bg-amber-50">Semua Status</SelectItem>
-                    {statusOptions.map(s => (
-                      <SelectItem key={s} value={s} className="focus:bg-amber-50 focus:text-slate-900">{s}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <MultiSelect
+                  options={statusOptions.map(s => ({ label: s, value: s }))}
+                  selected={selectedStatus}
+                  onChange={setSelectedStatus}
+                  placeholder="Status"
+                  allValue="all"
+                  className="bg-white/80 border-[#d4af37]/40 text-slate-700 font-medium shadow-sm w-full"
+                />
               </div>
 
               <div className="w-[110px]">

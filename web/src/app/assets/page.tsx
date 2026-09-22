@@ -35,66 +35,78 @@ function AssetsPageContent() {
     const constraints: QueryConstraint[] = [];
 
     // --- VISIBILITY CONTROL LOGIC ---
-    if (user.role === 'Admin') {
-        // Admin melihat semua kecuali yang disembunyikan filter lain
-    } else {
-        // Gabungkan Departemen Primer dan Departemen yang Diizinkan (Granular)
-        const userDept = user.department;
-        const allowedDepts = user.allowedDepartments || [];
-        
-        let allVisibleDepts = [...allowedDepts];
-        if (userDept && !allVisibleDepts.includes(userDept)) {
-            allVisibleDepts.push(userDept);
-        }
-
-        // Ekspansi Lintas Dept jika diperlukan (e.g., Accounting, IT, GA)
-        const isPrivileged = ['ACCOUNTING', 'HR & GA', 'GA', 'MANAGEMENT', 'IT'].includes(userDept || '');
-        
-        if (userDept === 'ACCOUNTING') {
-            constraints.push(where('category', 'in', ['A1-Lahan', 'A2-Peralatan Bangunan', 'A3-Peralatan Mesin', 'A4-Peralatan Listrik', 'A5-Peralatan Transportasi', 'A6-Peralatan Penelitian & Uji Lab', 'A9-Peralatan Lain-lain']));
-        } else if (!isPrivileged && allVisibleDepts.length > 0) {
-            // Pemetaan Grup Departemen (SOP Internal PT CGI)
-            let expandedDepts = [...allVisibleDepts];
-            if (allVisibleDepts.includes('APP')) expandedDepts.push('APP-R&D');
-            if (allVisibleDepts.includes('R&D')) expandedDepts.push('APP', 'APP-R&D', 'QC', 'LAB');
-            if (allVisibleDepts.includes('PPIC')) expandedDepts.push('MAINTENANCE');
-            
-            const uniqueExpanded = Array.from(new Set(expandedDepts));
-            
-            // Firestore 'in' operator limited to 30 items
-            if (uniqueExpanded.length > 0) {
-                constraints.push(where('location', 'in', uniqueExpanded.slice(0, 30)));
-            }
-        } else if (!isPrivileged && allVisibleDepts.length === 0) {
-            // User tanpa unit terdaftar tidak melihat apapun
-            setAllAssets([]);
-            setLoading(false);
-            return;
-        }
+    // Sesuai permintaan untuk menghemat kuota, semua peran (termasuk Admin & Privileged) 
+    // HANYA akan menarik data aset dari lokasi yang sudah diizinkan (allowedDepartments)
+    const userDept = user.department;
+    const allowedDepts = user.allowedDepartments || [];
+    
+    let allVisibleDepts = [...allowedDepts];
+    if (userDept && !allVisibleDepts.includes(userDept)) {
+        allVisibleDepts.push(userDept);
     }
 
-    // Urutan default
-    const finalQuery = query(assetsCollection, ...constraints, orderBy('code', 'asc'));
-    
-    getDocs(finalQuery)
-      .then((querySnapshot) => {
+    // Ekspansi Lintas Dept sesuai SOP Internal
+    let expandedDepts = [...allVisibleDepts];
+    if (allVisibleDepts.includes('APP')) expandedDepts.push('APP-R&D');
+    if (allVisibleDepts.includes('R&D')) expandedDepts.push('APP', 'APP-R&D', 'QC', 'LAB');
+    if (allVisibleDepts.includes('PPIC')) expandedDepts.push('MAINTENANCE');
+
+    const uniqueExpanded = Array.from(new Set(expandedDepts));
+
+    // Filter khusus divisi Accounting
+    if (userDept === 'ACCOUNTING') {
+        constraints.push(where('category', 'in', ['A1-Lahan', 'A2-Peralatan Bangunan', 'A3-Peralatan Mesin', 'A4-Peralatan Listrik', 'A5-Peralatan Transportasi', 'A6-Peralatan Penelitian & Uji Lab', 'A9-Peralatan Lain-lain']));
+    }
+
+    // Jika bukan Admin dan tidak ada lokasi yang diizinkan, jangan tarik data
+    if (user.role !== 'Admin' && uniqueExpanded.length === 0) {
+        setAllAssets([]);
+        setLoading(false);
+        return;
+    }
+
+    const fetchAssets = async () => {
+      try {
         const assetsData: Asset[] = [];
-        querySnapshot.forEach((doc) => {
-          assetsData.push({ id: doc.id, ...doc.data() } as Asset);
-        });
-        
-        const filteredAssets = assetsData.filter(asset => 
-            asset.status !== 'approved_disposal'
-        );
+
+        if (user.role === 'Admin') {
+           // Admin menarik seluruh data terlepas dari allowedDepartments
+           const finalQuery = query(assetsCollection, ...constraints, orderBy('code', 'asc'));
+           const querySnapshot = await getDocs(finalQuery);
+           querySnapshot.forEach((doc) => {
+             assetsData.push({ id: doc.id, ...doc.data() } as Asset);
+           });
+        } else {
+           // Selain Admin, batasi dengan chunking location array
+           const chunks = [];
+           for (let i = 0; i < uniqueExpanded.length; i += 30) {
+             chunks.push(uniqueExpanded.slice(i, i + 30));
+           }
+
+           for (const chunk of chunks) {
+             const chunkConstraints = [...constraints, where('location', 'in', chunk)];
+             const finalQuery = query(assetsCollection, ...chunkConstraints, orderBy('code', 'asc'));
+             const querySnapshot = await getDocs(finalQuery);
+             
+             querySnapshot.forEach((doc) => {
+               assetsData.push({ id: doc.id, ...doc.data() } as Asset);
+             });
+           }
+        }
+
+        // Hilangkan aset yang sudah disetujui pemusnahannya
+        const filteredAssets = assetsData.filter(asset => asset.status !== 'approved_disposal');
 
         setAllAssets(filteredAssets);
         setLoading(false);
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error('Error fetching assets:', err);
         setError('Gagal memuat data aset. Pastikan indeks Firestore sudah dibuat jika diperlukan.');
         setLoading(false);
-      });
+      }
+    };
+
+    fetchAssets();
   }, [user, authLoading]);
 
   if (authLoading || loading) {

@@ -6,6 +6,7 @@ import AssetDetailCard from './asset-detail-card';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Search, 
   X, 
@@ -44,7 +45,8 @@ import {
   Check,
   LayoutGrid,
   List,
-  ChevronLeft
+  ChevronLeft,
+  HeartPulse
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Checkbox } from '../ui/checkbox';
@@ -106,18 +108,18 @@ interface SortConfig {
 
 const utilityCategories = ['APAR', 'CCTV', 'Utilitas & Kelistrikan', 'Infrastruktur Gedung'];
 
-const RadioFilterGroup = ({
+const CheckboxFilterGroup = ({
     label,
     options,
-    selectedValue,
+    selectedValues,
     onChange,
     namePrefix,
     icon: Icon
 }: {
     label: string;
-    options: { label: string, value: string }[];
-    selectedValue: string;
-    onChange: (value: string) => void;
+    options: { label: string; value: string }[];
+    selectedValues: string[];
+    onChange: (values: string[]) => void;
     namePrefix: string;
     icon?: React.ElementType;
 }) => {
@@ -129,21 +131,21 @@ const RadioFilterGroup = ({
             </Label>
             <div className="flex flex-row flex-wrap gap-2 text-left">
                 <div className="relative">
-                    <input 
-                        type="radio" 
-                        id={`${namePrefix}-all`} 
-                        name={namePrefix} 
+                    <input
+                        type="checkbox"
+                        id={`${namePrefix}-all`}
+                        name={`${namePrefix}-all`}
                         className="radio-input peer"
-                        checked={selectedValue === 'ALL'}
-                        onChange={() => onChange('ALL')}
+                        checked={selectedValues.includes('ALL')}
+                        onChange={() => onChange(['ALL'])}
                         style={{ position: 'absolute', opacity: 0 }}
                     />
-                    <label 
+                    <label
                         htmlFor={`${namePrefix}-all`}
                         className="radio-label flex items-center px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-slate-800 peer-checked:bg-primary/10 peer-checked:border-primary peer-checked:shadow-sm"
                     >
-                        <span className="radio-inner-circle inline-block w-3.5 h-3.5 border-2 border-slate-300 dark:border-slate-600 rounded-full mr-2 relative transition-all peer-checked:border-primary">
-                             {selectedValue === 'ALL' && <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-primary rounded-full" />}
+                        <span className="radio-inner-circle inline-block w-3.5 h-3.5 border-2 border-slate-300 dark:border-slate-600 rounded-[4px] mr-2 relative transition-all peer-checked:border-primary">
+                             {selectedValues.includes('ALL') && <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-primary rounded-[2px]" />}
                         </span>
                         <span className="text-xs font-black uppercase tracking-tight text-slate-800 dark:text-slate-100">Semua</span>
                     </label>
@@ -151,21 +153,31 @@ const RadioFilterGroup = ({
 
                 {options.map((option) => (
                     <div key={option.value} className="relative">
-                        <input 
-                            type="radio" 
-                            id={`${namePrefix}-${option.value}`} 
-                            name={namePrefix} 
+                        <input
+                            type="checkbox"
+                            id={`${namePrefix}-${option.value}`}
+                            name={`${namePrefix}-${option.value}`}
                             className="radio-input peer"
-                            checked={selectedValue === option.value}
-                            onChange={() => onChange(option.value)}
+                            checked={selectedValues.includes(option.value)}
+                            onChange={() => {
+                                let newSelected = [...selectedValues];
+                                if (newSelected.includes('ALL')) newSelected = [];
+                                if (newSelected.includes(option.value)) {
+                                    newSelected = newSelected.filter(v => v !== option.value);
+                                } else {
+                                    newSelected.push(option.value);
+                                }
+                                if (newSelected.length === 0) newSelected = ['ALL'];
+                                onChange(newSelected);
+                            }}
                             style={{ position: 'absolute', opacity: 0 }}
                         />
-                        <label 
+                        <label
                             htmlFor={`${namePrefix}-${option.value}`}
                             className="radio-label flex items-center px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-slate-800 peer-checked:bg-primary/10 peer-checked:border-primary peer-checked:shadow-sm"
                         >
-                            <span className="radio-inner-circle inline-block w-3.5 h-3.5 border-2 border-slate-300 dark:border-slate-600 rounded-full mr-2 relative transition-all peer-checked:border-primary">
-                                 {selectedValue === option.value && <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-primary rounded-full" />}
+                            <span className="radio-inner-circle inline-block w-3.5 h-3.5 border-2 border-slate-300 dark:border-slate-600 rounded-[4px] mr-2 relative transition-all peer-checked:border-primary">
+                                 {selectedValues.includes(option.value) && <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-primary rounded-[2px]" />}
                             </span>
                             <span className="text-xs font-black uppercase tracking-tight text-slate-800 dark:text-slate-100 truncate max-w-[180px]">{option.label}</span>
                         </label>
@@ -325,21 +337,21 @@ export default function AssetList({ assets, initialSearchTerm = '', initialCateg
   
   const [activeBulkAction, setActiveBulkAction] = useState<'status' | 'location' | null>(null);
   
-  const [locationFilter, setLocationFilter] = useState<string>('ALL');
-  const [statusFilter, setStatusFilter] = useState<string>('ALL');
-  const [conditionFilter, setConditionFilter] = useState<string>(initialConditionFilter);
-  const [categoryFilter, setCategoryFilter] = useState<string>(initialCategoryFilter);
-  const [ownershipFilter, setOwnershipFilter] = useState<string>('ALL');
+  const [locationFilter, setLocationFilter] = useState<string[]>(['ALL']);
+  const [statusFilter, setStatusFilter] = useState<string[]>(['ALL']);
+  const [conditionFilter, setConditionFilter] = useState<string[]>([initialConditionFilter]);
+  const [categoryFilter, setCategoryFilter] = useState<string[]>([initialCategoryFilter]);
+  const [ownershipFilter, setOwnershipFilter] = useState<string[]>(['ALL']);
   
   const [sortConfig, setSortConfig] = useState<SortConfig | null>({ key: 'code', direction: 'ascending' });
 
   useEffect(() => {
-    setCategoryFilter(initialCategoryFilter);
+    setCategoryFilter([initialCategoryFilter]);
     if (initialCategoryFilter !== 'ALL') setShowFilters(true);
   }, [initialCategoryFilter]);
 
   useEffect(() => {
-    setConditionFilter(initialConditionFilter);
+    setConditionFilter([initialConditionFilter]);
     if (initialConditionFilter !== 'ALL') setShowFilters(true);
   }, [initialConditionFilter]);
 
@@ -381,32 +393,36 @@ export default function AssetList({ assets, initialSearchTerm = '', initialCateg
       const isUtility = utilityCategories.includes(asset.category);
 
       const categoryMatch = (() => {
-        if (categoryFilter === 'ALL') return true;
-        if (categoryFilter === 'A') return asset.category.startsWith('A') && !isUtility;
-        if (categoryFilter === 'B') return !asset.category.startsWith('A') && !isUtility;
-        if (categoryFilter === 'UTILITY') return isUtility;
-        return asset.category === categoryFilter;
+        if (categoryFilter.includes('ALL')) return true;
+        return categoryFilter.some(cat => {
+            if (cat === 'A') return asset.category.startsWith('A') && !isUtility;
+            if (cat === 'B') return !asset.category.startsWith('A') && !isUtility;
+            if (cat === 'UTILITY') return isUtility;
+            return asset.category === cat;
+        });
       })();
       const ownershipMatch = (() => {
-        if (ownershipFilter === 'ALL') return true;
-        if (ownershipFilter === 'COMPANY') return asset.status !== 'Bukan_Asset_Perusahaan';
-        if (ownershipFilter === 'PERSONAL') return asset.status === 'Bukan_Asset_Perusahaan';
-        return true;
+        if (ownershipFilter.includes('ALL')) return true;
+        return ownershipFilter.some(own => {
+            if (own === 'COMPANY') return asset.status !== 'Bukan_Asset_Perusahaan';
+            if (own === 'PERSONAL') return asset.status === 'Bukan_Asset_Perusahaan';
+            return true;
+        });
       })();
-      const conditionMatch = conditionFilter === 'ALL' || asset.condition === conditionFilter;
-      const locationMatch = locationFilter === 'ALL' || asset.location === locationFilter;
-      const statusMatch = statusFilter === 'ALL' || asset.status === statusFilter;
+      const conditionMatch = conditionFilter.includes('ALL') || conditionFilter.includes(asset.condition);
+      const locationMatch = locationFilter.includes('ALL') || locationFilter.includes(asset.location);
+      const statusMatch = statusFilter.includes('ALL') || statusFilter.includes(asset.status);
       return searchMatch && categoryMatch && statusMatch && conditionMatch && locationMatch && ownershipMatch;
     });
   }, [assets, searchTerm, categoryFilter, statusFilter, conditionFilter, locationFilter, ownershipFilter, sortConfig]);
   
   const activeFiltersCount = useMemo(() => {
     let count = 0;
-    if (locationFilter !== 'ALL') count++;
-    if (statusFilter !== 'ALL') count++;
-    if (conditionFilter !== 'ALL') count++;
-    if (categoryFilter !== 'ALL') count++;
-    if (ownershipFilter !== 'ALL') count++;
+    if (!locationFilter.includes('ALL')) count += locationFilter.length;
+    if (!statusFilter.includes('ALL')) count += statusFilter.length;
+    if (!conditionFilter.includes('ALL')) count += conditionFilter.length;
+    if (!categoryFilter.includes('ALL')) count += categoryFilter.length;
+    if (!ownershipFilter.includes('ALL')) count += ownershipFilter.length;
     return count;
   }, [locationFilter, statusFilter, conditionFilter, categoryFilter, ownershipFilter]);
 
@@ -415,27 +431,61 @@ export default function AssetList({ assets, initialSearchTerm = '', initialCateg
 
   const resetFilters = () => {
     setSearchTerm('');
-    setLocationFilter('ALL');
-    setStatusFilter('ALL');
-    setConditionFilter('ALL');
-    setCategoryFilter('ALL');
-    setOwnershipFilter('ALL');
+    setLocationFilter(['ALL']);
+    setStatusFilter(['ALL']);
+    setConditionFilter(['ALL']);
+    setCategoryFilter(['ALL']);
+    setOwnershipFilter(['ALL']);
+    setSortConfig(null);
     setCurrentPage(1);
   }
 
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const [itemsPerPage, setItemsPerPage] = useState(20);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, categoryFilter, statusFilter, conditionFilter, locationFilter, ownershipFilter, sortConfig]);
+  }, [searchTerm, categoryFilter, statusFilter, conditionFilter, locationFilter, ownershipFilter, sortConfig, itemsPerPage]);
+
+  const isSplitScreen = !locationFilter.includes('ALL') && locationFilter.length > 1;
+
+  const assetsByLocation = useMemo(() => {
+    if (!isSplitScreen) return null;
+    const grouped: Record<string, Asset[]> = {};
+    locationFilter.forEach(loc => { grouped[loc] = []; });
+    filteredAssets.forEach(asset => {
+       if (grouped[asset.location]) {
+           grouped[asset.location].push(asset);
+       }
+    });
+    return grouped;
+  }, [filteredAssets, locationFilter, isSplitScreen]);
 
   const paginatedAssets = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     return filteredAssets.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredAssets, currentPage]);
-  
-  const totalPages = Math.ceil(filteredAssets.length / itemsPerPage);
+  }, [filteredAssets, currentPage, itemsPerPage]);
+
+  const paginatedAssetsByLocation = useMemo(() => {
+    if (!assetsByLocation) return null;
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const result: Record<string, Asset[]> = {};
+    Object.keys(assetsByLocation).forEach(loc => {
+      result[loc] = assetsByLocation[loc].slice(startIndex, startIndex + itemsPerPage);
+    });
+    return result;
+  }, [assetsByLocation, currentPage, itemsPerPage]);
+
+  const totalPages = useMemo(() => {
+    if (isSplitScreen && assetsByLocation) {
+        let maxLen = 0;
+        Object.values(assetsByLocation).forEach(arr => {
+           if (arr.length > maxLen) maxLen = arr.length;
+        });
+        return Math.max(1, Math.ceil(maxLen / itemsPerPage));
+    }
+    return Math.max(1, Math.ceil(filteredAssets.length / itemsPerPage));
+  }, [filteredAssets.length, itemsPerPage, isSplitScreen, assetsByLocation]);
 
   const handleToggle = useCallback((id: string) => {
     setExpandedId(prevId => (prevId === id ? null : id));
@@ -555,48 +605,48 @@ export default function AssetList({ assets, initialSearchTerm = '', initialCateg
                 >
                      <div className="space-y-4 p-5 mt-2 border-2 border-dashed rounded-[2rem] bg-white/40 dark:bg-slate-900/40 backdrop-blur-md border-primary/10 text-left">
                         <div className="flex flex-col gap-4">
-                            <RadioFilterGroup 
+                            <CheckboxFilterGroup 
                                 label="Kepemilikan" 
                                 icon={ShieldCheck}
                                 options={[{ label: 'Perusahaan', value: 'COMPANY' }, { label: 'Personal', value: 'PERSONAL' }]} 
-                                selectedValue={ownershipFilter} 
+                                selectedValues={ownershipFilter} 
                                 onChange={setOwnershipFilter} 
                                 namePrefix="ownership" 
                             />
                             
-                            <RadioFilterGroup 
+                            <CheckboxFilterGroup 
                                 label="Klasifikasi" 
                                 icon={Layers}
                                 options={[{ label: 'Seri A', value: 'A' }, { label: 'Seri B', value: 'B' }, { label: 'Utilitas', value: 'UTILITY' }]} 
-                                selectedValue={categoryFilter} 
+                                selectedValues={categoryFilter} 
                                 onChange={setCategoryFilter} 
                                 namePrefix="series" 
                             />
 
-                            <RadioFilterGroup 
+                            <CheckboxFilterGroup 
                                 label="Status Operasional" 
                                 icon={ActivityIcon}
                                 options={dynamicStatuses.map(s => ({ label: s.replace(/_/g, ' '), value: s }))} 
-                                selectedValue={statusFilter} 
+                                selectedValues={statusFilter} 
                                 onChange={setStatusFilter} 
                                 namePrefix="status" 
                             />
                             
-                            <RadioFilterGroup 
+                            <CheckboxFilterGroup 
                                 label="Kondisi Fisik" 
-                                icon={ClipboardCheck}
+                                icon={HeartPulse}
                                 options={dynamicConditions.map(c => ({ label: c, value: c }))} 
-                                selectedValue={conditionFilter} 
-                                onChange={conditionFilter => setConditionFilter(conditionFilter)} 
+                                selectedValues={conditionFilter} 
+                                onChange={setConditionFilter} 
                                 namePrefix="condition" 
                             />
                             
-                            <RadioFilterGroup 
-                                label="Lokasi Unit" 
+                            <CheckboxFilterGroup 
+                                label="Lokasi Penyimpanan" 
                                 icon={MapPin}
                                 options={dynamicLocations.map(l => ({ label: l, value: l }))} 
-                                selectedValue={locationFilter} 
-                                onChange={locationFilter => setLocationFilter(locationFilter)} 
+                                selectedValues={locationFilter} 
+                                onChange={setLocationFilter} 
                                 namePrefix="location" 
                             />
                         </div>
@@ -646,74 +696,128 @@ export default function AssetList({ assets, initialSearchTerm = '', initialCateg
 
           {/* View Mode Toggle Buttons */}
           <div className="flex items-center gap-1 bg-slate-100/80 dark:bg-slate-950/80 p-1 rounded-xl border border-slate-200/20">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => setViewMode('list')} 
-              className={cn("h-8 w-8 rounded-lg transition-all", viewMode === 'list' ? "bg-white dark:bg-slate-900 shadow-sm text-primary" : "text-slate-400 hover:text-slate-600")}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setViewMode('list')}
+              disabled={isSplitScreen}
+              className={cn("h-8 w-8 rounded-lg transition-all", viewMode === 'list' && !isSplitScreen ? "bg-white dark:bg-slate-900 shadow-sm text-primary" : "text-slate-400 hover:text-slate-600", isSplitScreen && "opacity-50 cursor-not-allowed")}
             >
               <List className="h-4 w-4" />
             </Button>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => setViewMode('grid')} 
-              className={cn("h-8 w-8 rounded-lg transition-all", viewMode === 'grid' ? "bg-white dark:bg-slate-900 shadow-sm text-primary" : "text-slate-400 hover:text-slate-600")}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setViewMode('grid')}
+              disabled={isSplitScreen}
+              className={cn("h-8 w-8 rounded-lg transition-all", viewMode === 'grid' && !isSplitScreen ? "bg-white dark:bg-slate-900 shadow-sm text-primary" : "text-slate-400 hover:text-slate-600", isSplitScreen && "opacity-50 cursor-not-allowed")}
             >
               <LayoutGrid className="h-4 w-4" />
             </Button>
           </div>
         </div>
 
-        <div className={cn(
-          viewMode === 'grid' 
-            ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" 
-            : "space-y-2"
-        )}>
-          {paginatedAssets.length > 0 ? (
-            paginatedAssets.map(asset => (
-              <React.Fragment key={asset.id}>
-                {viewMode === 'grid' ? (
-                  <AssetGridCard 
-                    asset={asset}
-                    isSelected={selectedAssetIds.includes(asset.id)}
-                    onSelect={(checked) => handleSelectOne(asset.id, checked)}
-                    isSelectionMode={isSelectionMode}
-                  />
-                ) : (
-                  <>
-                    <AssetItem
+        {isSplitScreen && paginatedAssetsByLocation ? (
+          <div className="flex gap-4 overflow-x-auto pb-6 snap-x pt-2">
+             {Object.keys(paginatedAssetsByLocation).map(loc => (
+               <div key={loc} className="min-w-[320px] max-w-[400px] flex-1 flex flex-col gap-2 snap-center">
+                 <div className="bg-gradient-to-r from-slate-100 to-white dark:from-slate-800 dark:to-slate-900 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-between sticky top-0 z-10">
+                    <span className="font-black text-sm text-slate-700 dark:text-slate-300 uppercase tracking-widest">{loc}</span>
+                    <Badge variant="secondary" className="bg-white dark:bg-slate-950 font-bold">{paginatedAssetsByLocation[loc].length}</Badge>
+                 </div>
+                 {paginatedAssetsByLocation[loc].length > 0 ? (
+                    <div className="space-y-2">
+                        {paginatedAssetsByLocation[loc].map(asset => (
+                           <React.Fragment key={asset.id}>
+                             <AssetItem
+                               asset={asset}
+                               isExpanded={expandedId === asset.id}
+                               onToggle={() => handleToggle(asset.id)}
+                               isSelected={selectedAssetIds.includes(asset.id)}
+                               onSelect={(checked) => handleSelectOne(asset.id, checked)}
+                               isSelectionMode={isSelectionMode}
+                             />
+                             <AnimatePresence>
+                               {expandedId === asset.id && (
+                                 <AssetDetailCard asset={asset} />
+                               )}
+                             </AnimatePresence>
+                           </React.Fragment>
+                        ))}
+                    </div>
+                 ) : (
+                    <div className="flex-1 min-h-[200px] flex items-center justify-center bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800 text-xs text-slate-400 italic">
+                       Kosong
+                    </div>
+                 )}
+               </div>
+             ))}
+          </div>
+        ) : (
+          <div className={cn(
+            viewMode === 'grid'
+              ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+              : "space-y-2"
+          )}>
+            {paginatedAssets.length > 0 ? (
+              paginatedAssets.map(asset => (
+                <React.Fragment key={asset.id}>
+                  {viewMode === 'grid' ? (
+                    <AssetGridCard
                       asset={asset}
-                      isExpanded={expandedId === asset.id}
-                      onToggle={() => handleToggle(asset.id)}
                       isSelected={selectedAssetIds.includes(asset.id)}
                       onSelect={(checked) => handleSelectOne(asset.id, checked)}
                       isSelectionMode={isSelectionMode}
                     />
-                    <AnimatePresence>
-                      {expandedId === asset.id && (
-                        <AssetDetailCard asset={asset} />
-                      )}
-                    </AnimatePresence>
-                  </>
-                )}
-              </React.Fragment>
-            ))
-          ) : (
-            <div className="col-span-full flex flex-col items-center justify-center py-32 bg-slate-50/50 rounded-[3rem] border-2 border-dashed border-slate-200">
-                <Search className="h-16 w-16 text-slate-200 mb-6" />
-                <h3 className="text-lg font-black text-slate-400 uppercase tracking-widest">Aset Tidak Ditemukan</h3>
-                <p className="text-sm text-slate-400 italic mt-2">Coba ubah kata kunci atau bersihkan filter pencarian.</p>
-             </div>
-          )}
-        </div>
+                  ) : (
+                    <>
+                      <AssetItem
+                        asset={asset}
+                        isExpanded={expandedId === asset.id}
+                        onToggle={() => handleToggle(asset.id)}
+                        isSelected={selectedAssetIds.includes(asset.id)}
+                        onSelect={(checked) => handleSelectOne(asset.id, checked)}
+                        isSelectionMode={isSelectionMode}
+                      />
+                      <AnimatePresence>
+                        {expandedId === asset.id && (
+                          <AssetDetailCard asset={asset} />
+                        )}
+                      </AnimatePresence>
+                    </>
+                  )}
+                </React.Fragment>
+              ))
+            ) : (
+              <div className="col-span-full flex flex-col items-center justify-center py-32 bg-slate-50/50 rounded-[3rem] border-2 border-dashed border-slate-200">
+                  <Search className="h-16 w-16 text-slate-200 mb-6" />
+                  <h3 className="text-lg font-black text-slate-400 uppercase tracking-widest">Aset Tidak Ditemukan</h3>
+                  <p className="text-sm text-slate-400 italic mt-2">Coba ubah kata kunci atau bersihkan filter pencarian.</p>
+               </div>
+            )}
+          </div>
+        )}
 
-        {totalPages > 1 && (
+        {(totalPages > 1 || filteredAssets.length > 20) && (
             <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-100 dark:border-slate-800">
                 <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Halaman {currentPage} dari {totalPages}
+                    Halaman {currentPage} dari {totalPages > 0 ? totalPages : 1}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 hidden sm:flex">
+                        <span className="text-xs text-slate-500">Tampilkan:</span>
+                        <Select value={itemsPerPage.toString()} onValueChange={(val) => setItemsPerPage(parseInt(val))}>
+                            <SelectTrigger className="h-8 text-xs w-[70px]">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="20">20</SelectItem>
+                                <SelectItem value="50">50</SelectItem>
+                                <SelectItem value="100">100</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="flex items-center gap-2">
                     <Button 
                         variant="outline" 
                         size="sm" 
@@ -734,6 +838,7 @@ export default function AssetList({ assets, initialSearchTerm = '', initialCateg
                         Next
                         <ChevronRight className="h-4 w-4 ml-1" />
                     </Button>
+                </div>
                 </div>
             </div>
         )}

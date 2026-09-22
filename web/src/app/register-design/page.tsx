@@ -701,8 +701,21 @@ export default function RegisterDesignPage() {
   const { toast } = useToast();
   const [data, setData] = useState<RegisterDesignItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [searchCategory, setSearchCategory] = useState("all");
+  const [search, setSearch] = useState(() => {
+    if (typeof window !== 'undefined') return sessionStorage.getItem('registerDesignSearch') || "";
+    return "";
+  });
+  const [searchCategory, setSearchCategory] = useState(() => {
+    if (typeof window !== 'undefined') return sessionStorage.getItem('registerDesignSearchCategory') || "all";
+    return "all";
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('registerDesignSearch', search);
+      sessionStorage.setItem('registerDesignSearchCategory', searchCategory);
+    }
+  }, [search, searchCategory]);
 
   type HistoryAction = {
     id: string;
