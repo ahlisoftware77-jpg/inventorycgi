@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { db } from '@/lib/firebase/config';
-import { doc, getDoc, updateDoc, increment, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, increment, serverTimestamp, arrayUnion } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Download, FileWarning, Loader2, CalendarClock } from 'lucide-react';
@@ -148,11 +148,24 @@ function DownloadContent() {
               if (!id || !linkData?.originalFileId) return;
               setIsDownloading(true);
               try {
+                // Fetch IP Address
+                let clientIp = 'Unknown IP';
+                try {
+                   const ipRes = await fetch('https://api.ipify.org?format=json');
+                   if (ipRes.ok) {
+                       const ipData = await ipRes.json();
+                       clientIp = ipData.ip;
+                   }
+                } catch (e) {
+                   console.warn('Gagal mendapatkan IP:', e);
+                }
+
                 // Update download count in Firestore
                 const linkRef = doc(db, 'customer_links', id);
                 await updateDoc(linkRef, {
                   downloadCount: increment(1),
-                  downloadedAt: serverTimestamp()
+                  downloadedAt: serverTimestamp(),
+                  downloadIps: arrayUnion(clientIp)
                 });
                 
                 // Redirect to Google Drive download URL

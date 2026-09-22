@@ -14,6 +14,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, ArrowLeft, Upload, Send, File, Clock, CheckCircle2, AlertTriangle, Trash2, Users, Plus, Layers, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
+
+const parseFeedback = (text: string | null | undefined) => {
+  if (!text) return '-';
+  try {
+    if (text.trim().startsWith('[') && text.trim().endsWith(']')) {
+      const parsed = JSON.parse(text);
+      if (Array.isArray(parsed)) {
+        return parsed.map((item: any) => item.c2).filter(Boolean).join(' | ');
+      }
+    }
+  } catch(e) {}
+  return text;
+};
+
 import type { RegisterDesignItem } from '@/app/register-design/page';
 import { useAuth } from '@/hooks/use-auth';
 
@@ -686,8 +700,8 @@ Tim Desain`);
                   </div>
                   <div className="bg-gradient-to-br from-slate-100/80 to-slate-200/50 dark:from-slate-800/40 dark:to-slate-700/20 p-3.5 rounded-2xl border border-slate-200/50 dark:border-slate-700/50 hover:-translate-y-0.5 hover:shadow-md hover:shadow-slate-200 dark:hover:shadow-none transition-all duration-300">
                     <p className="text-[10px] uppercase font-black text-slate-500 mb-1 tracking-wider flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span> Keterangan</p>
-                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300 line-clamp-1" title={design.feedback || design.feedbackDetails || '-'}>
-                      {design.feedback || design.feedbackDetails || '-'}
+                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300 line-clamp-1" title={parseFeedback(design.feedback || design.feedbackDetails)}>
+                      {parseFeedback(design.feedback || design.feedbackDetails)}
                     </p>
                   </div>
             </div>
