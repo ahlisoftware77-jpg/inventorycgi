@@ -158,9 +158,18 @@ function CustomerSendContent() {
             </div>
             
             <div style="margin: 40px 0;">
-              <a href="${downloadUrl}" style="background: linear-gradient(135deg, #6366f1, #8b5cf6, #d946ef); color: white; padding: 16px 36px; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 16px; box-shadow: 0 4px 14px 0 rgba(99, 102, 241, 0.39); display: inline-block;">
+              <!--[if mso]>
+              <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${downloadUrl}" style="height:54px;v-text-anchor:middle;width:240px;" arcsize="23%" stroke="f" fillcolor="#6366f1">
+                <w:anchorlock/>
+                <center>
+              <![endif]-->
+              <a href="${downloadUrl}" style="background-color: #6366f1; background: linear-gradient(135deg, #6366f1, #8b5cf6, #d946ef); color: white; padding: 16px 36px; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 16px; box-shadow: 0 4px 14px 0 rgba(99, 102, 241, 0.39); display: inline-block;">
                 UNDUH FILE SEKARANG
               </a>
+              <!--[if mso]>
+                </center>
+              </v:roundrect>
+              <![endif]-->
             </div>
             
             <div style="background-color: #fef2f2; border: 1px solid #fee2e2; border-radius: 12px; padding: 16px; margin-top: 32px;">
@@ -434,9 +443,18 @@ Tim Desain`);
               </div>
               
               <div style="margin: 40px 0;">
-                <a href="${downloadUrl}" style="background: linear-gradient(135deg, #6366f1, #8b5cf6, #d946ef); color: white; padding: 16px 36px; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 16px; box-shadow: 0 4px 14px 0 rgba(99, 102, 241, 0.39); display: inline-block;">
+                <!--[if mso]>
+                <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${downloadUrl}" style="height:54px;v-text-anchor:middle;width:240px;" arcsize="23%" stroke="f" fillcolor="#6366f1">
+                  <w:anchorlock/>
+                  <center>
+                <![endif]-->
+                <a href="${downloadUrl}" style="background-color: #6366f1; background: linear-gradient(135deg, #6366f1, #8b5cf6, #d946ef); color: white; padding: 16px 36px; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 16px; box-shadow: 0 4px 14px 0 rgba(99, 102, 241, 0.39); display: inline-block;">
                   UNDUH FILE SEKARANG
                 </a>
+                <!--[if mso]>
+                  </center>
+                </v:roundrect>
+                <![endif]-->
               </div>
               
               <div style="background-color: #fef2f2; border: 1px solid #fee2e2; border-radius: 12px; padding: 16px; margin-top: 32px;">
