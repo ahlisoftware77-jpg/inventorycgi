@@ -14,12 +14,13 @@ import { Edit2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
 interface WarehouseEditDialogProps {
-  item: WarehouseItem;
+  item: WarehouseItem | null;
   isShared?: boolean;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-export function WarehouseEditDialog({ item, isShared = false }: WarehouseEditDialogProps) {
-  const [open, setOpen] = useState(false);
+export function WarehouseEditDialog({ item, isShared = false, open, onOpenChange }: WarehouseEditDialogProps) {
   const [loading, setLoading] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [changedFields, setChangedFields] = useState<string[]>([]);
@@ -47,16 +48,17 @@ export function WarehouseEditDialog({ item, isShared = false }: WarehouseEditDia
   ];
 
   const [formData, setFormData] = useState({
-    materialCode: item.materialCode || "",
-    materialName: item.materialName || "",
-    specification: item.specification || "",
-    unit: item.unit || "",
-    location: item.location || "",
-    status: item.status || "Stock",
-    lastStock: item.lastStock || 0,
+    materialCode: item?.materialCode || "",
+    materialName: item?.materialName || "",
+    specification: item?.specification || "",
+    unit: item?.unit || "",
+    location: item?.location || "",
+    status: item?.status || "Stock",
+    lastStock: item?.lastStock || 0,
   });
 
   const [stockInHistory, setStockInHistory] = useState<{id: string, date: string, value: number, supplier: string, poNumber: string, isNew?: boolean}[]>(() => {
+    if (!item) return [];
     if (item.stockInHistory && Array.isArray(item.stockInHistory)) {
       return item.stockInHistory;
     }
@@ -75,6 +77,7 @@ export function WarehouseEditDialog({ item, isShared = false }: WarehouseEditDia
   });
 
   const [stockOutHistory, setStockOutHistory] = useState<{id: string, dept: string, value: number, date: string, pic: string}[]>(() => {
+    if (!item) return [];
     if (item.stockOutHistory && Array.isArray(item.stockOutHistory)) {
       return item.stockOutHistory;
     }
@@ -93,7 +96,7 @@ export function WarehouseEditDialog({ item, isShared = false }: WarehouseEditDia
   });
 
   useEffect(() => {
-    if (open) {
+    if (open && item) {
       setFormData({
         materialCode: item.materialCode || "",
         materialName: item.materialName || "",
@@ -151,7 +154,7 @@ export function WarehouseEditDialog({ item, isShared = false }: WarehouseEditDia
 
       const stockInTotal = stockInHistory.reduce((sum, d) => sum + (Number(d.value) || 0), 0);
 
-      await updateDoc(doc(db, "warehouse_items", item.id), {
+      await updateDoc(doc(db, "warehouse_items", item!.id), {
         ...formData,
         stockIn: stockInTotal,
         stockInHistory,
@@ -161,7 +164,7 @@ export function WarehouseEditDialog({ item, isShared = false }: WarehouseEditDia
       });
 
       toast({ title: "Berhasil", description: "Data warehouse berhasil diperbarui." });
-      setOpen(false);
+      onOpenChange(false);
       setConfirmOpen(false);
     } catch (error) {
       console.error("Error updating document: ", error);
@@ -176,12 +179,12 @@ export function WarehouseEditDialog({ item, isShared = false }: WarehouseEditDia
     
     // Cek apakah ada perubahan pada master data
     const changes = [];
-    if (formData.materialCode !== (item.materialCode || "")) changes.push("Material Code");
-    if (formData.materialName !== (item.materialName || "")) changes.push("Material Name");
-    if (formData.specification !== (item.specification || "")) changes.push("Specification");
-    if (formData.unit !== (item.unit || "")) changes.push("Unit");
-    if (formData.location !== (item.location || "")) changes.push("Location");
-    if (formData.status !== (item.status || "Stock")) changes.push("Status");
+    if (formData.materialCode !== (item!.materialCode || "")) changes.push("Material Code");
+    if (formData.materialName !== (item!.materialName || "")) changes.push("Material Name");
+    if (formData.specification !== (item!.specification || "")) changes.push("Specification");
+    if (formData.unit !== (item!.unit || "")) changes.push("Unit");
+    if (formData.location !== (item!.location || "")) changes.push("Location");
+    if (formData.status !== (item!.status || "Stock")) changes.push("Status");
 
     if (changes.length > 0) {
       setChangedFields(changes);
@@ -258,19 +261,10 @@ export function WarehouseEditDialog({ item, isShared = false }: WarehouseEditDia
     labelClass = "text-orange-100";
   }
 
+  if (!item) return null;
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {isShared ? (
-          <Button variant="outline" size="sm" className="h-8 text-blue-600 border-blue-200 hover:bg-blue-50 text-[10px]">
-            Input Form
-          </Button>
-        ) : (
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50">
-            <Edit2 className="w-4 h-4" />
-          </Button>
-        )}
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[95vw] w-[1400px] max-h-[95vh] flex flex-col p-6 overflow-hidden">
         <DialogHeader>
           <DialogTitle>{isShared ? "Input Form: Masuk / Keluar Barang" : "Edit Data Warehouse"}</DialogTitle>
@@ -308,7 +302,15 @@ export function WarehouseEditDialog({ item, isShared = false }: WarehouseEditDia
               </div>
               <div className="space-y-2">
                 <Label>Status</Label>
-                <Input disabled={disableMasterData} value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})} placeholder="Contoh: Stock" />
+                <select 
+                  disabled={disableMasterData} 
+                  value={formData.status} 
+                  onChange={e => setFormData({...formData, status: e.target.value})}
+                  className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="Stock">Stock</option>
+                  <option value="Non Stock">Non Stock</option>
+                </select>
               </div>
             </div>
 
@@ -501,7 +503,7 @@ export function WarehouseEditDialog({ item, isShared = false }: WarehouseEditDia
           </div>
 
           <div className="flex justify-end gap-3 pt-4 mt-4 border-t bg-white">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Batal</Button>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Batal</Button>
             <Button type="submit" disabled={loading} className="bg-blue-600">
               {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
               Simpan Data

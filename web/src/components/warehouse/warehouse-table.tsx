@@ -21,6 +21,8 @@ export function WarehouseTable({ items, isShared = false }: WarehouseTableProps)
   const { toast } = useToast();
   const { user } = useAuth();
   const [highlightedRow, setHighlightedRow] = useState<string | null>(null);
+  const [selectedEditItem, setSelectedEditItem] = useState<WarehouseItem | null>(null);
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   // Dynamic Departments
   const departments = useMemo(() => {
@@ -218,9 +220,38 @@ export function WarehouseTable({ items, isShared = false }: WarehouseTableProps)
                   </TableCell>
                   <TableCell className="text-center px-2 py-1 h-auto text-[11px]">
                     <div className="flex justify-center items-center gap-1">
-                       <WarehouseEditDialog item={item} isShared={isShared} />
+                       {isShared ? (
+                         <Button 
+                           variant="outline" 
+                           size="sm" 
+                           className="h-8 text-blue-600 border-blue-200 hover:bg-blue-50 text-[10px]"
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             setSelectedEditItem(item);
+                             setIsEditOpen(true);
+                           }}
+                         >
+                           Input Form
+                         </Button>
+                       ) : (
+                         <Button 
+                           variant="ghost" 
+                           size="icon" 
+                           className="h-8 w-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50"
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             setSelectedEditItem(item);
+                             setIsEditOpen(true);
+                           }}
+                         >
+                           <Edit2 className="w-4 h-4" />
+                         </Button>
+                       )}
                        {!isShared && (user?.role === 'Admin' || user?.permissions?.canManageWarehouseMaster) && (
-                         <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50" onClick={() => handleDelete(item.id, item.materialName)}>
+                         <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50" onClick={(e) => {
+                           e.stopPropagation();
+                           handleDelete(item.id, item.materialName);
+                         }}>
                            <Trash2 className="w-4 h-4" />
                          </Button>
                        )}
@@ -232,6 +263,13 @@ export function WarehouseTable({ items, isShared = false }: WarehouseTableProps)
           )}
         </TableBody>
       </table>
+
+      <WarehouseEditDialog 
+        item={selectedEditItem} 
+        isShared={isShared} 
+        open={isEditOpen} 
+        onOpenChange={setIsEditOpen} 
+      />
     </div>
   );
 }
