@@ -44,7 +44,8 @@ import {
   Layers,
   GitBranch,
   Mail,
-  FolderSync
+  FolderSync,
+  PackageSearch
 } from 'lucide-react';
 import {
   Collapsible,
@@ -80,6 +81,7 @@ const itemColorMap: Record<string, { activeIconColor: string, shadow: string, ic
   inventory_requests: { activeIconColor: 'text-orange-700', shadow: 'shadow-amber-900/5', iconColor: 'text-orange-305', inactiveIconBg: 'bg-amber-950/40' },
   mutations: { activeIconColor: 'text-amber-700', shadow: 'shadow-amber-900/5', iconColor: 'text-amber-305', inactiveIconBg: 'bg-amber-950/40' },
   inventory_report: { activeIconColor: 'text-lime-700', shadow: 'shadow-amber-900/5', iconColor: 'text-lime-350', inactiveIconBg: 'bg-amber-950/40' },
+  warehouse: { activeIconColor: 'text-indigo-700', shadow: 'shadow-amber-900/5', iconColor: 'text-indigo-305', inactiveIconBg: 'bg-amber-950/40' },
   logs: { activeIconColor: 'text-slate-700', shadow: 'shadow-amber-900/5', iconColor: 'text-slate-305', inactiveIconBg: 'bg-amber-950/40' },
   
   users: { activeIconColor: 'text-amber-700', shadow: 'shadow-amber-900/5', iconColor: 'text-sky-305', inactiveIconBg: 'bg-amber-950/40' },
@@ -269,6 +271,7 @@ export default function SidebarNav() {
     { id: 'inventory_requests', label: 'Permintaan Barang', icon: ShoppingCart, href: '/inventory/requests', hide: isUserRole, count: inventoryRequestCount, urgent: true },
     { id: 'mutations', label: 'Mutasi & Disposal', icon: History, href: '/mutations', hide: isUserRole, count: waitingCount },
     { id: 'inventory_report', label: 'Laporan Stok', icon: FileText, href: '/inventory/report', hide: isUserRole },
+    { id: 'warehouse', label: 'WAREHOUSE', icon: PackageSearch, href: '/warehouse', hide: false },
     { id: 'logs', label: 'Log Aktivitas', icon: ListTodo, href: '/logs', hide: isUserRole },
     { id: 'register_design', label: 'Register Design', icon: FileText, href: '/register-design', hide: !(isAdmin || user?.permissions?.canAccessRegisterDesign) },
     { id: 'form_app', label: 'Form APP (DAR)', icon: FileText, href: '/form-app', hide: !(isAdmin || (user && formAppUsers.includes(user.uid))) },
@@ -310,7 +313,8 @@ export default function SidebarNav() {
     
     let isExplicitlyAllowed = allowedPages.includes(item.href) 
       || (item.href.startsWith('/assets?') && allowedPages.includes('/assets')) 
-      || (item.href === '/workflow' && !isUserRole);
+      || (item.href === '/workflow' && !isUserRole)
+      || item.href === '/warehouse';
 
     if (item.href === '/register-design' && user?.permissions?.canAccessRegisterDesign) {
       isExplicitlyAllowed = true;

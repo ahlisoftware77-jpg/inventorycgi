@@ -213,6 +213,18 @@ service cloud.firestore {
       allow delete: if request.auth != null && getUserRole(request.auth.uid) == 'Admin';
     }
 
+    match /warehouse_items/{id} {
+      allow read, write: if true;
+    }
+
+    match /warehouse_archives/{id} {
+      allow read, write: if true;
+    }
+    
+    match /warehouse_archives/{archiveId}/items/{itemId} {
+      allow read, write: if true;
+    }
+
     match /data_fix_asset_accounting/{id} {
       allow read: if request.auth != null;
       allow write: if request.auth != null && getUserRole(request.auth.uid) == 'Admin';

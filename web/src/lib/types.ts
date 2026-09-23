@@ -22,6 +22,11 @@ export interface UserPermissions {
   canAccessPartialAssetsInMaintenance?: boolean;
   canViewTimeline?: boolean;
   canAccessRegisterDesign?: boolean;
+  canCloseWarehouse?: boolean;
+  canInputWarehouseStockIn?: boolean;
+  canManageWarehouseMaster?: boolean;
+  canImportExportWarehouse?: boolean;
+  canViewWarehouseReports?: boolean;
 }
 
 export interface User extends FirebaseUser {

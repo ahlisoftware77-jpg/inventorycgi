@@ -72,6 +72,11 @@ const actionPermissions: { key: keyof UserPermissions; label: string }[] = [
   { key: 'canAccessPartialAssetsInMaintenance', label: 'Akses Sebagian Aset (Pilih Unit Lain) di Maintenance' },
   { key: 'canViewTimeline', label: 'Bisa Lihat Timeline Aktivitas Dashboard' },
   { key: 'canAccessRegisterDesign', label: 'Bisa Akses Register Design' },
+  { key: 'canCloseWarehouse', label: 'Bisa Tutup Buku (Warehouse)' },
+  { key: 'canInputWarehouseStockIn', label: 'Bisa Input Barang Masuk (Warehouse)' },
+  { key: 'canManageWarehouseMaster', label: 'Bisa Kelola Master Data (Warehouse)' },
+  { key: 'canImportExportWarehouse', label: 'Bisa Import/Export Excel (Warehouse)' },
+  { key: 'canViewWarehouseReports', label: 'Bisa Lihat Laporan (Warehouse)' },
 ];
 
 export default function PermissionsDialog({ user, isOpen, onOpenChange }: PermissionsDialogProps) {
