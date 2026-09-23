@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -91,6 +91,52 @@ export function WarehouseEditDialog({ item, isShared = false }: WarehouseEditDia
       pic: "System (Legacy)"
     }));
   });
+
+  useEffect(() => {
+    if (open) {
+      setFormData({
+        materialCode: item.materialCode || "",
+        materialName: item.materialName || "",
+        specification: item.specification || "",
+        unit: item.unit || "",
+        location: item.location || "",
+        status: item.status || "Stock",
+        lastStock: item.lastStock || 0,
+      });
+
+      if (item.stockInHistory && Array.isArray(item.stockInHistory)) {
+        setStockInHistory(item.stockInHistory);
+      } else if (item.stockIn) {
+        const today = new Date().toISOString().split('T')[0];
+        const createdDate = item.createdAt?.seconds ? new Date(item.createdAt.seconds * 1000).toISOString().split('T')[0] : today;
+        setStockInHistory([{
+          id: crypto.randomUUID(),
+          date: createdDate,
+          value: Number(item.stockIn),
+          supplier: "System (Legacy)",
+          poNumber: "-"
+        }]);
+      } else {
+        setStockInHistory([]);
+      }
+
+      if (item.stockOutHistory && Array.isArray(item.stockOutHistory)) {
+        setStockOutHistory(item.stockOutHistory);
+      } else if (item.stockOut) {
+        const today = new Date().toISOString().split('T')[0];
+        const createdDate = item.createdAt?.seconds ? new Date(item.createdAt.seconds * 1000).toISOString().split('T')[0] : today;
+        setStockOutHistory(Object.entries(item.stockOut).map(([dept, value]) => ({ 
+          id: crypto.randomUUID(),
+          dept, 
+          value: Number(value),
+          date: createdDate,
+          pic: "System (Legacy)"
+        })));
+      } else {
+        setStockOutHistory([]);
+      }
+    }
+  }, [open, item]);
 
   const performUpdate = async () => {
     setLoading(true);
