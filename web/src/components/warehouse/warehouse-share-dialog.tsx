@@ -43,7 +43,7 @@ export function WarehouseShareDialog() {
       // The document ID is the token
       const token = docRef.id;
       const baseUrl = window.location.origin;
-      const link = `${baseUrl}/shared-warehouse/${token}`;
+      const link = `${baseUrl}/shared-warehouse?token=${token}`;
       setGeneratedLink(link);
       setCopied(false);
     } catch (error) {

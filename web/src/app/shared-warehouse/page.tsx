@@ -1,17 +1,17 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { db } from '@/lib/firebase/config';
 import { collection, query, onSnapshot, orderBy, doc, getDoc } from 'firebase/firestore';
 import { WarehouseTable } from '@/components/warehouse/warehouse-table';
 import { WarehouseItem } from '@/app/warehouse/page';
 import { Loader2, PackageSearch, AlertTriangle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { useParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 
-export default function SharedWarehousePage() {
-  const params = useParams();
-  const token = params?.token as string;
+function SharedWarehouseContent() {
+  const searchParams = useSearchParams();
+  const token = searchParams.get('token') as string;
   
   const [validating, setValidating] = useState(true);
   const [isValid, setIsValid] = useState(false);
@@ -189,5 +189,18 @@ export default function SharedWarehousePage() {
         </div>
       </Card>
     </div>
+  );
+}
+
+export default function SharedWarehousePage() {
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col h-screen w-full items-center justify-center bg-slate-50">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600 mb-4" />
+        <p className="text-slate-600 font-medium animate-pulse">Memuat halaman...</p>
+      </div>
+    }>
+      <SharedWarehouseContent />
+    </Suspense>
   );
 }
