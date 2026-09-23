@@ -6,7 +6,7 @@ import DashboardLayout from '@/components/dashboard/layout';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { db, auth } from '@/lib/firebase/config';
-import { collection, getDocs, doc, setDoc, deleteDoc, updateDoc, query, orderBy, serverTimestamp, where, addDoc, getDoc, writeBatch } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc, deleteDoc, updateDoc, query, orderBy, serverTimestamp, where, addDoc, getDoc, writeBatch, onSnapshot } from 'firebase/firestore';
 import { Trash2, Plus, Save, Layers, CheckSquare, Search, ChevronDown, Check, Eye, X, Pencil, Share2, ChevronUp, BarChart2, Download, Upload, FileSpreadsheet, Lock, Unlock, Loader2, MoreHorizontal, ChevronLeft, ChevronRight, Calendar, Image as ImageIcon, Printer, Send } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useToast } from '@/hooks/use-toast';
@@ -1019,56 +1019,35 @@ export default function RegisterDesignPage() {
     setCustomerOptions(Array.from(custSet).sort());
   };
 
-  const fetchData = async (yearToFetch: string) => {
-    try {
-      let q;
-      if (yearToFetch === "all") {
-        q = query(collection(db, "register_design"), orderBy("createdAt", "desc"));
-      } else {
-        q = query(
-          collection(db, "register_design"),
-          where("entryDate", ">=", `${yearToFetch}-01-01`),
-          where("entryDate", "<=", `${yearToFetch}-12-31`),
-          orderBy("entryDate", "desc")
-        );
-      }
-      const snap = await getDocs(q);
-      const items = snap.docs.map(d => ({ id: d.id, ...d.data() } as RegisterDesignItem));
-      
-      setYearCache(prev => ({ ...prev, [yearToFetch]: items }));
-      setData(items);
-      updateDataLists(items);
-
-    } catch (e) {
-      console.error(e);
-      toast({ title: "Gagal memuat data", variant: "destructive" });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
     if (!user && !isPublicAuthenticated) return;
     
-    // Save current data to cache for the PREVIOUS year before switching
-    if (prevYearRef.current && prevYearRef.current !== selectedYear) {
-      if (dataRef.current.length > 0) {
-        setYearCache(prev => ({ ...prev, [prevYearRef.current]: dataRef.current }));
-      }
-    }
-    prevYearRef.current = selectedYear;
-
-    const cacheHit = yearCache[selectedYear];
-    if (cacheHit && cacheHit.length > 0) {
-      setData(cacheHit);
-      updateDataLists(cacheHit);
-      setLoading(false);
-      return;
-    }
-
     setLoading(true);
-    fetchData(selectedYear);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    let q;
+    if (selectedYear === "all") {
+      q = query(collection(db, "register_design"), orderBy("createdAt", "desc"));
+    } else {
+      q = query(
+        collection(db, "register_design"),
+        where("entryDate", ">=", `${selectedYear}-01-01`),
+        where("entryDate", "<=", `${selectedYear}-12-31`),
+        orderBy("entryDate", "desc")
+      );
+    }
+
+    const unsubscribe = onSnapshot(q, (snap) => {
+      const items = snap.docs.map(d => ({ id: d.id, ...d.data() } as RegisterDesignItem));
+      setData(items);
+      updateDataLists(items);
+      setLoading(false);
+    }, (error) => {
+      console.error(error);
+      toast({ title: "Gagal memuat data", variant: "destructive" });
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, [selectedYear, user, isPublicAuthenticated]);
 
 
