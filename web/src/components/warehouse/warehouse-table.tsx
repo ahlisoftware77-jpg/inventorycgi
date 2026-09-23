@@ -20,6 +20,7 @@ interface WarehouseTableProps {
 export function WarehouseTable({ items, isShared = false }: WarehouseTableProps) {
   const { toast } = useToast();
   const { user } = useAuth();
+  const [highlightedRow, setHighlightedRow] = useState<string | null>(null);
 
   // Dynamic Departments
   const departments = useMemo(() => {
@@ -182,7 +183,14 @@ export function WarehouseTable({ items, isShared = false }: WarehouseTableProps)
               const isWarning = endingStock <= 2;
 
               return (
-                <TableRow key={item.id} className="hover:bg-slate-50/50 transition-colors">
+                <TableRow 
+                  key={item.id} 
+                  className={cn(
+                    "transition-colors cursor-pointer",
+                    highlightedRow === item.id ? "bg-amber-100/60 hover:bg-amber-200/60" : "hover:bg-slate-50/50"
+                  )}
+                  onClick={() => setHighlightedRow(item.id)}
+                >
                   <TableCell className="text-center font-medium border-r px-2 py-1 h-auto text-[11px]">{index + 1}</TableCell>
                   <TableCell className="text-center font-bold text-slate-700 border-r px-2 py-1 h-auto text-[11px]">{item.materialCode}</TableCell>
                   <TableCell className="font-bold text-blue-600 border-r px-2 py-1 h-auto text-[11px] max-w-[200px] whitespace-normal break-words">{item.materialName}</TableCell>
