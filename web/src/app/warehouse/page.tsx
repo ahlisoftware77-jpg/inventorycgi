@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase/config';
-import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection, query, onSnapshot, orderBy, where } from 'firebase/firestore';
 import { WarehouseTable } from '@/components/warehouse/warehouse-table';
 import { WarehouseFormDialog } from '@/components/warehouse/warehouse-form-dialog';
 import { WarehouseExportButton } from "@/components/warehouse/warehouse-export-button";
@@ -66,6 +66,13 @@ export default function WarehousePage() {
     return 'all';
   });
 
+  const [statusFilter, setStatusFilter] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('warehouseStatusFilter') || 'Non Stock';
+    }
+    return 'Non Stock';
+  });
+
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/login');
@@ -81,10 +88,23 @@ export default function WarehousePage() {
   }, [searchKey]);
 
   useEffect(() => {
-    const q = query(
-      collection(db, 'warehouse_items'),
-      orderBy('createdAt', 'asc')
-    );
+    localStorage.setItem('warehouseStatusFilter', statusFilter);
+  }, [statusFilter]);
+
+  useEffect(() => {
+    let q;
+    if (statusFilter === 'all') {
+      q = query(
+        collection(db, 'warehouse_items'),
+        orderBy('createdAt', 'asc')
+      );
+    } else {
+      q = query(
+        collection(db, 'warehouse_items'),
+        where('status', '==', statusFilter),
+        orderBy('createdAt', 'asc')
+      );
+    }
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const fetchedItems: WarehouseItem[] = [];
@@ -99,7 +119,7 @@ export default function WarehousePage() {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [statusFilter]);
 
   const isAdmin = user?.role === 'Admin';
   const canManageMaster = isAdmin || user?.permissions?.canManageWarehouseMaster;
@@ -169,6 +189,16 @@ export default function WarehousePage() {
       <Card className="border-none shadow-xl shadow-slate-200/50 rounded-xl overflow-hidden bg-white/60 backdrop-blur-xl animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150">
         <div className="p-2 md:p-4">
           <div className="flex flex-col sm:flex-row gap-3 mb-4">
+            <select
+              className="bg-white border border-slate-200 rounded-xl text-sm px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm font-medium text-slate-700 cursor-pointer"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="Non Stock">Non Stock</option>
+              <option value="Stock">Stock</option>
+              <option value="all">Semua Status</option>
+            </select>
+
             <select
               className="bg-white border border-slate-200 rounded-xl text-sm px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm font-medium text-slate-700 cursor-pointer"
               value={searchKey}
