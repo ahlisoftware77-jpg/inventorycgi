@@ -234,6 +234,7 @@ export default function SettingsPage() {
             setFormAppUsers(data.formAppUsers || []);
             setAssetStatuses(data.assetStatuses || defaultAssetStatuses);
             setAssetConditions(data.assetConditions || defaultAssetConditions);
+            setWarehouseRequestEmails(data.warehouseRequestEmails || []);
             
             if (data.categories) {
                 const normalized = data.categories.map((c: any) => {
