@@ -185,7 +185,7 @@ export function WarehouseFormDialog() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Material Code</Label>
-                  <Input required value={formData.materialCode} onChange={e => setFormData({...formData, materialCode: e.target.value})} placeholder="Contoh: 0.01.01.001" />
+                  <Input value={formData.materialCode} onChange={e => setFormData({...formData, materialCode: e.target.value})} placeholder="Contoh: 0.01.01.001" />
                 </div>
                 <div className="space-y-2">
                   <Label>Material Name</Label>

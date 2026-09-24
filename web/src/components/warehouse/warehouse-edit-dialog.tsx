@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Loader2, Minus, ChevronUp, ChevronDown, AlertTriangle } from "lucide-react";
-import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { doc, updateDoc, serverTimestamp, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
@@ -153,6 +153,12 @@ export function WarehouseEditDialog({ item, isShared = false, open, onOpenChange
       });
 
       const stockInTotal = stockInHistory.reduce((sum, d) => sum + (Number(d.value) || 0), 0);
+      
+      const oldStockIn = item!.stockIn || 0;
+      const oldStockOutTotal = Object.values(item!.stockOut || {}).reduce((sum, val) => sum + (val || 0), 0);
+      const newStockOutTotal = Object.values(stockOutRecord).reduce((sum, val) => sum + (val || 0), 0);
+
+      const hasStockChanged = oldStockIn !== stockInTotal || oldStockOutTotal !== newStockOutTotal;
 
       await updateDoc(doc(db, "warehouse_items", item!.id), {
         ...formData,
@@ -162,6 +168,128 @@ export function WarehouseEditDialog({ item, isShared = false, open, onOpenChange
         stockOutHistory,
         updatedAt: serverTimestamp()
       });
+
+      if (hasStockChanged) {
+        // Send email
+        const generalSnap = await getDoc(doc(db, 'settings', 'general'));
+        const emails = generalSnap.exists() ? generalSnap.data().warehouseRequestEmails || [] : [];
+        const emailSnap = await getDoc(doc(db, 'settings', 'email'));
+        const emailSettings = emailSnap.exists() ? emailSnap.data() : null;
+        
+        const smtp = emailSettings ? {
+          host: emailSettings.smtpHost || '',
+          port: emailSettings.smtpPort || 465,
+          secure: emailSettings.smtpSecure !== undefined ? emailSettings.smtpSecure : true,
+          user: emailSettings.smtpUser || '',
+          pass: emailSettings.smtpPass || ''
+        } : { host: '', port: 465, user: '', pass: '' };
+
+        if (emails.length > 0 && smtp.host) {
+          const finalRequesterName = user?.displayName || (user as any)?.name || (user?.email ? user.email.split('@')[0] : 'Admin');
+          
+          const htmlContent = `
+            <div style="font-family: sans-serif; padding: 20px;">
+              <h2 style="color: #0284c7;">Pembaruan Stok Warehouse</h2>
+              <p><strong>Diperbarui Oleh:</strong> ${finalRequesterName}</p>
+              <p><strong>Waktu:</strong> ${new Date().toLocaleString('id-ID')}</p>
+              <br/>
+              <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                <thead>
+                  <tr style="background-color: #f1f5f9;">
+                    <th style="padding: 8px; border: 1px solid #cbd5e1;">Kode</th>
+                    <th style="padding: 8px; border: 1px solid #cbd5e1;">Nama Barang</th>
+                    <th style="padding: 8px; border: 1px solid #cbd5e1;">Spesifikasi</th>
+                    <th style="padding: 8px; border: 1px solid #cbd5e1;">Stok Awal</th>
+                    <th style="padding: 8px; border: 1px solid #cbd5e1;">Total Masuk</th>
+                    <th style="padding: 8px; border: 1px solid #cbd5e1;">Total Keluar</th>
+                    <th style="padding: 8px; border: 1px solid #cbd5e1;">Sisa Stok Gudang</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="padding: 8px; border: 1px solid #cbd5e1; text-align: center;">${item!.materialCode || '-'}</td>
+                    <td style="padding: 8px; border: 1px solid #cbd5e1;">${item!.materialName}</td>
+                    <td style="padding: 8px; border: 1px solid #cbd5e1;">${item!.specification || '-'}</td>
+                    <td style="padding: 8px; border: 1px solid #cbd5e1; text-align: center;">${item!.lastStock || 0} ${item!.unit}</td>
+                    <td style="padding: 8px; border: 1px solid #cbd5e1; text-align: center; color: #16a34a; font-weight: bold;">${stockInTotal} ${item!.unit}</td>
+                    <td style="padding: 8px; border: 1px solid #cbd5e1; text-align: center; color: #dc2626; font-weight: bold;">${newStockOutTotal} ${item!.unit}</td>
+                    <td style="padding: 8px; border: 1px solid #cbd5e1; text-align: center; font-weight: bold;">${(item!.lastStock || 0) + stockInTotal - newStockOutTotal} ${item!.unit}</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              ${stockInHistory.length > 0 ? `
+              <h3 style="color: #16a34a; margin-top: 20px;">Rincian Barang Masuk (Stock In)</h3>
+              <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 20px;">
+                <thead>
+                  <tr style="background-color: #f0fdf4;">
+                    <th style="padding: 6px; border: 1px solid #bbf7d0; text-align: left;">Tanggal</th>
+                    <th style="padding: 6px; border: 1px solid #bbf7d0; text-align: center;">Jumlah</th>
+                    <th style="padding: 6px; border: 1px solid #bbf7d0; text-align: left;">Supplier</th>
+                    <th style="padding: 6px; border: 1px solid #bbf7d0; text-align: left;">No PO/SJ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${stockInHistory.map(row => `
+                    <tr>
+                      <td style="padding: 6px; border: 1px solid #bbf7d0;">${row.date}</td>
+                      <td style="padding: 6px; border: 1px solid #bbf7d0; text-align: center; font-weight: bold;">+${row.value}</td>
+                      <td style="padding: 6px; border: 1px solid #bbf7d0;">${row.supplier || '-'}</td>
+                      <td style="padding: 6px; border: 1px solid #bbf7d0;">${row.poNumber || '-'}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+              ` : ''}
+
+              ${stockOutHistory.length > 0 ? `
+              <h3 style="color: #dc2626; margin-top: 20px;">Rincian Barang Keluar (Stock Out)</h3>
+              <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 20px;">
+                <thead>
+                  <tr style="background-color: #fef2f2;">
+                    <th style="padding: 6px; border: 1px solid #fecaca; text-align: left;">Tanggal</th>
+                    <th style="padding: 6px; border: 1px solid #fecaca; text-align: center;">Jumlah</th>
+                    <th style="padding: 6px; border: 1px solid #fecaca; text-align: left;">Departemen</th>
+                    <th style="padding: 6px; border: 1px solid #fecaca; text-align: left;">PIC</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${stockOutHistory.map(row => `
+                    <tr>
+                      <td style="padding: 6px; border: 1px solid #fecaca;">${row.date}</td>
+                      <td style="padding: 6px; border: 1px solid #fecaca; text-align: center; font-weight: bold;">-${row.value}</td>
+                      <td style="padding: 6px; border: 1px solid #fecaca;">${row.dept || '-'}</td>
+                      <td style="padding: 6px; border: 1px solid #fecaca;">${row.pic || '-'}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+              ` : ''}
+
+              <p style="margin-top: 24px; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 10px;">Pesan ini dihasilkan secara otomatis oleh sistem CGI Inventory berdasarkan data terbaru saat tombol Simpan ditekan.</p>
+            </div>
+          `;
+
+          const getApiUrl = () => {
+            if (typeof window !== 'undefined' && window.location.hostname.includes('web.app')) {
+              return 'https://inventorycgi.vercel.app/api/send-email';
+            }
+            return '/api/send-email';
+          };
+
+          fetch(getApiUrl(), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              smtp: smtp,
+              to: emails,
+              subject: `[Warehouse Update] Pembaruan Stok: ${item!.materialName}`,
+              html: htmlContent,
+              action: 'send'
+            })
+          }).catch(console.error);
+        }
+      }
 
       toast({ title: "Berhasil", description: "Data warehouse berhasil diperbarui." });
       onOpenChange(false);
@@ -278,7 +406,7 @@ export function WarehouseEditDialog({ item, isShared = false, open, onOpenChange
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Material Code</Label>
-                  <Input required disabled={disableMasterData} value={formData.materialCode} onChange={e => setFormData({...formData, materialCode: e.target.value})} placeholder="Contoh: 0.01.01.001" />
+                  <Input disabled={disableMasterData} value={formData.materialCode} onChange={e => setFormData({...formData, materialCode: e.target.value})} placeholder="Contoh: 0.01.01.001" />
                 </div>
                 <div className="space-y-2">
                   <Label>Material Name</Label>

@@ -153,8 +153,8 @@ export default function WarehousePage() {
   }
 
   return (
-    <div className="flex-1 space-y-4 p-2 md:p-4 pt-4 bg-slate-50/50 min-h-screen">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center justify-between animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="flex-1 space-y-2 p-0.5 bg-slate-50/50 min-h-screen">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center justify-between animate-in fade-in slide-in-from-bottom-4 duration-500 px-1">
         <div>
           <h2 className="text-3xl font-black tracking-tight text-slate-800 flex items-center gap-3">
             <div className="p-2.5 bg-blue-600 rounded-xl shadow-lg shadow-blue-600/20 text-white">
@@ -191,8 +191,8 @@ export default function WarehousePage() {
       </div>
 
       <Card className="border-none shadow-xl shadow-slate-200/50 rounded-xl overflow-hidden bg-white/60 backdrop-blur-xl animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150">
-        <div className="p-2 md:p-4">
-          <div className="flex flex-col sm:flex-row gap-3 mb-4">
+        <div className="p-0.5">
+          <div className="flex flex-col sm:flex-row gap-2 mb-2 px-1">
             <select
               className="bg-white border border-slate-200 rounded-xl text-sm px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm font-medium text-slate-700 cursor-pointer"
               value={statusFilter}
