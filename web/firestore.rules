@@ -162,6 +162,13 @@ service cloud.firestore {
       allow create: if request.auth != null;
       allow update, delete: if true;
     }
+
+    match /warehouse_requests/{id} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && getUserRole(request.auth.uid) == 'Admin';
+      allow delete: if request.auth != null && getUserRole(request.auth.uid) == 'Admin';
+    }
     
     match /maintenance_schedules/{id} {
       allow read: if true;

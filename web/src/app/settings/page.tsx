@@ -137,6 +137,8 @@ export default function SettingsPage() {
   
   const [newStatus, setNewStatus] = useState('');
   const [newCondition, setNewCondition] = useState('');
+  const [warehouseRequestEmails, setWarehouseRequestEmails] = useState<string[]>([]);
+  const [newWarehouseEmail, setNewWarehouseEmail] = useState('');
 
   // Dept Group Dialog States
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
@@ -333,6 +335,7 @@ export default function SettingsPage() {
         googleDriveOriginalFolderId,
         mainMenuOrder: mainMenuOrder.map(m => m.id),
         systemMenuOrder: systemMenuOrder.map(m => m.id),
+        warehouseRequestEmails,
       }, { merge: true });
       toast({ title: 'Berhasil Disimpan', description: 'Seluruh konfigurasi database telah diperbarui.' });
     } catch (error) {
@@ -565,6 +568,58 @@ export default function SettingsPage() {
                     <p className="text-[11px] leading-relaxed text-blue-800 dark:text-blue-200 font-medium text-left">
                         Pengaturan ini akan memengaruhi ukuran seluruh teks dan komponen di aplikasi. Gunakan zoom lebih besar jika Anda merasa teks terlalu kecil, atau kecilkan untuk melihat lebih banyak data dalam satu layar.
                     </p>
+                </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* EMAIL NOTIFICATION SETTINGS */}
+        <Card className="rounded-[2.5rem] border-none shadow-2xl overflow-hidden bg-white dark:bg-slate-900 text-black border-2 border-orange-500/20">
+          <CardHeader className="p-8 sm:p-10 pb-4 bg-orange-500/5 text-left">
+            <CardTitle className="flex items-center gap-2 text-xl font-black uppercase tracking-tight text-orange-600 text-left">
+              <Sparkles className="w-6 h-6" /> Notifikasi Email (Warehouse)
+            </CardTitle>
+            <CardDescription className="text-[10px] font-black uppercase tracking-widest text-left">Kelola daftar penerima email untuk notifikasi permintaan barang dari Gudang.</CardDescription>
+          </CardHeader>
+          <CardContent className="p-8 sm:p-10 space-y-8">
+            <div className="space-y-6 text-left">
+                <div className="flex flex-col gap-2">
+                    <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Tambah Email Penerima</Label>
+                    <div className="flex items-center gap-2 max-w-xl">
+                      <Input 
+                        placeholder="Contoh: hrga@perusahaan.com" 
+                        value={newWarehouseEmail}
+                        onChange={(e) => setNewWarehouseEmail(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (newWarehouseEmail.trim() && !warehouseRequestEmails.includes(newWarehouseEmail.trim())) {
+                              setWarehouseRequestEmails([...warehouseRequestEmails, newWarehouseEmail.trim()]);
+                              setNewWarehouseEmail('');
+                            }
+                          }
+                        }}
+                      />
+                      <Button type="button" onClick={() => {
+                        if (newWarehouseEmail.trim() && !warehouseRequestEmails.includes(newWarehouseEmail.trim())) {
+                          setWarehouseRequestEmails([...warehouseRequestEmails, newWarehouseEmail.trim()]);
+                          setNewWarehouseEmail('');
+                        }
+                      }} className="bg-orange-600 hover:bg-orange-700">Tambah</Button>
+                    </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                    {warehouseRequestEmails.map((email, idx) => (
+                      <Badge key={idx} variant="outline" className="flex items-center gap-2 py-1.5 px-3 bg-orange-50 border-orange-200 text-orange-700">
+                        {email}
+                        <button type="button" onClick={() => {
+                          setWarehouseRequestEmails(warehouseRequestEmails.filter((_, i) => i !== idx));
+                        }} className="text-orange-400 hover:text-orange-900"><X className="w-3 h-3" /></button>
+                      </Badge>
+                    ))}
+                    {warehouseRequestEmails.length === 0 && (
+                      <span className="text-xs text-slate-400 italic">Belum ada email yang ditambahkan.</span>
+                    )}
                 </div>
             </div>
           </CardContent>

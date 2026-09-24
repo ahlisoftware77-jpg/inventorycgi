@@ -10,7 +10,9 @@ import { doc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { useToast } from '@/hooks/use-toast';
 import { WarehouseEditDialog } from '@/components/warehouse/warehouse-edit-dialog';
+import { WarehouseCart } from '@/components/warehouse/warehouse-cart';
 import { useAuth } from '@/hooks/use-auth';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface WarehouseTableProps {
   items: WarehouseItem[];
@@ -23,6 +25,20 @@ export function WarehouseTable({ items, isShared = false }: WarehouseTableProps)
   const [highlightedRow, setHighlightedRow] = useState<string | null>(null);
   const [selectedEditItem, setSelectedEditItem] = useState<WarehouseItem | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedItemIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selectedItemsList = useMemo(() => {
+    return items.filter(item => selectedItemIds.has(item.id));
+  }, [items, selectedItemIds]);
 
   // Dynamic Departments
   const departments = useMemo(() => {
@@ -126,6 +142,9 @@ export function WarehouseTable({ items, isShared = false }: WarehouseTableProps)
       <table className="w-full caption-bottom text-sm min-w-max border-collapse">
         <TableHeader className="sticky top-0 z-20 bg-slate-100 shadow-md">
           <TableRow className="bg-slate-100 hover:bg-slate-100">
+            <TableHead className="w-10 px-2 py-1 h-auto text-center" rowSpan={2}>
+              {/* Optional: Checkbox Select All */}
+            </TableHead>
             <TableHead className="font-black text-[11px] uppercase text-center border-r bg-slate-100 px-2 py-1 h-auto" rowSpan={2}>No</TableHead>
             <TableHead className="font-black text-[11px] uppercase text-center border-r bg-slate-100 px-2 py-1 h-auto" rowSpan={2}>Material Code</TableHead>
             <TableHead className="font-black text-[11px] uppercase text-center border-r bg-slate-100 px-2 py-1 h-auto" rowSpan={2}>Material Name</TableHead>
@@ -176,7 +195,7 @@ export function WarehouseTable({ items, isShared = false }: WarehouseTableProps)
         <TableBody>
           {items.length === 0 ? (
              <TableRow>
-               <TableCell colSpan={13 + departments.length} className="text-center py-10 text-slate-500 italic">Belum ada data</TableCell>
+               <TableCell colSpan={14 + departments.length} className="text-center py-10 text-slate-500 italic">Belum ada data</TableCell>
              </TableRow>
           ) : (
             items.map((item, index) => {
@@ -193,6 +212,13 @@ export function WarehouseTable({ items, isShared = false }: WarehouseTableProps)
                   )}
                   onClick={() => setHighlightedRow(item.id)}
                 >
+                  <TableCell className="px-2 py-1 h-auto text-center border-r">
+                    <Checkbox 
+                      checked={selectedItemIds.has(item.id)}
+                      onCheckedChange={() => handleToggleSelect(item.id)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </TableCell>
                   <TableCell className="text-center font-medium border-r px-2 py-1 h-auto text-[11px]">{index + 1}</TableCell>
                   <TableCell className="text-center font-bold text-slate-700 border-r px-2 py-1 h-auto text-[11px]">{item.materialCode}</TableCell>
                   <TableCell className="font-bold text-blue-600 border-r px-2 py-1 h-auto text-[11px] max-w-[200px] whitespace-normal break-words">{item.materialName}</TableCell>
@@ -269,6 +295,13 @@ export function WarehouseTable({ items, isShared = false }: WarehouseTableProps)
         isShared={isShared} 
         open={isEditOpen} 
         onOpenChange={setIsEditOpen} 
+      />
+
+      <WarehouseCart 
+        selectedItems={selectedItemsList}
+        departments={departments}
+        onClear={() => setSelectedItemIds(new Set())}
+        onRemoveItem={(id) => handleToggleSelect(id)}
       />
     </div>
   );
