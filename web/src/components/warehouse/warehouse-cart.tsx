@@ -145,7 +145,14 @@ export function WarehouseCart({ selectedItems, departments, onClear, onRemoveIte
           </div>
         `;
 
-        const res = await fetch('/api/send-email', {
+        const getApiUrl = () => {
+          if (typeof window !== 'undefined' && window.location.hostname.includes('web.app')) {
+            return 'https://inventorycgi.vercel.app/api/send-email';
+          }
+          return '/api/send-email';
+        };
+
+        const res = await fetch(getApiUrl(), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
