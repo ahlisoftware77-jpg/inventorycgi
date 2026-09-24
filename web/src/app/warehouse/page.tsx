@@ -14,8 +14,9 @@ import { WarehouseReportInDialog } from "@/components/warehouse/warehouse-report
 import { WarehouseShareDialog } from "@/components/warehouse/warehouse-share-dialog";
 import { WarehouseClosingDialog } from "@/components/warehouse/warehouse-closing-dialog";
 import { WarehouseArchiveDialog } from "@/components/warehouse/warehouse-archive-dialog";
+import { printWarehouseOpname } from "@/components/warehouse/warehouse-print-opname";
 import { Button } from '@/components/ui/button';
-import { PackageSearch, Loader2, Share2 } from 'lucide-react';
+import { PackageSearch, Loader2, Share2, Printer } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 
 export interface WarehouseItem {
@@ -172,6 +173,9 @@ export default function WarehousePage() {
             <>
               <WarehouseImportButton />
               <WarehouseExportButton items={filteredItems} />
+              <Button onClick={() => printWarehouseOpname(filteredItems)} variant="outline" className="border-blue-200 text-blue-700 hover:bg-blue-50">
+                <Printer className="w-4 h-4 mr-2" /> Print Opname
+              </Button>
             </>
           )}
           {canViewReports && (
