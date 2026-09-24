@@ -95,7 +95,11 @@ export function WarehouseCart({ selectedItems, departments, onClear, onRemoveIte
       const docRef = await addDoc(collection(db, 'warehouse_requests'), requestData);
 
       // 3. Kirim Email (jika ada penerima)
-      if (emails.length > 0 && smtp.host) {
+      if (emails.length === 0) {
+        toast({ variant: "destructive", title: "Peringatan", description: "Email tujuan tidak ditemukan di Pengaturan Umum. Email notifikasi tidak dikirim." });
+      } else if (!smtp.host) {
+        toast({ variant: "destructive", title: "Peringatan", description: "Konfigurasi SMTP belum diatur. Email notifikasi tidak dikirim." });
+      } else {
         const htmlContent = `
           <div style="font-family: sans-serif; padding: 20px;">
             <h2 style="color: #ea580c;">Permintaan Barang Baru (Warehouse)</h2>
@@ -141,7 +145,7 @@ export function WarehouseCart({ selectedItems, departments, onClear, onRemoveIte
           </div>
         `;
 
-        await fetch('/api/send-email', {
+        const res = await fetch('/api/send-email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -152,14 +156,19 @@ export function WarehouseCart({ selectedItems, departments, onClear, onRemoveIte
             action: 'send'
           })
         });
+        
+        if (!res.ok) {
+           console.error("Gagal mengirim email:", await res.text());
+           toast({ variant: "destructive", title: "Gagal Kirim Email", description: "Terjadi kesalahan pada server SMTP saat mengirim." });
+        }
       }
 
-      toast({ title: "Berhasil!", description: "Permintaan berhasil dikirim." });
+      toast({ title: "Berhasil!", description: "Permintaan berhasil disimpan ke sistem." });
       onClear();
       setIsOpen(false);
     } catch (e) {
       console.error(e);
-      toast({ variant: "destructive", title: "Error", description: "Gagal mengirim permintaan." });
+      toast({ variant: "destructive", title: "Error", description: "Gagal menyimpan permintaan." });
     } finally {
       setLoading(false);
     }
