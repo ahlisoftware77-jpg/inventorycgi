@@ -190,14 +190,19 @@ export default function SettingsPage() {
             setMarqueeSpeed(data.speed || 'normal');
           }
 
-          const generalSnap = await getDoc(doc(db, 'settings', 'general'));
-          
           try {
             const usersSnap = await getDocs(collection(db, 'users'));
             const uList = usersSnap.docs.map(d => ({ uid: d.id, name: d.data().name || d.data().email }));
             setAllUsersList(uList);
           } catch(e) {}
-
+        } catch (error) {
+          console.error("Error fetching settings:", error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      
+      const unsubGeneral = onSnapshot(doc(db, 'settings', 'general'), (generalSnap) => {
           if (generalSnap.exists()) {
             const data = generalSnap.data();
             setAppVersion(data.appVersion || '1.0');
@@ -213,10 +218,8 @@ export default function SettingsPage() {
               const err = urlParams.get('error');
               if (rToken) {
                 setGoogleRefreshToken(rToken);
-                toast({ title: 'Login Berhasil', description: 'Tersambung! Wajib klik Simpan Pengaturan di bawah.' });
               } else if (err) {
                 setGoogleRefreshToken(data.googleRefreshToken || '');
-                toast({ variant: 'destructive', title: 'Login Gagal', description: err });
               } else {
                 setGoogleRefreshToken(data.googleRefreshToken || '');
               }
@@ -278,13 +281,10 @@ export default function SettingsPage() {
             setAssetStatuses(defaultAssetStatuses);
             setAssetConditions(defaultAssetConditions);
           }
-        } catch (error) {
-          console.error("Error fetching settings:", error);
-        } finally {
-          setIsLoading(false);
-        }
-      };
+      });
+      
       fetchSettings();
+      return () => unsubGeneral();
     }
   }, [user]);
 
