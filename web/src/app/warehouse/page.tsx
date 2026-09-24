@@ -14,6 +14,7 @@ import { WarehouseReportInDialog } from "@/components/warehouse/warehouse-report
 import { WarehouseShareDialog } from "@/components/warehouse/warehouse-share-dialog";
 import { WarehouseClosingDialog } from "@/components/warehouse/warehouse-closing-dialog";
 import { WarehouseArchiveDialog } from "@/components/warehouse/warehouse-archive-dialog";
+import { WarehouseRequestsDialog } from "@/components/warehouse/warehouse-requests-dialog";
 import { printWarehouseOpname } from "@/components/warehouse/warehouse-print-opname";
 import { Button } from '@/components/ui/button';
 import { PackageSearch, Loader2, Share2, Printer } from 'lucide-react';
@@ -168,7 +169,12 @@ export default function WarehousePage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {canManageMaster && <WarehouseFormDialog />}
+          {canManageMaster && (
+            <>
+              <WarehouseFormDialog />
+              <WarehouseRequestsDialog />
+            </>
+          )}
           {canImportExport && (
             <>
               <WarehouseImportButton />

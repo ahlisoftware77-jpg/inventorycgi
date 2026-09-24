@@ -27,8 +27,20 @@ export function WarehouseCart({ selectedItems, departments, onClear, onRemoveIte
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [requestDept, setRequestDept] = useState("");
+  const [requestType, setRequestType] = useState<"in" | "out">("out");
+  const [supplier, setSupplier] = useState("");
+  const [poNumber, setPoNumber] = useState("");
   const { user } = useAuth();
+  const [requesterNameInput, setRequesterNameInput] = useState("");
+  const [requesterEmailInput, setRequesterEmailInput] = useState("");
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (user && !requesterNameInput && !requesterEmailInput) {
+      setRequesterNameInput(user.displayName || (user as any)?.name || (user.email ? user.email.split('@')[0] : 'Guest'));
+      setRequesterEmailInput(user.email || "");
+    }
+  }, [user]);
 
   if (selectedItems.length === 0) return null;
 
@@ -44,8 +56,20 @@ export function WarehouseCart({ selectedItems, departments, onClear, onRemoveIte
   };
 
   const handleSubmit = async () => {
-    if (!requestDept.trim()) {
+    if (!requesterNameInput.trim()) {
+      toast({ variant: "destructive", title: "Nama Wajib Diisi", description: "Mohon isi nama peminta." });
+      return;
+    }
+    if (!requesterEmailInput.trim()) {
+      toast({ variant: "destructive", title: "Email Wajib Diisi", description: "Mohon isi email untuk pengiriman tanda terima." });
+      return;
+    }
+    if (requestType === "out" && !requestDept.trim()) {
       toast({ variant: "destructive", title: "Departemen Wajib Diisi", description: "Mohon isi nama departemen yang meminta." });
+      return;
+    }
+    if (requestType === "in" && !supplier.trim()) {
+      toast({ variant: "destructive", title: "Supplier Wajib Diisi", description: "Mohon isi nama supplier untuk barang masuk." });
       return;
     }
 
@@ -65,13 +89,17 @@ export function WarehouseCart({ selectedItems, departments, onClear, onRemoveIte
         pass: emailSettings.smtpPass || ''
       } : { host: '', port: 465, user: '', pass: '' };
 
-      const finalRequesterName = user?.displayName || (user as any)?.name || (user?.email ? user.email.split('@')[0] : 'Guest');
+      const finalRequesterName = requesterNameInput.trim();
 
       // 2. Simpan request ke Firestore
       const requestData = {
         requesterId: user?.uid || 'guest',
         requesterName: finalRequesterName,
-        requestDept: requestDept,
+        requesterEmail: requesterEmailInput.trim(),
+        requestType: requestType,
+        requestDept: requestType === "out" ? requestDept : "",
+        supplier: requestType === "in" ? supplier : "",
+        poNumber: requestType === "in" ? poNumber : "",
         requestedAt: serverTimestamp(),
         status: 'Menunggu',
         items: selectedItems.map(item => {
@@ -100,11 +128,12 @@ export function WarehouseCart({ selectedItems, departments, onClear, onRemoveIte
       } else if (!smtp.host) {
         toast({ variant: "destructive", title: "Peringatan", description: "Konfigurasi SMTP belum diatur. Email notifikasi tidak dikirim." });
       } else {
+        const title = requestType === "in" ? "Permintaan Barang Masuk (Stock In)" : "Permintaan Barang Keluar (Stock Out)";
         const htmlContent = `
           <div style="font-family: sans-serif; padding: 20px;">
-            <h2 style="color: #ea580c;">Permintaan Barang Baru (Warehouse)</h2>
+            <h2 style="color: #ea580c;">${title}</h2>
             <p><strong>Peminta:</strong> ${requestData.requesterName}</p>
-            <p><strong>Departemen:</strong> ${requestData.requestDept}</p>
+            ${requestType === "out" ? `<p><strong>Departemen:</strong> ${requestData.requestDept}</p>` : `<p><strong>Supplier:</strong> ${requestData.supplier}</p><p><strong>No PO/SJ:</strong> ${requestData.poNumber || '-'}</p>`}
             <p><strong>Waktu:</strong> ${new Date().toLocaleString('id-ID')}</p>
             <br/>
             <table style="width: 100%; border-collapse: collapse;">
@@ -158,7 +187,7 @@ export function WarehouseCart({ selectedItems, departments, onClear, onRemoveIte
           body: JSON.stringify({
             smtp: smtp,
             to: emails,
-            subject: `[Warehouse Request] Permintaan Barang dari ${requestData.requestDept}`,
+            subject: `[Warehouse Request] ${requestType === 'in' ? 'Stock In dari ' + requestData.supplier : 'Stock Out ke ' + requestData.requestDept}`,
             html: htmlContent,
             action: 'send'
           })
@@ -194,19 +223,82 @@ export function WarehouseCart({ selectedItems, departments, onClear, onRemoveIte
             </button>
           </div>
           <div className="p-4 max-h-[50vh] overflow-y-auto space-y-4">
-            <div className="space-y-1">
-              <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Departemen Peminta</Label>
-              <Select value={requestDept} onValueChange={setRequestDept}>
-                <SelectTrigger className="border-orange-200 focus:ring-orange-500">
-                  <SelectValue placeholder="Pilih Departemen..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {departments.map((dept) => (
-                    <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            
+            <div className="flex gap-2 p-1 bg-slate-100 rounded-lg">
+              <button 
+                type="button"
+                onClick={() => setRequestType("out")}
+                className={`flex-1 text-xs font-bold py-2 rounded-md transition-all ${requestType === 'out' ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                Stock Out
+              </button>
+              <button 
+                type="button"
+                onClick={() => setRequestType("in")}
+                className={`flex-1 text-xs font-bold py-2 rounded-md transition-all ${requestType === 'in' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                Stock In
+              </button>
             </div>
+
+            <div className="space-y-3 bg-slate-50 p-3 rounded-lg border border-slate-100">
+              <div className="space-y-1">
+                <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Nama Peminta</Label>
+                <Input 
+                  value={requesterNameInput} 
+                  onChange={e => setRequesterNameInput(e.target.value)} 
+                  placeholder="Nama Lengkap..." 
+                  className="bg-white"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Email (Untuk Tanda Terima)</Label>
+                <Input 
+                  value={requesterEmailInput} 
+                  onChange={e => setRequesterEmailInput(e.target.value)} 
+                  placeholder="email@perusahaan.com" 
+                  type="email"
+                  className="bg-white"
+                />
+              </div>
+            </div>
+
+            {requestType === "out" ? (
+              <div className="space-y-1">
+                <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Departemen Peminta</Label>
+                <Select value={requestDept} onValueChange={setRequestDept}>
+                  <SelectTrigger className="border-orange-200 focus:ring-orange-500">
+                    <SelectValue placeholder="Pilih Departemen..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map((dept) => (
+                      <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Supplier</Label>
+                  <Input 
+                    value={supplier} 
+                    onChange={e => setSupplier(e.target.value)} 
+                    placeholder="Contoh: PT. Bintang..." 
+                    className="border-green-200 focus-visible:ring-green-500"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">No. PO / Surat Jalan</Label>
+                  <Input 
+                    value={poNumber} 
+                    onChange={e => setPoNumber(e.target.value)} 
+                    placeholder="Opsional" 
+                    className="border-green-200 focus-visible:ring-green-500"
+                  />
+                </div>
+              </div>
+            )}
             
             <div className="space-y-3 mt-4">
               {selectedItems.map((item) => {
