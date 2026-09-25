@@ -114,14 +114,22 @@ function CustomerSendContent() {
   
   const [email, setEmail] = useState('');
   const [customSenderName, setCustomSenderName] = useState('');
-  const [emailSubject, setEmailSubject] = useState('');
-  const [emailBody, setEmailBody] = useState('');
+  const [emailStates, setEmailStates] = useState<Record<string, { subject: string, body: string }>>({});
+  
+  const emailSubject = emailStates[designId]?.subject || '';
+  const emailBody = emailStates[designId]?.body || '';
+
+  const handleSetEmailSubject = (val: string) => setEmailStates(prev => ({ ...prev, [designId]: { ...(prev[designId] || { body: '' }), subject: val } }));
+  const handleSetEmailBody = (val: string) => setEmailStates(prev => ({ ...prev, [designId]: { ...(prev[designId] || { subject: '' }), body: val } }));
   const [expiresIn, setExpiresIn] = useState('1'); // Days
-  const [isUploading, setIsUploading] = useState(false);
+  const [uploadingState, setUploadingState] = useState<Record<string, { isUploading: boolean, progress: number }>>({});
   const [isSending, setIsSending] = useState(false);
   const [allIds, setAllIds] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const activeDesignIdRef = useRef<string>(designId);
+
+  const isUploading = uploadingState[designId]?.isUploading || false;
+  const uploadProgress = uploadingState[designId]?.progress || 0;
 
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [isContactDialogOpen, setIsContactDialogOpen] = useState(false);
@@ -131,6 +139,7 @@ function CustomerSendContent() {
   const [isSavingContact, setIsSavingContact] = useState(false);
 
   useEffect(() => {
+    activeDesignIdRef.current = designId;
     if (designId) {
       fetchData();
     }
@@ -212,16 +221,18 @@ function CustomerSendContent() {
         setDesign(dData);
         
         const fileName = (dData as any).originalFileName || `${dData.designNo} - ${dData.itemName}`;
-        if (!emailSubject) setEmailSubject(`Download File: ${fileName}`);
-        if (!emailBody) setEmailBody(
-`Yth. Customer,
-
-Berikut adalah tautan untuk mengunduh file ${fileName}.
-
-Silakan klik tombol di bawah untuk memulai unduhan.
-
-Salam hangat,
-Tim Desain`);
+        setEmailStates(prev => {
+          if (!prev[designId]) {
+            return {
+              ...prev,
+              [designId]: {
+                subject: `Download File: ${fileName}`,
+                body: `Yth. Customer,\n\nBerikut adalah tautan untuk mengunduh file ${fileName}.\n\nSilakan klik tombol di bawah untuk memulai unduhan.\n\nSalam hangat,\nTim Desain`
+              }
+            };
+          }
+          return prev;
+        });
       }
 
       // Fetch links
@@ -249,8 +260,8 @@ Tim Desain`);
     setLoading(false);
   };
 
-  const uploadToDriveResumable = async (file: File): Promise<string> => {
-    setUploadProgress(10);
+  const uploadToDriveResumable = async (file: File, targetDesignId: string): Promise<string> => {
+    setUploadingState(prev => ({ ...prev, [targetDesignId]: { isUploading: true, progress: 10 } }));
     // Init
     const token = await auth.currentUser?.getIdToken();
     const initRes = await fetch(getApiUrl('/api/upload-drive'), {
@@ -272,7 +283,7 @@ Tim Desain`);
     const uploadUrl = initData.uploadUrl;
 
     // Upload bytes (Bypass Vercel, directly to Google Drive)
-    setUploadProgress(10);
+    setUploadingState(prev => ({ ...prev, [targetDesignId]: { isUploading: true, progress: 10 } }));
     const uploadRes = await fetch(uploadUrl, {
       method: 'PUT',
       headers: { 'Content-Type': file.type },
@@ -283,7 +294,7 @@ Tim Desain`);
       throw new Error('Gagal mengunggah file. Status: ' + uploadRes.status);
     }
     
-    setUploadProgress(90);
+    setUploadingState(prev => ({ ...prev, [targetDesignId]: { isUploading: true, progress: 90 } }));
     const result = await uploadRes.json();
     
     // Finish permissions
@@ -296,7 +307,7 @@ Tim Desain`);
       },
       body: JSON.stringify({ action: 'finish', fileId: result.id })
     });
-    setUploadProgress(100);
+    setUploadingState(prev => ({ ...prev, [targetDesignId]: { isUploading: true, progress: 100 } }));
     return result.id;
   };
 
@@ -309,35 +320,39 @@ Tim Desain`);
       return;
     }
 
-    setIsUploading(true);
-    setUploadProgress(0);
+    const currentDesignId = designId;
+    setUploadingState(prev => ({ ...prev, [currentDesignId]: { isUploading: true, progress: 0 } }));
+    
     try {
-      const fileId = await uploadToDriveResumable(file);
-      await updateDoc(doc(db, 'register_design', designId), {
+      const fileId = await uploadToDriveResumable(file, currentDesignId);
+      await updateDoc(doc(db, 'register_design', currentDesignId), {
         originalFileId: fileId,
         originalFileName: file.name
       });
-      setDesign(prev => prev ? { ...prev, originalFileId: fileId, originalFileName: file.name } as any : null);
       
-      // Auto update subject and body when a new file is uploaded
-      setEmailSubject(`Download File: ${file.name}`);
-      setEmailBody(
-`Yth. Customer,
+      if (activeDesignIdRef.current === currentDesignId) {
+        setDesign(prev => prev ? { ...prev, originalFileId: fileId, originalFileName: file.name } as any : null);
+        
+        // Auto update subject and body when a new file is uploaded
+        setEmailStates(prev => ({
+          ...prev,
+          [currentDesignId]: {
+            subject: `Download File: ${file.name}`,
+            body: `Yth. Customer,\n\nBerikut adalah tautan untuk mengunduh file ${file.name}.\n\nSilakan klik tombol di bawah untuk memulai unduhan.\n\nSalam hangat,\nTim Desain`
+          }
+        }));
 
-Berikut adalah tautan untuk mengunduh file ${file.name}.
-
-Silakan klik tombol di bawah untuk memulai unduhan.
-
-Salam hangat,
-Tim Desain`);
-
-      toast({ title: 'Berhasil', description: 'File original berhasil diunggah.' });
+        toast({ title: 'Berhasil', description: 'File original berhasil diunggah.' });
+      } else {
+        toast({ title: 'Berhasil', description: `File berhasil diunggah.` });
+      }
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Gagal Upload', description: error.message });
     } finally {
-      setIsUploading(false);
-      setUploadProgress(0);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      setUploadingState(prev => ({ ...prev, [currentDesignId]: { isUploading: false, progress: 0 } }));
+      if (fileInputRef.current && activeDesignIdRef.current === currentDesignId) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -875,7 +890,7 @@ Tim Desain`);
                   <Label className="text-xs font-bold text-slate-500 dark:text-slate-400 tracking-wider">Subjek Email</Label>
                   <Input 
                     value={emailSubject} 
-                    onChange={e => setEmailSubject(e.target.value)}
+                    onChange={e => handleSetEmailSubject(e.target.value)}
                     className="h-11 rounded-xl bg-slate-50/50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 focus-visible:ring-purple-500"
                   />
                 </div>
@@ -896,7 +911,7 @@ Tim Desain`);
                   </div>
                   <Textarea 
                     value={emailBody} 
-                    onChange={e => setEmailBody(e.target.value)}
+                    onChange={e => handleSetEmailBody(e.target.value)}
                     className="bg-slate-50/50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-xl resize-none focus-visible:ring-purple-500 min-h-[160px]"
                   />
                   <p className="text-[10px] text-slate-400 flex items-center gap-1 mt-1">
