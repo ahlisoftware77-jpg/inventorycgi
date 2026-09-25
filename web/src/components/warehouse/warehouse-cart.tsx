@@ -181,21 +181,26 @@ export function WarehouseCart({ selectedItems, departments, onClear, onRemoveIte
           return '/api/send-email';
         };
 
-        const res = await fetch(getApiUrl(), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            smtp: smtp,
-            to: emails,
-            subject: `[Warehouse Request] ${requestType === 'in' ? 'Stock In dari ' + requestData.supplier : 'Stock Out ke ' + requestData.requestDept}`,
-            html: htmlContent,
-            action: 'send'
-          })
-        });
-        
-        if (!res.ok) {
-           console.error("Gagal mengirim email:", await res.text());
-           toast({ variant: "destructive", title: "Gagal Kirim Email", description: "Terjadi kesalahan pada server SMTP saat mengirim." });
+        try {
+          const res = await fetch(getApiUrl(), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              smtp: smtp,
+              to: emails,
+              subject: `[Warehouse Request] ${requestType === 'in' ? 'Stock In dari ' + requestData.supplier : 'Stock Out ke ' + requestData.requestDept}`,
+              html: htmlContent,
+              action: 'send'
+            })
+          });
+          
+          if (!res.ok) {
+             console.error("Gagal mengirim email:", await res.text());
+             toast({ variant: "destructive", title: "Gagal Kirim Email", description: "Terjadi kesalahan pada server SMTP saat mengirim." });
+          }
+        } catch (emailErr) {
+          console.error("Gagal terhubung ke API email:", emailErr);
+          toast({ variant: "destructive", title: "Gagal Kirim Email", description: "Tidak dapat terhubung ke server pengiriman email (CORS/Jaringan)." });
         }
       }
 
