@@ -577,16 +577,19 @@ function CustomerSendContent() {
     }
   };
 
-  if (loading) {
-    return <DashboardLayout><div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-blue-500 w-8 h-8" /></div></DashboardLayout>;
-  }
-
-  if (!design) {
-    return <DashboardLayout><div className="p-8 text-center text-red-500 font-bold">Desain tidak ditemukan.</div></DashboardLayout>;
-  }
-
   return (
     <DashboardLayout>
+      <input
+        type="file"
+        ref={fileInputRef}
+        className="hidden"
+        onChange={handleFileUpload}
+      />
+      {loading ? (
+        <div className="flex h-[calc(100vh-4rem)] items-center justify-center"><Loader2 className="animate-spin text-blue-500 w-8 h-8" /></div>
+      ) : !design ? (
+        <div className="p-8 text-center text-red-500 font-bold">Desain tidak ditemukan.</div>
+      ) : (
       <div className="p-2 min-h-[calc(100vh-4rem)] w-full max-w-[1600px] mx-auto bg-gradient-to-br from-indigo-50/60 via-purple-50/40 to-pink-50/50 dark:from-indigo-950/30 dark:via-purple-950/20 dark:to-pink-950/30 relative overflow-hidden">
         {/* Decorative ambient blurred orbs */}
         <div className="absolute top-[-10%] left-[-5%] w-[500px] h-[500px] bg-blue-400/20 dark:bg-blue-600/10 rounded-full blur-[100px] pointer-events-none animate-pulse" style={{ animationDuration: '8s' }}></div>
@@ -758,13 +761,6 @@ function CustomerSendContent() {
                 ) : (
                   <div className="space-y-4">
                     <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl p-8 text-center hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:border-blue-400 dark:hover:border-blue-500 transition-all duration-300 group cursor-pointer" onClick={() => !isUploading && fileInputRef.current?.click()}>
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        className="hidden"
-                        onChange={handleFileUpload}
-                        disabled={isUploading}
-                      />
                       <div className="w-16 h-16 mx-auto bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/30 transition-all duration-300">
                         <Upload className="w-7 h-7 text-slate-400 group-hover:text-blue-500 transition-colors" />
                       </div>
@@ -1050,6 +1046,7 @@ function CustomerSendContent() {
           </div>
         </div>
       </div>
+      )}
     </DashboardLayout>
   );
 }
