@@ -136,8 +136,8 @@ export function WarehouseExportButton({ items }: WarehouseExportButtonProps) {
   };
 
   return (
-    <Button variant="outline" className="border-slate-200 hover:bg-slate-100 font-bold" onClick={handleExport}>
-      <Download className="w-4 h-4 mr-2" />
+    <Button variant="outline" className="border-slate-200 hover:bg-slate-100 text-slate-700 w-full justify-center font-bold text-xs h-9" onClick={handleExport}>
+      <Download className="w-4 h-4 mr-2 text-green-600" />
       Export Excel
     </Button>
   );

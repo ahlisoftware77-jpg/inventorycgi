@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase/config';
@@ -17,7 +17,7 @@ import { WarehouseArchiveDialog } from "@/components/warehouse/warehouse-archive
 import { WarehouseRequestsDialog } from "@/components/warehouse/warehouse-requests-dialog";
 import { printWarehouseOpname } from "@/components/warehouse/warehouse-print-opname";
 import { Button } from '@/components/ui/button';
-import { PackageSearch, Loader2, Share2, Printer } from 'lucide-react';
+import { PackageSearch, Loader2, Share2, Printer, ChevronDown, ListPlus } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
@@ -55,6 +55,19 @@ export default function WarehousePage() {
   const router = useRouter();
   const [items, setItems] = useState<WarehouseItem[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
   const [searchTerm, setSearchTerm] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('warehouseSearchTerm') || '';
@@ -168,79 +181,103 @@ export default function WarehousePage() {
             General & Spare Part Report Opname
           </p>
         </div>
-
-        <div className="flex flex-wrap items-center gap-2 justify-end">
-          {canManageMaster && (
-            <div className="flex items-center gap-2 p-1 bg-white border border-slate-200 rounded-xl shadow-sm">
-              <WarehouseFormDialog />
-              <WarehouseRequestsDialog />
-            </div>
-          )}
-          
-          {canImportExport && (
-            <div className="flex items-center gap-2 p-1 bg-white border border-slate-200 rounded-xl shadow-sm">
-              <WarehouseImportButton />
-              <WarehouseExportButton items={filteredItems} />
-              <Button onClick={() => printWarehouseOpname(filteredItems)} variant="outline" size="sm" className="border-blue-200 text-blue-700 hover:bg-blue-50 h-8 text-xs">
-                <Printer className="w-3.5 h-3.5 mr-1" /> Print Opname
-              </Button>
-            </div>
-          )}
-
-          {canViewReports && (
-            <div className="flex items-center gap-2 p-1 bg-white border border-slate-200 rounded-xl shadow-sm">
-              <WarehouseReportInDialog items={filteredItems} />
-              <WarehouseReportDialog items={filteredItems} />
-            </div>
-          )}
-
-          <div className="flex items-center gap-2 p-1 bg-white border border-slate-200 rounded-xl shadow-sm">
-            {canManageMaster && <WarehouseShareDialog />}
-            {(canManageMaster || canViewReports) && <WarehouseArchiveDialog />}
-            <WarehouseClosingDialog items={items} />
-          </div>
-        </div>
       </div>
 
       <Card className="border-none shadow-xl shadow-slate-200/50 rounded-xl overflow-hidden bg-white/60 backdrop-blur-xl animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150">
         <div className="p-0.5">
-          <div className="flex flex-col sm:flex-row gap-2 mb-2 px-1 pt-1">
-            <select
-              className={cn(
-                "border border-transparent rounded-xl text-sm px-4 py-2.5 focus:outline-none focus:ring-2 transition-all shadow-sm font-semibold cursor-pointer",
-                statusFilter === 'Non Stock' ? "bg-red-100 text-red-700 hover:bg-red-200 focus:ring-red-500/20" :
-                statusFilter === 'Stock' ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200 focus:ring-emerald-500/20" :
-                "bg-slate-100 text-slate-700 hover:bg-slate-200 focus:ring-slate-500/20"
+          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2 mb-2 px-1 pt-1">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <select
+                className={cn(
+                  "border border-transparent rounded-xl text-sm px-4 py-2.5 focus:outline-none focus:ring-2 transition-all shadow-sm font-semibold cursor-pointer h-[42px]",
+                  statusFilter === 'Non Stock' ? "bg-red-100 text-red-700 hover:bg-red-200 focus:ring-red-500/20" :
+                  statusFilter === 'Stock' ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200 focus:ring-emerald-500/20" :
+                  "bg-slate-100 text-slate-700 hover:bg-slate-200 focus:ring-slate-500/20"
+                )}
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option value="Non Stock">Non Stock</option>
+                <option value="Stock">Stock</option>
+                <option value="all">Semua Status</option>
+              </select>
+
+              <select
+                className="bg-slate-100 hover:bg-slate-200 border border-transparent hover:border-slate-300 rounded-xl text-sm px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm font-semibold text-slate-700 cursor-pointer h-[42px]"
+                value={searchKey}
+                onChange={(e) => setSearchKey(e.target.value)}
+              >
+                <option value="all">Semua Kategori</option>
+                <option value="materialCode">Material Code</option>
+                <option value="materialName">Material Name</option>
+                <option value="specification">Specification</option>
+                <option value="location">Location</option>
+              </select>
+
+              <div className="relative w-full max-w-sm">
+                <PackageSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input 
+                  type="text"
+                  placeholder={`Cari ${searchKey === 'all' ? 'semua kategori' : searchKey}...`}
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm h-[42px]"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Action Buttons Grouped into Dropdown Menu and Primary Buttons */}
+            <div className="flex flex-wrap items-center gap-2 relative justify-start xl:justify-end">
+              {/* Primary Buttons outside of dropdown */}
+              {canManageMaster && (
+                <>
+                  <WarehouseFormDialog />
+                  <WarehouseRequestsDialog />
+                </>
               )}
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <option value="Non Stock">Non Stock</option>
-              <option value="Stock">Stock</option>
-              <option value="all">Semua Status</option>
-            </select>
+              <WarehouseClosingDialog items={items} />
 
-            <select
-              className="bg-slate-100 hover:bg-slate-200 border border-transparent hover:border-slate-300 rounded-xl text-sm px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm font-semibold text-slate-700 cursor-pointer"
-              value={searchKey}
-              onChange={(e) => setSearchKey(e.target.value)}
-            >
-              <option value="all">Semua Kategori</option>
-              <option value="materialCode">Material Code</option>
-              <option value="materialName">Material Name</option>
-              <option value="specification">Specification</option>
-              <option value="location">Location</option>
-            </select>
+              <div className="relative" ref={menuRef}>
+                <Button onClick={() => setIsMenuOpen(!isMenuOpen)} className="h-[42px] bg-slate-800 hover:bg-slate-900 text-white rounded-xl shadow-md px-4 font-semibold transition-all w-full sm:w-auto">
+                  <ListPlus className="w-4 h-4 mr-2" /> Aksi Lainnya <ChevronDown className={cn("ml-2 w-4 h-4 transition-transform duration-200", isMenuOpen ? "rotate-180" : "")} />
+                </Button>
+                
+                {isMenuOpen && (
+                  <div className="absolute top-12 right-0 bg-white border border-slate-200 shadow-2xl rounded-2xl p-3 z-50 w-[300px] flex flex-col gap-3 animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+                    
+                    {canImportExport && (
+                      <div className="flex flex-col gap-2 p-2.5 bg-slate-50 border border-slate-100 rounded-xl">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Import & Export</p>
+                        <div className="flex flex-col gap-1">
+                          <WarehouseImportButton />
+                          <WarehouseExportButton items={filteredItems} />
+                          <Button onClick={() => printWarehouseOpname(filteredItems)} variant="outline" size="sm" className="border-slate-200 text-slate-700 hover:bg-slate-100 w-full justify-center font-bold text-xs h-9">
+                            <Printer className="w-3.5 h-3.5 mr-2 text-indigo-600" /> Print Opname
+                          </Button>
+                        </div>
+                      </div>
+                    )}
 
-            <div className="relative w-full max-w-sm">
-              <PackageSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input 
-                type="text"
-                placeholder={`Cari ${searchKey === 'all' ? 'semua kategori' : searchKey}...`}
-                className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+                    {canViewReports && (
+                      <div className="flex flex-col gap-2 p-2.5 bg-slate-50 border border-slate-100 rounded-xl">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Pelaporan</p>
+                        <div className="flex flex-col gap-1">
+                          <WarehouseReportInDialog items={filteredItems} />
+                          <WarehouseReportDialog items={filteredItems} />
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex flex-col gap-2 p-2.5 bg-slate-50 border border-slate-100 rounded-xl">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Opsi Lainnya</p>
+                      <div className="flex flex-col gap-1">
+                        {canManageMaster && <WarehouseShareDialog />}
+                        {(canManageMaster || canViewReports) && <WarehouseArchiveDialog />}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

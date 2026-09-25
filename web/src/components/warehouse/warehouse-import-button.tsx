@@ -127,11 +127,11 @@ export function WarehouseImportButton() {
       />
       <Button 
         variant="outline" 
-        className="border-slate-200 hover:bg-slate-100 font-bold" 
+        className="border-slate-200 hover:bg-slate-100 text-slate-700 w-full justify-center font-bold text-xs h-9" 
         onClick={() => fileInputRef.current?.click()}
         disabled={isImporting}
       >
-        {isImporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+        {isImporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2 text-blue-600" />}
         Import Excel
       </Button>
     </>
