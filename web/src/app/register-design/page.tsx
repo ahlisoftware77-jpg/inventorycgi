@@ -2897,9 +2897,6 @@ export default function RegisterDesignPage() {
                   <SelectItem value="IN USE">IN USE</SelectItem>
                   <SelectItem value="IN LOCK">IN LOCK</SelectItem>
                   <SelectItem value="ARCHIVE">ARCHIVE</SelectItem>
-                  <SelectItem value="PENDING">PENDING</SelectItem>
-                  <SelectItem value="COMPLETED">COMPLETED</SelectItem>
-                  <SelectItem value="REJECTED">REJECTED</SelectItem>
                 </SelectContent>
               </Select>
               <Button variant="outline" size="sm" className="hidden sm:flex" onClick={() => {
