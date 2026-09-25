@@ -19,6 +19,7 @@ import { printWarehouseOpname } from "@/components/warehouse/warehouse-print-opn
 import { Button } from '@/components/ui/button';
 import { PackageSearch, Loader2, Share2, Printer } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 export interface WarehouseItem {
   id: string;
@@ -154,8 +155,8 @@ export default function WarehousePage() {
   }
 
   return (
-    <div className="flex-1 space-y-2 p-0.5 bg-slate-50/50 min-h-screen">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center justify-between animate-in fade-in slide-in-from-bottom-4 duration-500 px-1">
+    <div className="flex-1 space-y-2 p-0 bg-slate-50/50 min-h-screen">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center justify-between animate-in fade-in slide-in-from-bottom-4 duration-500 px-0">
         <div>
           <h2 className="text-3xl font-black tracking-tight text-slate-800 flex items-center gap-3">
             <div className="p-2.5 bg-blue-600 rounded-xl shadow-lg shadow-blue-600/20 text-white">
@@ -168,39 +169,49 @@ export default function WarehousePage() {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 justify-end">
           {canManageMaster && (
-            <>
+            <div className="flex items-center gap-2 p-1 bg-white border border-slate-200 rounded-xl shadow-sm">
               <WarehouseFormDialog />
               <WarehouseRequestsDialog />
-            </>
+            </div>
           )}
+          
           {canImportExport && (
-            <>
+            <div className="flex items-center gap-2 p-1 bg-white border border-slate-200 rounded-xl shadow-sm">
               <WarehouseImportButton />
               <WarehouseExportButton items={filteredItems} />
-              <Button onClick={() => printWarehouseOpname(filteredItems)} variant="outline" className="border-blue-200 text-blue-700 hover:bg-blue-50">
-                <Printer className="w-4 h-4 mr-2" /> Print Opname
+              <Button onClick={() => printWarehouseOpname(filteredItems)} variant="outline" size="sm" className="border-blue-200 text-blue-700 hover:bg-blue-50 h-8 text-xs">
+                <Printer className="w-3.5 h-3.5 mr-1" /> Print Opname
               </Button>
-            </>
+            </div>
           )}
+
           {canViewReports && (
-            <>
+            <div className="flex items-center gap-2 p-1 bg-white border border-slate-200 rounded-xl shadow-sm">
               <WarehouseReportInDialog items={filteredItems} />
               <WarehouseReportDialog items={filteredItems} />
-            </>
+            </div>
           )}
-          {canManageMaster && <WarehouseShareDialog />}
-          {(canManageMaster || canViewReports) && <WarehouseArchiveDialog />}
-          <WarehouseClosingDialog items={items} />
+
+          <div className="flex items-center gap-2 p-1 bg-white border border-slate-200 rounded-xl shadow-sm">
+            {canManageMaster && <WarehouseShareDialog />}
+            {(canManageMaster || canViewReports) && <WarehouseArchiveDialog />}
+            <WarehouseClosingDialog items={items} />
+          </div>
         </div>
       </div>
 
       <Card className="border-none shadow-xl shadow-slate-200/50 rounded-xl overflow-hidden bg-white/60 backdrop-blur-xl animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150">
         <div className="p-0.5">
-          <div className="flex flex-col sm:flex-row gap-2 mb-2 px-1">
+          <div className="flex flex-col sm:flex-row gap-2 mb-2 px-1 pt-1">
             <select
-              className="bg-white border border-slate-200 rounded-xl text-sm px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm font-medium text-slate-700 cursor-pointer"
+              className={cn(
+                "border border-transparent rounded-xl text-sm px-4 py-2.5 focus:outline-none focus:ring-2 transition-all shadow-sm font-semibold cursor-pointer",
+                statusFilter === 'Non Stock' ? "bg-red-100 text-red-700 hover:bg-red-200 focus:ring-red-500/20" :
+                statusFilter === 'Stock' ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200 focus:ring-emerald-500/20" :
+                "bg-slate-100 text-slate-700 hover:bg-slate-200 focus:ring-slate-500/20"
+              )}
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
@@ -210,7 +221,7 @@ export default function WarehousePage() {
             </select>
 
             <select
-              className="bg-white border border-slate-200 rounded-xl text-sm px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm font-medium text-slate-700 cursor-pointer"
+              className="bg-slate-100 hover:bg-slate-200 border border-transparent hover:border-slate-300 rounded-xl text-sm px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm font-semibold text-slate-700 cursor-pointer"
               value={searchKey}
               onChange={(e) => setSearchKey(e.target.value)}
             >
