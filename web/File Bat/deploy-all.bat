@@ -25,7 +25,7 @@ echo Menyembunyikan folder API sementara...
 move "src\app\api" "src\app\_api_temp" >nul
 
 if exist "src\app\api" (
-    echo [ERROR] Gagal menyembunyikan folder API. Kemungkinan ada terminal (misalnya npm run dev) atau VS Code yang sedang mengunci folder tersebut.
+    echo [ERROR] Gagal menyembunyikan folder API. Kemungkinan ada terminal ^(misalnya npm run dev^) atau VS Code yang sedang mengunci folder tersebut.
     echo Harap tutup terminal dev server atau tutup file di dalam folder API, lalu coba lagi.
     pause
     exit /b 1
