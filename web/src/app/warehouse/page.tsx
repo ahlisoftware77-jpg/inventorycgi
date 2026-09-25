@@ -90,8 +90,12 @@ export default function WarehousePage() {
   });
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login');
+    if (!authLoading) {
+      if (!user) {
+        router.push('/login');
+      } else if (user.role !== 'Admin' && !user.allowedPages?.includes('/warehouse')) {
+        router.push('/');
+      }
     }
   }, [user, authLoading, router]);
 

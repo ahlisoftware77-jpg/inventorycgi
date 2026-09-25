@@ -313,8 +313,7 @@ export default function SidebarNav() {
     
     let isExplicitlyAllowed = allowedPages.includes(item.href) 
       || (item.href.startsWith('/assets?') && allowedPages.includes('/assets')) 
-      || (item.href === '/workflow' && !isUserRole)
-      || item.href === '/warehouse';
+      || (item.href === '/workflow' && !isUserRole);
 
     if (item.href === '/register-design' && user?.permissions?.canAccessRegisterDesign) {
       isExplicitlyAllowed = true;

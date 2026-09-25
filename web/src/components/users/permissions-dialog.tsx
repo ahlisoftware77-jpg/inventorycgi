@@ -51,6 +51,7 @@ const allPages = [
   { label: 'Thermal Print', href: '/thermal-print-58' },
   { label: 'File Sharing', href: '/file-sharing' },
   { label: 'Customer Send', href: '/customer-send' },
+  { label: 'Warehouse', href: '/warehouse' },
 ];
 
 const actionPermissions: { key: keyof UserPermissions; label: string }[] = [
