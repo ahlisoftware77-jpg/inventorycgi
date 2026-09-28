@@ -304,6 +304,72 @@ export default function NewTicketForm({ onComplete }: NewTicketFormProps) {
         timestamp: serverTimestamp(),
       });
 
+      // Send Email Notification to Admins
+      try {
+        const getApiUrl = (path: string) => {
+          if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+            return 'https://inventorycgi.vercel.app' + path;
+          }
+          return path;
+        };
+
+        const recipientEmails = ['triyadi72@gmail.com', '00563@china-glaze.co.id'];
+        const subject = `[Helpdesk] Tiket IT Baru: ${ticketNumber}`;
+        const ticketUrl = `${window.location.origin}/helpdesk?id=${newDoc.id}`;
+        
+        const html = `
+          <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <h2 style="color: #ea580c;">Pemberitahuan Laporan IT Baru</h2>
+            <p>Halo Admin IT,</p>
+            <p>Terdapat laporan masalah IT (Helpdesk) baru dari <b>${user.displayName || user.email}</b> (Departemen: ${user.department || '-'}).</p>
+            <table style="width: 100%; max-width: 600px; border-collapse: collapse; margin-top: 15px;">
+              <tr>
+                <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; width: 120px;">Nomor Tiket</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${ticketNumber}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Kategori</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${values.category}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Prioritas</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${values.priority}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Aset Terkait</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${selectedAsset?.name || values.assetName || '-'}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Rincian Kendala</td>
+                <td style="padding: 8px; border: 1px solid #ddd;"><i>${values.description}</i></td>
+              </tr>
+            </table>
+            <p style="margin-top: 20px;">Silakan klik tombol di bawah ini untuk melihat detail tiket dan menangani masalah ini:</p>
+            <a href="${ticketUrl}" style="display: inline-block; padding: 10px 20px; background-color: #ea580c; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold;">Buka Tiket Helpdesk</a>
+            <hr style="border: none; border-top: 1px solid #eaeaea; margin: 20px 0;" />
+            <p style="font-size: 12px; color: #777;">Email ini dikirim secara otomatis oleh Sistem Inventory CGI.</p>
+          </div>
+        `;
+
+        const res = await fetch(getApiUrl('/api/send-email'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: recipientEmails,
+            subject,
+            html,
+          }),
+        });
+
+        if (!res.ok) {
+           const errorText = await res.text();
+           console.error("API send-email error:", errorText);
+           toast({ variant: 'destructive', title: 'Gagal Kirim Notifikasi Email Admin' });
+        }
+      } catch (emailErr) {
+        console.warn("Gagal mengirim notifikasi email admin:", emailErr);
+      }
+
       setLastTicket({ id: newDoc.id, number: ticketNumber, description: values.description });
       setIsSuccess(true);
       toast({ title: 'Tiket Berhasil Dibuat', description: `Nomor tiket Anda: ${ticketNumber}` });
