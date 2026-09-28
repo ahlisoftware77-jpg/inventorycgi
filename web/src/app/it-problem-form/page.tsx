@@ -249,6 +249,9 @@ export function ITProblemFormContent({ isPublic = false }: { isPublic?: boolean 
       solver: textMode.solver ? (signatures.solver) : (sigSolver.current && !sigSolver.current.isEmpty() ? sigSolver.current.toDataURL('image/png') : signatures.solver),
     };
     setSignatures(currentSigs);
+    if (currentSigs.solver && !solutionDate) {
+      setSolutionDate(new Date().toISOString().split('T')[0]);
+    }
     return currentSigs;
   };
 
@@ -279,6 +282,12 @@ export function ITProblemFormContent({ isPublic = false }: { isPublic?: boolean 
     const success = await handleSaveToFirestore(true, nextLockedState, currentSignatures);
     if (success) {
       setLockedSignatures(nextLockedState);
+      
+      // Kirim email notifikasi jika yang dikunci adalah signature solver
+      if (pendingLockRole === 'solver') {
+        sendEmailToReporter();
+      }
+
       setPendingLockRole(null);
     }
   };
@@ -291,6 +300,73 @@ export function ITProblemFormContent({ isPublic = false }: { isPublic?: boolean 
       setLockedSignatures(nextLockedState);
       setPendingUnlockRole(null);
       toast({ title: 'Kunci Dibuka' });
+    }
+  };
+
+  const sendEmailToReporter = async () => {
+    if (!reportCreatorId || reportCreatorId === 'PUBLIC_USER') return;
+
+    try {
+      const userDoc = await getDoc(doc(db, 'users', reportCreatorId));
+      if (!userDoc.exists()) return;
+      const userData = userDoc.data();
+      const reporterEmail = userData.email;
+
+      if (!reporterEmail) return;
+
+      const settingsDoc = await getDoc(doc(db, 'settings', 'general'));
+      if (!settingsDoc.exists()) return;
+      
+      const settings = settingsDoc.data();
+      if (!settings.smtp) return;
+
+      const publicUrl = currentReportId 
+          ? `${window.location.origin}/public/it-report?id=${currentReportId}`
+          : `${window.location.origin}/public/it-report`;
+
+      const subject = `Pemberitahuan: Form IT Problem ${readableTicketNumber ? `(${readableTicketNumber}) ` : ''}Telah Diselesaikan`;
+      
+      const html = `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <h2 style="color: #2563eb;">Halo, ${userData.name || 'Bapak/Ibu'}!</h2>
+          <p>Pengerjaan terkait laporan masalah IT Anda dengan departemen <b>${department}</b> telah selesai dan telah <b>ditandatangani oleh Tim IT (Solver)</b>.</p>
+          <p>Rincian Singkat Masalah: <br/><i>${problem}</i></p>
+          <p>Silakan klik tombol di bawah ini untuk melihat detail laporan dan memberikan tanda tangan Anda (sebagai Pelapor) pada form tersebut:</p>
+          <a href="${publicUrl}" style="display: inline-block; padding: 10px 20px; background-color: #2563eb; color: #ffffff; text-decoration: none; border-radius: 5px; margin: 10px 0; font-weight: bold;">Lihat & Tanda Tangani Laporan</a>
+          <p>Atau copy link berikut: <br/><a href="${publicUrl}">${publicUrl}</a></p>
+          <hr style="border: none; border-top: 1px solid #eaeaea; margin: 20px 0;" />
+          <p style="font-size: 12px; color: #777;">Email ini dikirim secara otomatis oleh Sistem Inventory CGI.</p>
+        </div>
+      `;
+
+      const getApiUrl = (path: string) => {
+        if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+          return 'https://inventorycgi.vercel.app' + path;
+        }
+        return path;
+      };
+
+      const recipientEmails = [reporterEmail, 'triyadi72@gmail.com', '00563@china-glaze.co.id'];
+
+      const res = await fetch(getApiUrl('/api/send-email'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          smtp: settings.smtp,
+          to: recipientEmails,
+          subject,
+          html,
+        }),
+      });
+
+      if (res.ok) {
+        toast({ title: 'Notifikasi Terkirim', description: 'Email pemberitahuan telah dikirim ke pelapor.' });
+      } else {
+        console.error("Gagal mengirim email pelapor", await res.text());
+        toast({ variant: 'destructive', title: 'Gagal Kirim Notifikasi', description: 'Gagal mengirim email ke pelapor.' });
+      }
+    } catch (e) {
+      console.error("Email send error", e);
     }
   };
 
@@ -813,7 +889,13 @@ export function ITProblemFormContent({ isPublic = false }: { isPublic?: boolean 
                   </div>
                   <div className={cn("border-2 border-dashed rounded-xl bg-slate-50 h-32 overflow-hidden shadow-inner relative", lockedSignatures[sig.id as keyof LockedState] && "border-amber-200")}>
                     {textMode[sig.id] ? (
-                      <Input placeholder="Nama..." value={signatures[sig.id as keyof Signatures] || ''} onChange={(e) => setSignatures(s => ({ ...s, [sig.id]: e.target.value }))} disabled={lockedSignatures[sig.id as keyof LockedState]} className="bg-transparent border-none text-center font-bold text-lg h-full" />
+                      <Input placeholder="Nama..." value={signatures[sig.id as keyof Signatures] || ''} onChange={(e) => {
+                        const val = e.target.value;
+                        setSignatures(s => ({ ...s, [sig.id]: val }));
+                        if (sig.id === 'solver' && val.trim() !== '' && !solutionDate) {
+                          setSolutionDate(new Date().toISOString().split('T')[0]);
+                        }
+                      }} disabled={lockedSignatures[sig.id as keyof LockedState]} className="bg-transparent border-none text-center font-bold text-lg h-full" />
                     ) : (
                       <>
                         {signatures[sig.id as keyof Signatures] && (getRefByRole(sig.id as any).current?.isEmpty() || lockedSignatures[sig.id as keyof LockedState]) && (
