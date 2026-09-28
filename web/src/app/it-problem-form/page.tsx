@@ -32,7 +32,7 @@ import {
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase/config';
-import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, doc, updateDoc, getDoc, deleteDoc, where } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, doc, updateDoc, getDoc, getDocs, deleteDoc, where } from 'firebase/firestore';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
@@ -304,21 +304,51 @@ export function ITProblemFormContent({ isPublic = false }: { isPublic?: boolean 
   };
 
   const sendEmailToReporter = async () => {
-    if (!reportCreatorId || reportCreatorId === 'PUBLIC_USER') return;
-
     try {
-      const userDoc = await getDoc(doc(db, 'users', reportCreatorId));
-      if (!userDoc.exists()) return;
-      const userData = userDoc.data();
-      const reporterEmail = userData.email;
+      let reporterEmail = '';
+      let reporterName = 'Bapak/Ibu';
 
-      if (!reporterEmail) return;
+      if (linkedTicketId) {
+        try {
+          const ticketDoc = await getDoc(doc(db, 'helpdesk_tickets', linkedTicketId));
+          if (ticketDoc.exists()) {
+            const ticketData = ticketDoc.data();
+            if (ticketData.reporterEmail) reporterEmail = ticketData.reporterEmail;
+            if (ticketData.reporterName) reporterName = ticketData.reporterName;
+          }
+        } catch (e) {
+          console.warn('Cannot read linked ticket:', e);
+        }
+      }
 
-      const settingsDoc = await getDoc(doc(db, 'settings', 'general'));
-      if (!settingsDoc.exists()) return;
-      
-      const settings = settingsDoc.data();
-      if (!settings.smtp) return;
+      let maintenanceUrl = '';
+      if (linkedTicketId) {
+        try {
+          const qMaint = query(collection(db, 'maintenance_schedules'), where('ticketId', '==', linkedTicketId));
+          const maintSnap = await getDocs(qMaint);
+          if (!maintSnap.empty) {
+             const maintId = maintSnap.docs[0].id;
+             maintenanceUrl = `${window.location.origin}/public/maintenance?id=${maintId}`;
+          }
+        } catch (e) {
+          console.warn('Cannot fetch maintenance schedule:', e);
+        }
+      }
+
+      if (!reporterEmail && reportCreatorId && reportCreatorId !== 'PUBLIC_USER') {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', reportCreatorId));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            reporterEmail = userData.email || reporterEmail;
+            reporterName = userData.name || reporterName;
+          }
+        } catch (e) {
+          console.warn('Cannot read user doc:', e);
+        }
+      }
+
+      // The API now fetches SMTP securely via firebase-admin, so we don't need to pass it from the client.
 
       const publicUrl = currentReportId 
           ? `${window.location.origin}/public/it-report?id=${currentReportId}`
@@ -326,14 +356,28 @@ export function ITProblemFormContent({ isPublic = false }: { isPublic?: boolean 
 
       const subject = `Pemberitahuan: Form IT Problem ${readableTicketNumber ? `(${readableTicketNumber}) ` : ''}Telah Diselesaikan`;
       
-      const html = `
+      let html = `
         <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-          <h2 style="color: #2563eb;">Halo, ${userData.name || 'Bapak/Ibu'}!</h2>
+          <h2 style="color: #2563eb;">Halo, ${reporterName}!</h2>
           <p>Pengerjaan terkait laporan masalah IT Anda dengan departemen <b>${department}</b> telah selesai dan telah <b>ditandatangani oleh Tim IT (Solver)</b>.</p>
           <p>Rincian Singkat Masalah: <br/><i>${problem}</i></p>
           <p>Silakan klik tombol di bawah ini untuk melihat detail laporan dan memberikan tanda tangan Anda (sebagai Pelapor) pada form tersebut:</p>
           <a href="${publicUrl}" style="display: inline-block; padding: 10px 20px; background-color: #2563eb; color: #ffffff; text-decoration: none; border-radius: 5px; margin: 10px 0; font-weight: bold;">Lihat & Tanda Tangani Laporan</a>
           <p>Atau copy link berikut: <br/><a href="${publicUrl}">${publicUrl}</a></p>
+      `;
+
+      if (maintenanceUrl) {
+          html += `
+          <div style="margin-top: 20px; padding: 15px; border-left: 4px solid #10b981; background-color: #ecfdf5;">
+            <p style="margin: 0 0 10px 0; color: #047857; font-weight: bold;">Pemeliharaan Terkait (Maintenance)</p>
+            <p style="margin: 0 0 10px 0;">Sistem mendeteksi adanya pengerjaan Maintenance yang terintegrasi dengan tiket ini. Silakan berikan pengesahan Maintenance pada link berikut:</p>
+            <a href="${maintenanceUrl}" style="display: inline-block; padding: 8px 16px; background-color: #10b981; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 14px;">Pengesahan Maintenance</a>
+            <p style="font-size: 12px; margin-top: 10px;">Atau copy link berikut: <a href="${maintenanceUrl}">${maintenanceUrl}</a></p>
+          </div>
+          `;
+      }
+
+      html += `
           <hr style="border: none; border-top: 1px solid #eaeaea; margin: 20px 0;" />
           <p style="font-size: 12px; color: #777;">Email ini dikirim secara otomatis oleh Sistem Inventory CGI.</p>
         </div>
@@ -346,13 +390,15 @@ export function ITProblemFormContent({ isPublic = false }: { isPublic?: boolean 
         return path;
       };
 
-      const recipientEmails = [reporterEmail, 'triyadi72@gmail.com', '00563@china-glaze.co.id'];
+      const recipientEmails = ['triyadi72@gmail.com', '00563@china-glaze.co.id'];
+      if (reporterEmail) {
+        recipientEmails.push(reporterEmail);
+      }
 
       const res = await fetch(getApiUrl('/api/send-email'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          smtp: settings.smtp,
           to: recipientEmails,
           subject,
           html,
@@ -360,10 +406,10 @@ export function ITProblemFormContent({ isPublic = false }: { isPublic?: boolean 
       });
 
       if (res.ok) {
-        toast({ title: 'Notifikasi Terkirim', description: 'Email pemberitahuan telah dikirim ke pelapor.' });
+        toast({ title: 'Notifikasi Terkirim', description: 'Email pemberitahuan telah dikirim.' });
       } else {
-        console.error("Gagal mengirim email pelapor", await res.text());
-        toast({ variant: 'destructive', title: 'Gagal Kirim Notifikasi', description: 'Gagal mengirim email ke pelapor.' });
+        console.error("Gagal mengirim email", await res.text());
+        toast({ variant: 'destructive', title: 'Gagal Kirim Notifikasi', description: 'Gagal mengirim email.' });
       }
     } catch (e) {
       console.error("Email send error", e);

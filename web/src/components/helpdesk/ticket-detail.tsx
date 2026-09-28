@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { doc, onSnapshot, updateDoc, Timestamp, arrayUnion, collection, query, where, getDocs, deleteDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, Timestamp, arrayUnion, collection, query, where, getDocs, deleteDoc, addDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { useAuth } from '@/hooks/use-auth';
 import { type HelpdeskTicket, type TicketStatus, type TicketPriority, type TicketCategory, type MaintenanceSchedule } from '@/lib/types';
@@ -35,7 +35,8 @@ import {
   Wrench,
   Clock,
   Layers,
-  ExternalLink
+  ExternalLink,
+  Mail
 } from 'lucide-react';
 import MaintenanceDetailCard from '@/components/maintenance/maintenance-detail-card';
 import Image from 'next/image';
@@ -149,6 +150,7 @@ export default function TicketDetail({ ticketId, onBack }: TicketDetailProps) {
   const [maintenanceSchedule, setMaintenanceSchedule] = useState<MaintenanceSchedule | null>(null);
   const [isMaintenanceDetailOpen, setIsMaintenanceDetailOpen] = useState(false);
   const [hasOfficialForm, setHasOfficialForm] = useState<boolean>(false);
+  const [reporterEmail, setReporterEmail] = useState<string | null>(null);
   const [linkedReportId, setLinkedReportId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
@@ -188,6 +190,16 @@ export default function TicketDetail({ ticketId, onBack }: TicketDetailProps) {
         setNewStatus(ticketData.status);
         setNewPriority(ticketData.priority || 'Normal');
         setNewCategory(ticketData.category);
+
+        if (ticketData.reporterEmail) {
+            setReporterEmail(ticketData.reporterEmail);
+        } else if (ticketData.reportedBy) {
+            getDoc(doc(db, 'users', ticketData.reportedBy)).then(userSnap => {
+                if (userSnap.exists()) {
+                    setReporterEmail(userSnap.data().email || null);
+                }
+            });
+        }
       } else {
         setTicket(null);
       }
@@ -666,6 +678,7 @@ ${adminName}`;
                 <SectionLabel title="Identitas Pelapor" />
                 <div className="space-y-3">
                     <DetailBlock label="Nama Lengkap" value={ticket.reporterName} icon={User} />
+                    {(ticket.reporterEmail || reporterEmail) && <DetailBlock label="Alamat Email" value={ticket.reporterEmail || reporterEmail} icon={Mail} />}
                     <DetailBlock label="Departemen" value={ticket.reporterDept} icon={Building} />
                 </div>
 

@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { doc, onSnapshot, collection, query, where, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { type HelpdeskTicket } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -33,7 +33,8 @@ import {
   ExternalLink,
   ShieldCheck,
   Printer,
-  X
+  X,
+  Mail
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -205,6 +206,7 @@ export default function PublicTicketView({ ticketId }: PublicTicketViewProps) {
                     <p className="text-[10px] font-black text-primary uppercase tracking-[0.3em] pl-1 border-l-2 border-primary text-left">Identitas Pelapor</p>
                     <div className="space-y-3">
                         <DetailTile label="Nama Lengkap" value={ticket.reporterName} icon={User} />
+                        {ticket.reporterEmail && <DetailTile label="Alamat Email" value={ticket.reporterEmail} icon={Mail} />}
                         <DetailTile label="Unit Kerja" value={ticket.reporterDept} icon={Building} />
                         <DetailTile label="Kategori Masalah" value={ticket.category} icon={Layers} />
                         <DetailTile label="Urgensi" value={ticket.priority || 'Normal'} icon={ShieldAlert} />

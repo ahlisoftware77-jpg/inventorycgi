@@ -280,6 +280,7 @@ export default function NewTicketForm({ onComplete }: NewTicketFormProps) {
         status: 'Menunggu',
         reportedBy: user.uid,
         reporterName: user.displayName,
+        reporterEmail: user.email || '',
         reporterDept: user.department,
         reportedAt: serverTimestamp(),
         updates: [],

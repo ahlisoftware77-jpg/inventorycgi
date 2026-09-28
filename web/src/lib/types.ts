@@ -216,6 +216,7 @@ export interface HelpdeskTicket {
   reportedBy: string; // User UID
   reportedAt: Timestamp;
   reporterName?: string; // Denormalized for display
+  reporterEmail?: string; // Denormalized for display
   reporterDept?: string; // Denormalized for display
   updates?: {
     note: string;

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
+import { db } from '@/lib/firebase-admin';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -44,21 +45,50 @@ export async function POST(request: Request) {
       action = body.action;
     }
 
-    if (!smtp || !smtp.host || !smtp.user || !smtp.pass) {
+    let smtpHost, smtpPort, smtpSecure, smtpUser, smtpPass, smtpBcc, smtpSenderName, smtpSenderEmail;
+
+    try {
+      const emailSettingsSnap = await db.collection('settings').doc('email').get();
+      if (emailSettingsSnap.exists) {
+        const data = emailSettingsSnap.data();
+        smtpHost = data?.smtpHost;
+        smtpPort = data?.smtpPort;
+        smtpSecure = data?.smtpSecure;
+        smtpUser = data?.smtpUser;
+        smtpPass = data?.smtpPass;
+        smtpBcc = data?.smtpBcc;
+        smtpSenderName = data?.smtpSenderName;
+        smtpSenderEmail = data?.smtpSenderEmail;
+      }
+    } catch (e) {
+      console.warn("Could not fetch smtp from db, falling back to payload:", e);
+    }
+
+    // Fallback to client payload
+    smtpHost = smtpHost || smtp?.host;
+    smtpPort = smtpPort || smtp?.port;
+    smtpSecure = smtpSecure !== undefined ? smtpSecure : smtp?.secure;
+    smtpUser = smtpUser || smtp?.user;
+    smtpPass = smtpPass || smtp?.pass;
+    smtpBcc = smtpBcc || smtp?.bcc;
+    smtpSenderName = smtpSenderName || smtp?.senderName;
+    smtpSenderEmail = smtpSenderEmail || smtp?.senderEmail;
+
+    if (!smtpHost || !smtpUser || !smtpPass) {
       return NextResponse.json({ error: 'Incomplete SMTP configuration provided.' }, { status: 400, headers: corsHeaders });
     }
 
-    const port = Number(smtp.port) || 465;
-    const isSecure = smtp.secure !== undefined ? Boolean(smtp.secure) : (port === 465);
+    const port = Number(smtpPort) || 465;
+    const isSecure = smtpSecure !== undefined ? Boolean(smtpSecure) : (port === 465);
 
     // Initialize nodemailer transporter
     const transporter = nodemailer.createTransport({
-      host: smtp.host,
+      host: smtpHost,
       port: port,
       secure: isSecure,
       auth: {
-        user: smtp.user,
-        pass: smtp.pass,
+        user: smtpUser,
+        pass: smtpPass,
       },
       tls: {
         rejectUnauthorized: false, // useful for custom SMTP with self-signed certs
@@ -77,8 +107,8 @@ export async function POST(request: Request) {
 
     // Send emails (using bcc to hide recipient list from each other if multiple)
     let bccList = to.length > 1 ? to.join(', ') : '';
-    if (smtp.bcc) {
-      bccList = bccList ? `${bccList}, ${smtp.bcc}` : smtp.bcc;
+    if (smtpBcc) {
+      bccList = bccList ? `${bccList}, ${smtpBcc}` : smtpBcc;
     }
 
     // Handle Base64 inline images for Gmail compatibility
@@ -102,8 +132,8 @@ export async function POST(request: Request) {
     }
 
     const mailOptions: any = {
-      from: { name: smtp.senderName || 'Admin', address: smtp.senderEmail || smtp.user },
-      to: to.length === 1 ? to[0] : (smtp.senderEmail || smtp.user),
+      from: { name: smtpSenderName || 'Admin', address: smtpSenderEmail || smtpUser },
+      to: to.length === 1 ? to[0] : (smtpSenderEmail || smtpUser),
       bcc: bccList || undefined,
       subject: subject,
       html: finalHtml,
