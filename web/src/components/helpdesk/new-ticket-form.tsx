@@ -364,10 +364,13 @@ export default function NewTicketForm({ onComplete }: NewTicketFormProps) {
         if (!res.ok) {
            const errorText = await res.text();
            console.error("API send-email error:", errorText);
-           toast({ variant: 'destructive', title: 'Gagal Kirim Notifikasi Email Admin' });
+           toast({ variant: 'destructive', title: 'Gagal Kirim Notifikasi Email Admin', description: 'Tiket berhasil dibuat, tetapi email notifikasi admin gagal terkirim.' });
+        } else {
+           toast({ title: 'Notifikasi Admin Terkirim', description: 'Email pemberitahuan berhasil dikirim ke Admin IT.' });
         }
       } catch (emailErr) {
         console.warn("Gagal mengirim notifikasi email admin:", emailErr);
+        toast({ variant: 'destructive', title: 'Gagal Kirim Notifikasi Email Admin', description: 'Terjadi kesalahan sistem saat menghubungi server email.' });
       }
 
       setLastTicket({ id: newDoc.id, number: ticketNumber, description: values.description });
