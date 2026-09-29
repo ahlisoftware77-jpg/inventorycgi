@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
-import { db } from '@/lib/firebase-admin';
+import { db } from '@/lib/firebase/config';
+import { doc, getDoc } from 'firebase/firestore';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -48,8 +49,9 @@ export async function POST(request: Request) {
     let smtpHost, smtpPort, smtpSecure, smtpUser, smtpPass, smtpBcc, smtpSenderName, smtpSenderEmail;
 
     try {
-      const emailSettingsSnap = await db.collection('settings').doc('email').get();
-      if (emailSettingsSnap.exists) {
+      const emailSettingsRef = doc(db, 'settings', 'email');
+      const emailSettingsSnap = await getDoc(emailSettingsRef);
+      if (emailSettingsSnap.exists()) {
         const data = emailSettingsSnap.data();
         if (data?.smtpProvider === 'custom') {
           smtpHost = data?.customHost;
