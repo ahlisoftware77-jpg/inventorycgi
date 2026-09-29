@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
-import { db } from '@/lib/firebase/config';
-import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase-admin';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -49,9 +48,8 @@ export async function POST(request: Request) {
     let smtpHost, smtpPort, smtpSecure, smtpUser, smtpPass, smtpBcc, smtpSenderName, smtpSenderEmail;
 
     try {
-      const emailSettingsRef = doc(db, 'settings', 'email');
-      const emailSettingsSnap = await getDoc(emailSettingsRef);
-      if (emailSettingsSnap.exists()) {
+      const emailSettingsSnap = await db.collection('settings').doc('email').get();
+      if (emailSettingsSnap.exists) {
         const data = emailSettingsSnap.data();
         if (data?.smtpProvider === 'custom') {
           smtpHost = data?.customHost;
@@ -126,11 +124,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No recipients provided.' }, { status: 400, headers: corsHeaders });
     }
 
-    // Send emails (using bcc to hide recipient list from each other if multiple)
-    let bccList = to.length > 1 ? to.join(', ') : '';
-    if (smtpBcc) {
-      bccList = bccList ? `${bccList}, ${smtpBcc}` : smtpBcc;
-    }
+    let bccList = smtpBcc || undefined;
 
     // Handle Base64 inline images for Gmail compatibility
     let finalHtml = html;
@@ -154,8 +148,8 @@ export async function POST(request: Request) {
 
     const mailOptions: any = {
       from: { name: smtpSenderName || 'Admin', address: smtpSenderEmail || smtpUser },
-      to: to.length === 1 ? to[0] : (smtpSenderEmail || smtpUser),
-      bcc: bccList || undefined,
+      to: to.join(', '),
+      bcc: bccList,
       subject: subject,
       html: finalHtml,
     };
