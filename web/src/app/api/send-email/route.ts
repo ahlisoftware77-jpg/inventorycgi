@@ -49,40 +49,47 @@ export async function POST(request: Request) {
     try {
       const { db } = await import('@/lib/firebase-admin');
       if (db) {
-        const emailSettingsSnap = await db.collection('settings').doc('email').get();
-        if (emailSettingsSnap.exists) {
-          const data = emailSettingsSnap.data();
-        if (data?.smtpProvider === 'custom') {
-          smtpHost = data?.customHost;
-          smtpPort = data?.customPort;
-          smtpSecure = data?.customSecure;
-          smtpUser = data?.customUser;
-          smtpPass = data?.customPass;
-          smtpSenderName = data?.customSenderName;
-          smtpSenderEmail = data?.customSenderEmail;
-        } else if (data?.smtpProvider === 'gmail') {
-          smtpHost = 'smtp.gmail.com';
-          smtpPort = 465;
-          smtpSecure = true;
-          smtpUser = data?.gmailUser;
-          smtpPass = data?.gmailPass;
-          smtpSenderName = data?.gmailSenderName;
-          smtpSenderEmail = data?.gmailUser;
-        } else {
-          // Fallback to legacy structure
-          smtpHost = data?.smtpHost;
-          smtpPort = data?.smtpPort;
-          smtpSecure = data?.smtpSecure;
-          smtpUser = data?.smtpUser;
-          smtpPass = data?.smtpPass;
-          smtpBcc = data?.smtpBcc;
-          smtpSenderName = data?.smtpSenderName;
-          smtpSenderEmail = data?.smtpSenderEmail;
+        try {
+          const emailSettingsSnap = await db.collection('settings').doc('email').get();
+          if (emailSettingsSnap.exists) {
+            const data = emailSettingsSnap.data();
+            if (data?.smtpProvider === 'custom') {
+              smtpHost = data?.customHost;
+              smtpPort = data?.customPort;
+              smtpSecure = data?.customSecure;
+              smtpUser = data?.customUser;
+              smtpPass = data?.customPass;
+              smtpSenderName = data?.customSenderName;
+              smtpSenderEmail = data?.customSenderEmail;
+            } else if (data?.smtpProvider === 'gmail') {
+              smtpHost = 'smtp.gmail.com';
+              smtpPort = 465;
+              smtpSecure = true;
+              smtpUser = data?.gmailUser;
+              smtpPass = data?.gmailPass;
+              smtpSenderName = data?.gmailSenderName;
+              smtpSenderEmail = data?.gmailUser;
+            } else {
+              // Fallback to legacy structure
+              smtpHost = data?.smtpHost;
+              smtpPort = data?.smtpPort;
+              smtpSecure = data?.smtpSecure;
+              smtpUser = data?.smtpUser;
+              smtpPass = data?.smtpPass;
+              smtpBcc = data?.smtpBcc;
+              smtpSenderName = data?.smtpSenderName;
+              smtpSenderEmail = data?.smtpSenderEmail;
+            }
+          }
+        } catch (fetchError: any) {
+          return NextResponse.json({ error: 'Incomplete SMTP configuration provided.', details: 'Firestore fetch error: ' + fetchError.message }, { status: 400, headers: corsHeaders });
         }
-        }
+      } else {
+        return NextResponse.json({ error: 'Incomplete SMTP configuration provided.', details: 'Firebase Admin DB is null. Check FIREBASE_PRIVATE_KEY format on Vercel.' }, { status: 400, headers: corsHeaders });
       }
-    } catch (e) {
+    } catch (e: any) {
       console.warn("Could not fetch smtp from db, falling back to payload:", e);
+      return NextResponse.json({ error: 'Incomplete SMTP configuration provided.', details: 'Exception during Firebase Admin load: ' + e.message }, { status: 400, headers: corsHeaders });
     }
 
     // Fallback to client payload
