@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
-import { db } from '@/lib/firebase-admin';
+// import { db } from '@/lib/firebase-admin';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -158,3 +158,4 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Failed to send email', details: error.message }, { status: 500, headers: corsHeaders });
   }
 }
+
