@@ -28,6 +28,13 @@ export default function CustomerSendPreviewPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { user } = useAuth();
+
+  const getApiUrl = (path: string) => {
+    if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+      return `https://inventorycgi.vercel.app${path}`;
+    }
+    return path;
+  };
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   
@@ -130,7 +137,7 @@ export default function CustomerSendPreviewPage() {
     try {
       if (folderId) {
         // Hapus folder di Google Drive
-        await fetch('/api/upload-drive', {
+        await fetch(getApiUrl('/api/upload-drive'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'delete', fileId: folderId })
@@ -170,7 +177,7 @@ export default function CustomerSendPreviewPage() {
         </div>
       `;
 
-      const emailRes = await fetch('/api/send-email', {
+      const emailRes = await fetch(getApiUrl('/api/send-email'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -221,7 +228,7 @@ export default function CustomerSendPreviewPage() {
 
       // 2. Buat sub-folder baru di Google Drive untuk transaksi ini
       const folderName = `Transfer: ${subject} - ${new Date().getTime()}`;
-      const createFolderRes = await fetch('/api/upload-drive', {
+      const createFolderRes = await fetch(getApiUrl('/api/upload-drive'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'createFolder', folderName, parentFolderId })
@@ -253,7 +260,7 @@ export default function CustomerSendPreviewPage() {
           currentPath += (currentPath ? '/' : '') + part;
           if (!folderMap.has(currentPath)) {
             setCurrentFileName(`Membuat folder: ${part}...`);
-            const res = await fetch('/api/upload-drive', {
+            const res = await fetch(getApiUrl('/api/upload-drive'), {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ action: 'createFolder', folderName: part, parentFolderId: currentParent })
@@ -261,7 +268,7 @@ export default function CustomerSendPreviewPage() {
             const data = await res.json();
             
             // Set folder permission to public reader so contents inside can be accessed if needed
-            await fetch('/api/upload-drive', {
+            await fetch(getApiUrl('/api/upload-drive'), {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ action: 'finish', fileId: data.folderId })
@@ -273,7 +280,7 @@ export default function CustomerSendPreviewPage() {
         }
         
         // Init Upload
-        const initRes = await fetch('/api/upload-drive', {
+        const initRes = await fetch(getApiUrl('/api/upload-drive'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
@@ -314,7 +321,7 @@ export default function CustomerSendPreviewPage() {
         });
 
         // Finish upload to set permissions
-        const finishRes = await fetch('/api/upload-drive', {
+        const finishRes = await fetch(getApiUrl('/api/upload-drive'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'finish', fileId: uploadResult.id })
@@ -376,7 +383,7 @@ export default function CustomerSendPreviewPage() {
           </div>
         `;
 
-        const emailRes = await fetch('/api/send-email', {
+        const emailRes = await fetch(getApiUrl('/api/send-email'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
