@@ -658,6 +658,18 @@ export default function CustomerSendPreviewPage() {
                         <div>
                           <p className="font-bold text-sm text-slate-800 dark:text-slate-200">{h.subject}</p>
                           <p className="text-xs text-slate-500">{h.recipientEmail}</p>
+                          {(() => {
+                            const expiresDate = h.expiresAt ? new Date(h.expiresAt.seconds * 1000) : null;
+                            const isExpired = expiresDate ? expiresDate.getTime() < Date.now() : false;
+                            return (
+                              <div className="flex items-center gap-1 text-[10px] font-bold mt-1 text-slate-500">
+                                <Clock className="w-3 h-3" />
+                                {expiresDate ? (
+                                  isExpired ? <span className="text-rose-500">Kedaluwarsa</span> : <span>Berlaku s/d {expiresDate.toLocaleDateString('id-ID', {day: 'numeric', month: 'short', year: 'numeric'})}</span>
+                                ) : 'Tanpa batas'}
+                              </div>
+                            );
+                          })()}
                         </div>
                         <span className="text-[10px] font-bold px-2 py-1 bg-amber-100 text-amber-700 rounded-md">
                           {h.files?.length || 0} File
@@ -720,6 +732,18 @@ export default function CustomerSendPreviewPage() {
                         <div>
                           <p className="font-bold text-sm">{h.subject}</p>
                           <p className="text-xs text-muted-foreground">{h.recipientEmail}</p>
+                          {(() => {
+                            const expiresDate = h.expiresAt ? new Date(h.expiresAt.seconds * 1000) : null;
+                            const isExpired = expiresDate ? expiresDate.getTime() < Date.now() : false;
+                            return (
+                              <div className="flex items-center gap-1 text-[10px] font-bold mt-1 text-slate-500">
+                                <Clock className="w-3 h-3" />
+                                {expiresDate ? (
+                                  isExpired ? <span className="text-rose-500">Kedaluwarsa</span> : <span>Berlaku s/d {expiresDate.toLocaleDateString('id-ID', {day: 'numeric', month: 'short', year: 'numeric'})}</span>
+                                ) : 'Tanpa batas'}
+                              </div>
+                            );
+                          })()}
                         </div>
                         <span className="text-[10px] font-bold px-2 py-1 bg-blue-100 text-blue-700 rounded-md">
                           {h.files?.length || 0} File

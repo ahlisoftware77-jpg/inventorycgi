@@ -14,6 +14,13 @@ export default function CustomerSendHistoryModal() {
   const history = [...transfers, ...links].sort((a,b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
   const [isOpen, setIsOpen] = useState(false);
 
+  const getApiUrl = (path: string) => {
+    if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+      return `https://inventorycgi.vercel.app${path}`;
+    }
+    return path;
+  };
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -47,12 +54,20 @@ export default function CustomerSendHistoryModal() {
     return () => { unsub1(); unsub2(); };
   }, [isOpen]);
 
-  const handleDeleteTransfer = async (id: string, type: string = "transfer") => {
+  const handleDeleteTransfer = async (id: string, type: string = "transfer", folderId?: string) => {
     if (!confirm('Apakah Anda yakin ingin menghapus history transfer ini?')) return;
     try {
       if (type === 'link') {
         await deleteDoc(doc(db, 'customer_links', id));
       } else {
+        if (folderId) {
+          // Delete folder in Google Drive
+          await fetch(getApiUrl('/api/upload-drive'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'delete', fileId: folderId })
+          });
+        }
         await deleteDoc(doc(db, 'customer_transfers', id));
       }
       toast({ title: 'Berhasil', description: 'Riwayat transfer dihapus.' });
@@ -97,6 +112,18 @@ export default function CustomerSendHistoryModal() {
                         <p className="font-bold text-sm text-slate-800 dark:text-slate-200">{h.subject}</p>
                       </div>
                       <p className="text-xs text-slate-500 mt-1">{h.recipientEmail} &middot; {h.senderName || 'Admin'}</p>
+                      {(() => {
+                        const expiresDate = h.expiresAt ? new Date(h.expiresAt.seconds * 1000) : null;
+                        const isExpired = expiresDate ? expiresDate.getTime() < Date.now() : false;
+                        return (
+                          <div className="flex items-center gap-1 text-[10px] font-bold mt-1 text-slate-500">
+                            <Clock className="w-3 h-3" />
+                            {expiresDate ? (
+                              isExpired ? <span className="text-rose-500">Kedaluwarsa</span> : <span>Berlaku s/d {expiresDate.toLocaleDateString('id-ID', {day: 'numeric', month: 'short', year: 'numeric'})}</span>
+                            ) : 'Tanpa batas'}
+                          </div>
+                        );
+                      })()}
                     </div>
                     <span className={`text-[10px] font-bold px-2 py-1 rounded-md ${h.status === 'draft' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
                       {h.files?.length || 0} File
@@ -126,7 +153,7 @@ export default function CustomerSendHistoryModal() {
                       size="icon" 
                       variant="ghost" 
                       className="h-8 w-8 shrink-0 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10" 
-                      onClick={() => handleDeleteTransfer(h.id, h.type)}
+                      onClick={() => handleDeleteTransfer(h.id, h.type, h.folderId)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
