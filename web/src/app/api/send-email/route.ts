@@ -92,15 +92,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Incomplete SMTP configuration provided.', details: 'Exception during Firebase Admin load: ' + e.message }, { status: 400, headers: corsHeaders });
     }
 
-    // Fallback to client payload
-    smtpHost = smtpHost || smtp?.host;
-    smtpPort = smtpPort || smtp?.port;
-    smtpSecure = smtpSecure !== undefined ? smtpSecure : smtp?.secure;
-    smtpUser = smtpUser || smtp?.user;
-    smtpPass = smtpPass || smtp?.pass;
-    smtpBcc = smtpBcc || smtp?.bcc;
-    smtpSenderName = smtpSenderName || smtp?.senderName;
-    smtpSenderEmail = smtpSenderEmail || smtp?.senderEmail;
+    // Client payload overrides DB (used for testing settings before saving)
+    smtpHost = smtp?.host || smtpHost;
+    smtpPort = smtp?.port || smtpPort;
+    smtpSecure = smtp?.secure !== undefined ? smtp?.secure : (smtpSecure !== undefined ? smtpSecure : undefined);
+    smtpUser = smtp?.user || smtpUser;
+    smtpPass = smtp?.pass || smtpPass;
+    smtpBcc = smtp?.bcc || smtpBcc;
+    smtpSenderName = smtp?.senderName || smtpSenderName;
+    smtpSenderEmail = smtp?.senderEmail || smtpSenderEmail;
 
     if (!smtpHost || !smtpUser || !smtpPass) {
       return NextResponse.json({ error: 'Incomplete SMTP configuration provided.' }, { status: 400, headers: corsHeaders });
