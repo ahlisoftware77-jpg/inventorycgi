@@ -14,7 +14,9 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, DialogClose } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CustomerSendContent } from '@/app/customer-send/page';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuPortal } from '@/components/ui/dropdown-menu';
+import CustomerSendHistoryModal from '@/components/register-design/CustomerSendHistoryModal';
 
 export interface RegisterDesignItem {
   id: string;
@@ -734,6 +736,8 @@ export default function RegisterDesignPage() {
   const [isPublicAuthOpen, setIsPublicAuthOpen] = useState(false);
   const [publicPasscode, setPublicPasscode] = useState('');
   const [isPublicAuthenticated, setIsPublicAuthenticated] = useState(false);
+
+  const [sendModalId, setSendModalId] = useState<string | null>(null);
 
   const [isTrashOpen, setIsTrashOpen] = useState(false);
   const [trashData, setTrashData] = useState<any[]>([]);
@@ -2480,6 +2484,10 @@ export default function RegisterDesignPage() {
               <Button onClick={() => router.push('/register-design/gallery')} size="sm" variant="outline" className="font-semibold text-[#8b6508] bg-[#fdfaf3] dark:bg-amber-950/30 shadow-sm hover:bg-[#fcf5e3] dark:hover:bg-amber-900/40 transition-colors flex flex-1 sm:flex-none border-[#d4af37]/50">
                 <ImageIcon className="w-4 h-4 mr-1.5" /> Gallery
               </Button>
+              <Button onClick={() => router.push('/customer-send-preview')} size="sm" variant="outline" className="font-semibold text-blue-700 bg-blue-50 shadow-sm hover:bg-blue-100 transition-colors flex flex-1 sm:flex-none border-blue-200 h-9">
+                <Share2 className="w-4 h-4 mr-1.5" /> Transfer Baru
+              </Button>
+              <CustomerSendHistoryModal />
 
 
             </div>
@@ -2838,7 +2846,7 @@ export default function RegisterDesignPage() {
                                 </Button>
                               </>
                             )}
-                            <Button variant="ghost" size="icon" onClick={() => router.push(`/customer-send?id=${row.id}`)} className="h-6 w-6 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/50 hover:text-purple-700 dark:hover:text-purple-300 shadow-sm border border-purple-100 dark:border-purple-800" title="Kirim Customer">
+                            <Button variant="ghost" size="icon" onClick={() => setSendModalId(row.id)} className="h-6 w-6 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/50 hover:text-purple-700 dark:hover:text-purple-300 shadow-sm border border-purple-100 dark:border-purple-800" title="Kirim Customer">
                               <Send className="w-3.5 h-3.5" />
                             </Button>
                             <Button variant="ghost" size="icon" onClick={() => handleDeleteRow(row.id)} className="h-6 w-6 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 hover:text-red-700 dark:hover:text-red-300 shadow-sm border border-red-100 dark:border-red-800" title="Hapus Baris">
@@ -3324,6 +3332,19 @@ export default function RegisterDesignPage() {
             onMouseDown={(e) => startFillDrag(e, hoveredCell.idx, hoveredCell.field, hoveredCell.value)}
           />
         )}
+
+      <Dialog open={!!sendModalId} onOpenChange={(open) => !open && setSendModalId(null)}>
+        <DialogContent className="max-w-[98vw] w-[98vw] h-[95vh] p-0 border-none bg-transparent shadow-none rounded-3xl overflow-hidden" onInteractOutside={e => e.preventDefault()}>
+          <div className="bg-slate-50 dark:bg-slate-950 w-full h-full relative flex flex-col rounded-3xl overflow-hidden">
+            <button onClick={() => setSendModalId(null)} className="absolute top-6 right-6 z-[999] p-2 bg-white/50 dark:bg-black/50 backdrop-blur-md rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors shadow-sm border border-white/20">
+              <X className="w-6 h-6 text-slate-800 dark:text-slate-200" />
+            </button>
+            <div className="flex-1 w-full h-full overflow-y-auto custom-scrollbar">
+              {sendModalId && <CustomerSendContent designIdProp={sendModalId} isModal={true} onDesignChange={setSendModalId} />}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
     </LayoutWrapper>
   );

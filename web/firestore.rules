@@ -214,6 +214,13 @@ service cloud.firestore {
       allow read, update, delete: if request.auth != null && getUserRole(request.auth.uid) == 'Admin';
     }
 
+    match /customer_transfers/{id} {
+      allow read: if true;
+      allow create: if true;
+      allow update: if true;
+      allow delete: if request.auth != null && getUserRole(request.auth.uid) == 'Admin';
+    }
+
     match /form_app/{id} {
       allow get, list: if true;
       allow create, update: if true;

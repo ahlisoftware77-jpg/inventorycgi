@@ -30,9 +30,41 @@ export async function POST(request: Request) {
       const oauth2Client = new google.auth.OAuth2(settingsData.googleClientId, settingsData.googleClientSecret);
       oauth2Client.setCredentials({ refresh_token: settingsData.googleRefreshToken });
 
+      if (action === 'createFolder') {
+        const { folderName, parentFolderId } = body;
+        const { token } = await oauth2Client.getAccessToken();
+        
+        const metadata = {
+          name: folderName,
+          mimeType: 'application/vnd.google-apps.folder',
+          parents: [parentFolderId || settingsData.googleDriveFolderId]
+        };
+
+        const res = await fetch('https://www.googleapis.com/drive/v3/files', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + token,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(metadata)
+        });
+
+        if (!res.ok) throw new Error("Gagal membuat folder di Google Drive");
+        const folder = await res.json();
+        
+        // Buat folder bisa diakses publik (reader)
+        const drive = google.drive({ version: 'v3', auth: oauth2Client });
+        await drive.permissions.create({
+          fileId: folder.id,
+          requestBody: { role: 'reader', type: 'anyone' },
+        });
+
+        return NextResponse.json({ success: true, folderId: folder.id }, { headers: corsHeaders });
+      }
+
       if (action === 'init') {
         const { token } = await oauth2Client.getAccessToken();
-        const targetFolderId = folderType === 'original' ? settingsData.googleDriveOriginalFolderId : settingsData.googleDriveFolderId;
+        const targetFolderId = body.targetFolderId || (folderType === 'original' ? settingsData.googleDriveOriginalFolderId : settingsData.googleDriveFolderId);
         const metadata = { name: fileName, parents: [targetFolderId] };
 
         const reqOrigin = request.headers.get('origin') || 'https://inventorycgi.web.app';
@@ -59,6 +91,12 @@ export async function POST(request: Request) {
           fileId: fileId,
           requestBody: { role: 'reader', type: 'anyone' },
         });
+        return NextResponse.json({ success: true }, { headers: corsHeaders });
+      }
+
+      if (action === 'delete') {
+        const drive = google.drive({ version: 'v3', auth: oauth2Client });
+        await drive.files.delete({ fileId });
         return NextResponse.json({ success: true }, { headers: corsHeaders });
       }
     }

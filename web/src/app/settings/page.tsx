@@ -107,6 +107,7 @@ export default function SettingsPage() {
   const [googleRefreshToken, setGoogleRefreshToken] = useState('');
   const [googleDriveFolderId, setGoogleDriveFolderId] = useState('');
   const [googleDriveOriginalFolderId, setGoogleDriveOriginalFolderId] = useState('');
+  const [googleDriveCustomerPreviewFolderId, setGoogleDriveCustomerPreviewFolderId] = useState('');
   
   const [departments, setDepartments] = useState<string[]>([]);
   const [categories, setCategories] = useState<CategoryObject[]>([]);
@@ -155,6 +156,7 @@ export default function SettingsPage() {
   const [editCCDept, setEditCCDept] = useState('');
 
   const [isLoading, setIsLoading] = useState(true);
+  const [isCleaningUp, setIsCleaningUp] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
@@ -229,6 +231,7 @@ export default function SettingsPage() {
 
             setGoogleDriveFolderId(data.googleDriveFolderId || '');
             setGoogleDriveOriginalFolderId(data.googleDriveOriginalFolderId || '');
+            setGoogleDriveCustomerPreviewFolderId(data.googleDriveCustomerPreviewFolderId || '');
             setDepartments(data.departments || defaultDepts);
             setSeriesList(data.seriesList || ['Seri A', 'Seri B', 'Fasilitas']);
             setCostCenters(data.costCenters || []);
@@ -311,6 +314,24 @@ export default function SettingsPage() {
     }
   };
 
+  const handleCleanupExpired = async () => {
+    if (!confirm('Anda yakin ingin membersihkan semua file/folder yang sudah kedaluwarsa? Proses ini tidak dapat dibatalkan.')) return;
+    setIsCleaningUp(true);
+    try {
+      const res = await fetch('/api/cron/cleanup-expired');
+      const data = await res.json();
+      if (res.ok) {
+        toast({ title: 'Berhasil', description: data.message });
+      } else {
+        throw new Error(data.error || 'Gagal membersihkan file.');
+      }
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Error', description: e.message });
+    } finally {
+      setIsCleaningUp(false);
+    }
+  };
+
   const handleSaveGeneral = async () => {
     setIsSaving(true);
     try {
@@ -334,6 +355,7 @@ export default function SettingsPage() {
         googleRefreshToken,
         googleDriveFolderId,
         googleDriveOriginalFolderId,
+        googleDriveCustomerPreviewFolderId,
         mainMenuOrder: mainMenuOrder.map(m => m.id),
         systemMenuOrder: systemMenuOrder.map(m => m.id),
         warehouseRequestEmails,
@@ -1503,6 +1525,17 @@ export default function SettingsPage() {
                     />
                     <p className="text-[10px] text-slate-400">ID folder Google Drive tempat file master/original desain (bisa mencapai 2GB) akan disimpan.</p>
                   </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-widest text-slate-400">Folder ID (DESIGN COSTUMER PREVIEW)</Label>
+                    <Input 
+                      placeholder="Contoh: 1bA2c3D4e5F6g7H8i9J0kL..." 
+                      value={googleDriveCustomerPreviewFolderId} 
+                      onChange={(e) => setGoogleDriveCustomerPreviewFolderId(e.target.value)} 
+                      className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-none shadow-inner font-bold text-slate-900 dark:text-white"
+                    />
+                    <p className="text-[10px] text-slate-400">ID folder utama Google Drive tempat file transfer (fitur ala WeTransfer) akan disimpan.</p>
+                  </div>
                   
                   <div className="space-y-2">
                     <Label className="text-xs font-bold uppercase tracking-widest text-slate-400">Client ID</Label>
@@ -1558,6 +1591,19 @@ export default function SettingsPage() {
                     )}
                   </div>
                   <p className="text-[10px] text-slate-400 mt-2">Pastikan Bapak sudah menyimpan Client ID & Secret sebelum mengeklik tombol Login. Redirect URI yang diatur di GCP harus sama dengan: <b>{typeof window !== 'undefined' ? window.location.origin + '/oauth-callback' : ''}</b></p>
+                  
+                  <div className="mt-8 p-6 bg-red-50 dark:bg-red-950/20 rounded-2xl border border-red-200 dark:border-red-900/50">
+                    <h4 className="text-sm font-bold text-red-700 dark:text-red-400 mb-2">Pembersihan File Kedaluwarsa</h4>
+                    <p className="text-xs text-red-600/80 dark:text-red-400/80 mb-4">Fitur ini akan mengecek dan menghapus semua file & folder di Google Drive yang batas waktu (expired) aksesnya sudah habis, sesuai pengaturan saat pengiriman.</p>
+                    <Button 
+                      onClick={handleCleanupExpired} 
+                      disabled={isCleaningUp}
+                      className="bg-red-600 hover:bg-red-700 text-white font-bold h-11 px-6 rounded-xl shadow-lg shadow-red-500/20"
+                    >
+                      {isCleaningUp ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+                      {isCleaningUp ? 'Membersihkan...' : 'Bersihkan File Kedaluwarsa Sekarang'}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>

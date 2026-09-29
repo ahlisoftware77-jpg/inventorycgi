@@ -94,11 +94,11 @@ interface Contact {
   createdAt: any;
 }
 
-function CustomerSendContent() {
+export function CustomerSendContent({ designIdProp, isModal = false, onDesignChange }: { designIdProp?: string, isModal?: boolean, onDesignChange?: (id: string) => void }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { toast } = useToast();
-  const designId = searchParams.get('id') as string;
+  const designId = designIdProp || (searchParams.get('id') as string);
   const { user } = useAuth();
 
   const getApiUrl = (path: string) => {
@@ -577,8 +577,7 @@ function CustomerSendContent() {
     }
   };
 
-  return (
-    <DashboardLayout>
+  const content = (<>
       <input
         type="file"
         ref={fileInputRef}
@@ -599,9 +598,7 @@ function CustomerSendContent() {
         <div className="relative z-10 mb-8 space-y-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <Button variant="outline" size="icon" onClick={() => router.push('/register-design')} className="rounded-xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200 dark:border-slate-700 hover:scale-105 hover:shadow-md transition-all duration-300">
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
+              {!isModal && (<Button variant="outline" size="icon" onClick={() => router.push('/register-design')} className="rounded-xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200 dark:border-slate-700 hover:scale-105 hover:shadow-md transition-all duration-300"><ArrowLeft className="w-5 h-5" /></Button>)}
               <div>
                 <h1 className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 tracking-tight">
                   Kirim Desain Original
@@ -619,10 +616,7 @@ function CustomerSendContent() {
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  onClick={() => {
-                    const idx = allIds.indexOf(designId || '');
-                    if (idx > 0) router.push(`/customer-send?id=${allIds[idx - 1]}`);
-                  }}
+                  onClick={() => { const idx = allIds.indexOf(designId || ''); if (idx > 0) { if (onDesignChange) onDesignChange(allIds[idx - 1]); else router.push(`/customer-send?id=${allIds[idx - 1]}`); } }}
                   disabled={allIds.indexOf(designId || '') <= 0}
                   className="h-9 px-3 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-xl transition-colors disabled:opacity-30"
                 >
@@ -632,10 +626,7 @@ function CustomerSendContent() {
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  onClick={() => {
-                    const idx = allIds.indexOf(designId || '');
-                    if (idx !== -1 && idx < allIds.length - 1) router.push(`/customer-send?id=${allIds[idx + 1]}`);
-                  }}
+                  onClick={() => { const idx = allIds.indexOf(designId || ''); if (idx !== -1 && idx < allIds.length - 1) { if (onDesignChange) onDesignChange(allIds[idx + 1]); else router.push(`/customer-send?id=${allIds[idx + 1]}`); } }}
                   disabled={allIds.indexOf(designId || '') === -1 || allIds.indexOf(designId || '') === allIds.length - 1}
                   className="h-9 px-3 hover:bg-pink-50 dark:hover:bg-pink-900/30 hover:text-pink-600 dark:hover:text-pink-400 rounded-xl transition-colors disabled:opacity-30"
                 >
@@ -1047,8 +1038,9 @@ function CustomerSendContent() {
         </div>
       </div>
       )}
-    </DashboardLayout>
-  );
+  </>);
+  if (isModal) return content;
+  return <DashboardLayout>{content}</DashboardLayout>;
 }
 
 export default function CustomerSendPage() {
