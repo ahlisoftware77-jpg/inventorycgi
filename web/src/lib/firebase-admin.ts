@@ -1,6 +1,5 @@
-import { getApps, initializeApp, cert } from 'firebase-admin/app';
+import { getApps, initializeApp, cert, getApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
-import { getFirestore } from 'firebase-admin/firestore';
 
 if (!getApps().length) {
   try {
@@ -21,4 +20,4 @@ if (!getApps().length) {
 }
 
 export const auth = getApps().length ? getAuth() : null;
-export const db = getApps().length ? getFirestore() : null;
+export const db = getApps().length ? require('firebase-admin/firestore').getFirestore() : null;

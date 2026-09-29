@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
-// import { db } from '@/lib/firebase-admin';
+import { db } from '@/lib/firebase-admin';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -51,14 +51,33 @@ export async function POST(request: Request) {
       const emailSettingsSnap = await db.collection('settings').doc('email').get();
       if (emailSettingsSnap.exists) {
         const data = emailSettingsSnap.data();
-        smtpHost = data?.smtpHost;
-        smtpPort = data?.smtpPort;
-        smtpSecure = data?.smtpSecure;
-        smtpUser = data?.smtpUser;
-        smtpPass = data?.smtpPass;
-        smtpBcc = data?.smtpBcc;
-        smtpSenderName = data?.smtpSenderName;
-        smtpSenderEmail = data?.smtpSenderEmail;
+        if (data?.smtpProvider === 'custom') {
+          smtpHost = data?.customHost;
+          smtpPort = data?.customPort;
+          smtpSecure = data?.customSecure;
+          smtpUser = data?.customUser;
+          smtpPass = data?.customPass;
+          smtpSenderName = data?.customSenderName;
+          smtpSenderEmail = data?.customSenderEmail;
+        } else if (data?.smtpProvider === 'gmail') {
+          smtpHost = 'smtp.gmail.com';
+          smtpPort = 465;
+          smtpSecure = true;
+          smtpUser = data?.gmailUser;
+          smtpPass = data?.gmailPass;
+          smtpSenderName = data?.gmailSenderName;
+          smtpSenderEmail = data?.gmailUser;
+        } else {
+          // Fallback to legacy structure
+          smtpHost = data?.smtpHost;
+          smtpPort = data?.smtpPort;
+          smtpSecure = data?.smtpSecure;
+          smtpUser = data?.smtpUser;
+          smtpPass = data?.smtpPass;
+          smtpBcc = data?.smtpBcc;
+          smtpSenderName = data?.smtpSenderName;
+          smtpSenderEmail = data?.smtpSenderEmail;
+        }
       }
     } catch (e) {
       console.warn("Could not fetch smtp from db, falling back to payload:", e);
