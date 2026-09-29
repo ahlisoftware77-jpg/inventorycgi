@@ -447,9 +447,9 @@ export function CustomerSendContent({ designIdProp, isModal = false, onDesignCha
       });
 
       // 2. Fetch SMTP settings
-      const settingsDoc = await getDoc(doc(db, 'settings', 'email'));
+      const settingsDoc = await getDoc(doc(db, 'settings', 'general'));
       const emailSettings = settingsDoc.exists() ? settingsDoc.data() : null;
-      if (!emailSettings || !emailSettings.smtpHost) {
+      if (!emailSettings || (!emailSettings.smtpHost && !emailSettings.gmailUser && !emailSettings.customHost)) {
         throw new Error('Konfigurasi SMTP email belum diatur di Pengaturan.');
       }
       

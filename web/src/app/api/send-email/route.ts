@@ -50,7 +50,7 @@ export async function POST(request: Request) {
       const { db } = await import('@/lib/firebase-admin');
       if (db) {
         try {
-          const emailSettingsSnap = await db.collection('settings').doc('email').get();
+          const emailSettingsSnap = await db.collection('settings').doc('general').get();
           if (emailSettingsSnap.exists) {
             const data = emailSettingsSnap.data();
             if (data?.smtpProvider === 'custom') {
