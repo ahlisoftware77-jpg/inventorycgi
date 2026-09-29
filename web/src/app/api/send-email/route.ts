@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
-import { db } from '@/lib/firebase-admin';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -48,9 +47,11 @@ export async function POST(request: Request) {
     let smtpHost, smtpPort, smtpSecure, smtpUser, smtpPass, smtpBcc, smtpSenderName, smtpSenderEmail;
 
     try {
-      const emailSettingsSnap = await db.collection('settings').doc('email').get();
-      if (emailSettingsSnap.exists) {
-        const data = emailSettingsSnap.data();
+      const { db } = await import('@/lib/firebase-admin');
+      if (db) {
+        const emailSettingsSnap = await db.collection('settings').doc('email').get();
+        if (emailSettingsSnap.exists) {
+          const data = emailSettingsSnap.data();
         if (data?.smtpProvider === 'custom') {
           smtpHost = data?.customHost;
           smtpPort = data?.customPort;
@@ -77,6 +78,7 @@ export async function POST(request: Request) {
           smtpBcc = data?.smtpBcc;
           smtpSenderName = data?.smtpSenderName;
           smtpSenderEmail = data?.smtpSenderEmail;
+        }
         }
       }
     } catch (e) {
