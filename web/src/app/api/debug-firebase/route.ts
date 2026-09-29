@@ -14,7 +14,7 @@ export async function GET() {
   let dbStatus = 'Not Attempted';
 
   try {
-    const { db } = await import('@/lib/firebase-admin-db');
+    const { db, initError } = await import('@/lib/firebase-admin-db');
     if (db) {
       dbStatus = 'DB Initialized Successfully';
       try {
@@ -24,7 +24,7 @@ export async function GET() {
         initResult = 'DB Fetch Error: ' + dbError.message;
       }
     } else {
-      dbStatus = 'DB is null. Initialization must have failed.';
+      dbStatus = 'DB is null. InitError: ' + (initError ? (initError.message || JSON.stringify(initError)) : 'unknown');
     }
   } catch (err: any) {
     dbStatus = 'Import Error: ' + err.message;
