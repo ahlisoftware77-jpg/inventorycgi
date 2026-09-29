@@ -23,10 +23,10 @@ export async function GET(request: Request) {
     const res = await drive.files.get({ fileId: id, fields: 'thumbnailLink' });
 
     if (res.data.thumbnailLink) {
-      // Use higher resolution thumbnail (replace =s220 with =s500)
+      // Use higher resolution thumbnail (replace =s220 with =s500-c for full crop)
       let highResThumb = res.data.thumbnailLink;
       if (highResThumb.endsWith('=s220')) {
-        highResThumb = highResThumb.replace('=s220', '=s500');
+        highResThumb = highResThumb.replace('=s220', '=s500-c');
       }
 
       return new Response(null, {

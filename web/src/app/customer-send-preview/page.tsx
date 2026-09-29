@@ -314,18 +314,20 @@ export default function CustomerSendPreviewPage() {
         });
 
         // Finish upload to set permissions
-        await fetch('/api/upload-drive', {
+        const finishRes = await fetch('/api/upload-drive', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'finish', fileId: uploadResult.id })
         });
+        const finishData = await finishRes.json();
 
         uploadedFilesMetadata.push({
           id: uploadResult.id,
           name: actualFileName, // Base file name
           path: filePath, // Full relative path
           size: file.size,
-          mimeType: file.type
+          mimeType: file.type,
+          thumbnailLink: finishData.thumbnailLink || null
         });
 
         currentProgress += (90 / files.length); // Up to 95%

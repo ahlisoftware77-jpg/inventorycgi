@@ -91,7 +91,19 @@ export async function POST(request: Request) {
           fileId: fileId,
           requestBody: { role: 'reader', type: 'anyone' },
         });
-        return NextResponse.json({ success: true }, { headers: corsHeaders });
+        
+        // Coba dapatkan thumbnail link
+        let thumbnailLink = null;
+        try {
+          const res = await drive.files.get({ fileId: fileId, fields: 'thumbnailLink' });
+          if (res.data.thumbnailLink) {
+            thumbnailLink = res.data.thumbnailLink.replace('=s220', '=s500-c');
+          }
+        } catch (e) {
+          console.warn("Gagal get thumbnailLink:", e);
+        }
+
+        return NextResponse.json({ success: true, thumbnailLink }, { headers: corsHeaders });
       }
 
       if (action === 'delete') {

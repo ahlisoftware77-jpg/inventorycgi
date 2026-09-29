@@ -307,7 +307,7 @@ export default function TransferDownloadPage() {
                             >
                               {isImageOrDesign ? (
                                 <img 
-                                  src={`/api/thumbnail?id=${file.id}`} 
+                                  src={file.thumbnailLink || `/api/thumbnail?id=${file.id}`} 
                                   alt={displayFileName}
                                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 bg-white"
                                   onError={(e) => {
