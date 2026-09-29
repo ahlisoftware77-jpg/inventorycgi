@@ -132,7 +132,7 @@ const StatCard = ({ title, value, emoji, colorClass }: { title: string, value: n
     </Card>
 );
 
-const TicketItem = ({ ticket, maintenanceInfo }: { ticket: HelpdeskTicket, maintenanceInfo?: { type: string; code: string } }) => {
+const TicketItem = ({ ticket, maintenanceInfo, onUpdate }: { ticket: HelpdeskTicket, maintenanceInfo?: { type: string; code: string }, onUpdate?: () => void }) => {
     const styles = getAlertStyles(ticket.status);
     const StatusIcon = styles.icon;
     const [isOpen, setIsOpen] = useState(false);
@@ -207,7 +207,7 @@ const TicketItem = ({ ticket, maintenanceInfo }: { ticket: HelpdeskTicket, maint
                     <DialogDescription className="text-left font-medium">Melihat rincian dan progres pengerjaan tiket bantuan IT.</DialogDescription>
                 </DialogHeader>
                 <div className="flex-1 overflow-hidden">
-                    <TicketDetail ticketId={ticket.id} onBack={() => setIsOpen(false)} />
+                    <TicketDetail ticketId={ticket.id} onBack={() => { setIsOpen(false); if (onUpdate) onUpdate(); }} />
                 </div>
             </DialogContent>
         </Dialog>
@@ -456,7 +456,10 @@ export default function HelpdeskTable() {
                             {isSharing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Share2 className="mr-2 h-4 w-4" />} Bagikan Laporan
                         </Button>
                     </div>
-                    <Dialog open={isNewTicketOpen} onOpenChange={setIsNewTicketOpen}>
+                    <Dialog open={isNewTicketOpen} onOpenChange={(open) => {
+                        setIsNewTicketOpen(open);
+                        if (!open) fetchHelpdeskData();
+                    }}>
                         <DialogTrigger asChild>
                             <Button className="rounded-2xl h-12 bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest shadow-xl shadow-primary/20 px-6 transition-all hover:scale-102 active:scale-95 group text-xs text-white">
                                 <PlusCircle className="mr-2 h-4.5 w-4.5 group-hover:rotate-90 transition-transform duration-300" />
@@ -472,7 +475,7 @@ export default function HelpdeskTable() {
                                 <DialogDescription className="text-left font-medium">Silakan isi detail kendala IT yang Anda hadapi untuk segera diproses.</DialogDescription>
                             </DialogHeader>
                             <div className="flex-1 overflow-hidden">
-                                <NewTicketForm onComplete={() => setIsNewTicketOpen(false)} />
+                                <NewTicketForm onComplete={() => { setIsNewTicketOpen(false); fetchHelpdeskData(); }} />
                             </div>
                         </DialogContent>
                     </Dialog>
@@ -723,6 +726,7 @@ export default function HelpdeskTable() {
                                 key={ticket.id} 
                                 ticket={ticket} 
                                 maintenanceInfo={maintenanceMap[ticket.id]} 
+                                onUpdate={() => fetchHelpdeskData()}
                             />
                         ))
                     ) : (
