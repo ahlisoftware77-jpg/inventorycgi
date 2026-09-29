@@ -14,7 +14,7 @@ export async function GET() {
   let dbStatus = 'Not Attempted';
 
   try {
-    const { db } = await import('@/lib/firebase-admin');
+    const { db } = await import('@/lib/firebase-admin-db');
     if (db) {
       dbStatus = 'DB Initialized Successfully';
       try {

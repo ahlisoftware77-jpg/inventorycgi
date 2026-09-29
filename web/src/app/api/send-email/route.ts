@@ -47,7 +47,7 @@ export async function POST(request: Request) {
     let smtpHost, smtpPort, smtpSecure, smtpUser, smtpPass, smtpBcc, smtpSenderName, smtpSenderEmail;
 
     try {
-      const { db } = await import('@/lib/firebase-admin');
+      const { db } = await import('@/lib/firebase-admin-db');
       if (db) {
         try {
           const emailSettingsSnap = await db.collection('settings').doc('email').get();
