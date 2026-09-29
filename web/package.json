@@ -55,7 +55,7 @@
     "emoji-picker-react": "^4.10.0",
     "file-saver": "^2.0.5",
     "firebase": "^11.9.1",
-    "firebase-admin": "^14.3.0",
+    "firebase-admin": "^12.1.0",
     "framer-motion": "^11.3.19",
     "genkit": "^1.14.1",
     "googleapis": "^178.0.0",
