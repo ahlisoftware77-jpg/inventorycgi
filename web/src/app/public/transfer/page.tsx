@@ -303,8 +303,11 @@ export default function TransferDownloadPage() {
                               key={i}
                               style={{ transitionDelay: collapsedFolders[folderName] ? '0ms' : `${i * 50}ms` }}
                               onClick={() => isImageOrDesign ? handlePreview(file) : handleDownload(file)}
-                              className={`relative aspect-square rounded-2xl overflow-hidden group cursor-pointer border border-slate-200 dark:border-slate-800 shadow-sm transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${previewImage?.id === file.id ? 'ring-2 ring-blue-500' : ''} ${collapsedFolders[folderName] ? 'opacity-0 scale-50' : 'opacity-100 scale-100'}`}
+                              className={`relative aspect-square rounded-2xl overflow-hidden group cursor-pointer border border-slate-200 dark:border-slate-800 shadow-sm transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${collapsedFolders[folderName] ? 'opacity-0 scale-50' : 'opacity-100 scale-100'}`}
                             >
+                              {previewImage?.id === file.id && (
+                                <div className="absolute inset-0 border-4 border-blue-500 rounded-2xl z-20 pointer-events-none"></div>
+                              )}
                               {isImageOrDesign ? (
                                 <img 
                                   src={file.thumbnailLink || `/api/thumbnail?id=${file.id}`} 
