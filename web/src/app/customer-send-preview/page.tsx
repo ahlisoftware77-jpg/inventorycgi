@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, X, File, Plus, ArrowLeft, Send, Link as LinkIcon, Loader2, CheckCircle2, Copy, Trash2, Clock, Check, ExternalLink } from 'lucide-react';
+import { Upload, X, File, Plus, ArrowLeft, Send, Link as LinkIcon, Loader2, CheckCircle2, Copy, Trash2, Clock, Check, ExternalLink, FileUp, FolderUp } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { formatBytes } from '@/lib/utils'; // Assuming this exists or I will write a simple formatter
 
@@ -454,19 +454,35 @@ export default function CustomerSendPreviewPage() {
               {!isUploading && (
                 <div className="p-6 md:p-8 space-y-6 rounded-b-[2.5rem]">
                   <div 
-                    className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl p-8 flex flex-col items-center justify-center text-center hover:bg-slate-50 hover:border-primary/50 transition-all min-h-[200px]"
+                    className="group relative border-2 border-dashed border-blue-200 dark:border-blue-800/50 rounded-[2rem] p-10 flex flex-col items-center justify-center text-center hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-all duration-300 min-h-[220px] overflow-hidden"
                     onDragOver={handleDragOver}
                     onDrop={handleDrop}
                   >
-                    <div className="bg-primary/10 w-16 h-16 rounded-full flex items-center justify-center mb-4">
-                      <Plus className="h-8 w-8 text-primary" />
+                    {/* Background decoration */}
+                    <div className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-b from-transparent to-blue-50/50 dark:to-blue-900/10"></div>
+                    
+                    <div className="bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/40 dark:to-indigo-900/40 w-20 h-20 rounded-full flex items-center justify-center mb-6 shadow-inner ring-4 ring-white dark:ring-slate-900 transform group-hover:scale-110 transition-transform duration-300 z-10">
+                      <Plus className="h-10 w-10 text-blue-600 dark:text-blue-400" />
                     </div>
-                    <h3 className="font-bold text-lg mb-2">Tambah File / Folder</h3>
-                    <div className="flex gap-2">
-                      <Button onClick={() => fileInputRef.current?.click()} size="sm" variant="outline" className="font-bold text-slate-700">Pilih File</Button>
-                      <Button onClick={() => folderInputRef.current?.click()} size="sm" variant="outline" className="font-bold text-slate-700">Pilih Folder</Button>
+                    <h3 className="font-black text-xl mb-2 text-slate-800 dark:text-slate-200 z-10">Tambah File atau Folder</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 z-10 max-w-[250px]">Atau tarik dan lepas file/folder Bapak di area ini</p>
+                    
+                    <div className="flex gap-3 z-10 w-full max-w-[300px] mx-auto">
+                      <Button 
+                        onClick={() => fileInputRef.current?.click()} 
+                        className="flex-1 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-blue-500/30 transition-all hover:-translate-y-0.5"
+                      >
+                        <FileUp className="w-4 h-4 mr-2" />
+                        Pilih File
+                      </Button>
+                      <Button 
+                        onClick={() => folderInputRef.current?.click()} 
+                        className="flex-1 rounded-xl bg-indigo-100 hover:bg-indigo-200 text-indigo-700 dark:bg-indigo-900/50 dark:hover:bg-indigo-800/80 dark:text-indigo-300 font-bold shadow-sm transition-all hover:-translate-y-0.5"
+                      >
+                        <FolderUp className="w-4 h-4 mr-2" />
+                        Pilih Folder
+                      </Button>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-4">Atau tarik dan lepas file/folder di sini</p>
                     <input 
                       type="file" 
                       multiple 
