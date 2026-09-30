@@ -58,8 +58,7 @@ export default function CustomerSendPreviewPage() {
   useEffect(() => {
     if (!user) return;
     const q = query(
-      collection(db, "customer_transfers"),
-      where("senderId", "==", user.uid)
+      collection(db, "customer_transfers")
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -442,7 +441,7 @@ export default function CustomerSendPreviewPage() {
           </div>
         </div>
 
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row gap-6">
+        <div className="max-w-[1600px] mx-auto flex flex-col lg:flex-row gap-6 h-full min-h-[700px]">
           
           {/* UPLOAD FORM AREA */}
           <div className="w-full md:w-[450px] shrink-0">
@@ -620,9 +619,28 @@ export default function CustomerSendPreviewPage() {
             <div className="rounded-[2.5rem] bg-gradient-to-br from-blue-600 to-indigo-800 p-8 text-white flex-col justify-between overflow-hidden relative shadow-2xl min-h-[250px] shrink-0">
               <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay"></div>
               
-              <div className="relative z-10">
-                <h2 className="text-4xl font-black tracking-tighter leading-none mb-4">CGI<br/>Transfer.</h2>
-                <p className="text-sm font-medium text-blue-100 max-w-sm mb-6">Cara termudah dan teraman untuk mengirim file desain dan dokumen resolusi tinggi ke pelanggan Anda.</p>
+              {/* Logo Emas di Kanan */}
+              <div 
+                className="absolute right-8 top-1/2 -translate-y-1/2 w-48 h-48 bg-gradient-to-tr from-yellow-200 via-amber-400 to-yellow-600 drop-shadow-[0_0_25px_rgba(251,191,36,0.5)] z-0 opacity-90 hidden md:block animate-[pulse_4s_ease-in-out_infinite]"
+                style={{
+                  WebkitMaskImage: 'url(/cgi2.png)',
+                  WebkitMaskSize: 'contain',
+                  WebkitMaskRepeat: 'no-repeat',
+                  WebkitMaskPosition: 'right center',
+                  maskImage: 'url(/cgi2.png)',
+                  maskSize: 'contain',
+                  maskRepeat: 'no-repeat',
+                  maskPosition: 'right center'
+                }}
+              />
+              
+              <div className="relative z-10 flex flex-col justify-center pointer-events-none">
+                <div className="flex flex-col mb-4">
+                  <h2 className="text-5xl font-black tracking-tighter leading-none text-white drop-shadow-md">
+                    CGI<br/>Transfer.
+                  </h2>
+                </div>
+                <p className="text-sm font-medium text-blue-100 max-w-sm mb-6 drop-shadow-sm">Cara termudah dan teraman untuk mengirim file desain dan dokumen resolusi tinggi ke pelanggan Anda.</p>
               </div>
               
               <div className="relative z-10 flex gap-6">
@@ -645,82 +663,83 @@ export default function CustomerSendPreviewPage() {
               </div>
             </div>
 
-            {/* Draft Kiriman */}
-            {history.filter(h => h.status === 'draft').length > 0 && (
-              <div className="bg-white dark:bg-slate-950 p-6 rounded-[2.5rem] shadow-xl border border-slate-100 dark:border-slate-800 flex-1 flex flex-col min-h-0">
-                <h3 className="font-bold text-lg mb-4 text-slate-800 dark:text-white flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-amber-500" /> Draft (Menunggu Review)
-                </h3>
-                <div className="space-y-3 overflow-y-auto pr-2 flex-1 scrollbar-thin">
-                  {history.filter(h => h.status === 'draft').map((h) => (
-                    <div key={h.id} className="p-4 rounded-2xl bg-amber-50/50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 flex flex-col gap-2 relative group">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="font-bold text-sm text-slate-800 dark:text-slate-200">{h.subject}</p>
-                          <p className="text-xs text-slate-500">{h.recipientEmail}</p>
-                          {(() => {
-                            const expiresDate = h.expiresAt ? new Date(h.expiresAt.seconds * 1000) : null;
-                            const isExpired = expiresDate ? expiresDate.getTime() < Date.now() : false;
-                            return (
-                              <div className="flex items-center gap-1 text-[10px] font-bold mt-1 text-slate-500">
-                                <Clock className="w-3 h-3" />
-                                {expiresDate ? (
-                                  isExpired ? <span className="text-rose-500">Kedaluwarsa</span> : <span>Berlaku s/d {expiresDate.toLocaleDateString('id-ID', {day: 'numeric', month: 'short', year: 'numeric'})}</span>
-                                ) : 'Tanpa batas'}
-                              </div>
-                            );
-                          })()}
+            <div className="flex flex-col xl:flex-row gap-6 flex-1 min-h-0">
+              {/* Draft Kiriman */}
+              {history.filter(h => h.status === 'draft').length > 0 && (
+                <div className="bg-white dark:bg-slate-950 p-6 rounded-[2.5rem] shadow-xl border border-slate-100 dark:border-slate-800 flex-1 flex flex-col min-h-0 max-h-[600px]">
+                  <h3 className="font-bold text-lg mb-4 text-slate-800 dark:text-white flex items-center gap-2 shrink-0">
+                    <Clock className="w-5 h-5 text-amber-500" /> Draft (Menunggu Review)
+                  </h3>
+                  <div className="space-y-3 overflow-y-auto pr-2 flex-1 scrollbar-thin">
+                    {history.filter(h => h.status === 'draft').map((h) => (
+                      <div key={h.id} className="p-4 rounded-2xl bg-amber-50/50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 flex flex-col gap-2 relative group">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className="font-bold text-sm text-slate-800 dark:text-slate-200">{h.subject}</p>
+                            <p className="text-xs text-slate-500">{h.recipientEmail}</p>
+                            {(() => {
+                              const expiresDate = h.expiresAt ? new Date(h.expiresAt.seconds * 1000) : null;
+                              const isExpired = expiresDate ? expiresDate.getTime() < Date.now() : false;
+                              return (
+                                <div className="flex items-center gap-1 text-[10px] font-bold mt-1 text-slate-500">
+                                  <Clock className="w-3 h-3" />
+                                  {expiresDate ? (
+                                    isExpired ? <span className="text-rose-500">Kedaluwarsa</span> : <span>Berlaku s/d {expiresDate.toLocaleDateString('id-ID', {day: 'numeric', month: 'short', year: 'numeric'})}</span>
+                                  ) : 'Tanpa batas'}
+                                </div>
+                              );
+                            })()}
+                          </div>
+                          <span className="text-[10px] font-bold px-2 py-1 bg-amber-100 text-amber-700 rounded-md shrink-0">
+                            {h.files?.length || 0} File
+                          </span>
                         </div>
-                        <span className="text-[10px] font-bold px-2 py-1 bg-amber-100 text-amber-700 rounded-md">
-                          {h.files?.length || 0} File
-                        </span>
+                        <div className="flex items-center gap-2 mt-2">
+                          <Input 
+                            readOnly 
+                            value={`${window.location.origin}/public/transfer?id=${h.id}`} 
+                            className="h-8 text-xs bg-white dark:bg-slate-950" 
+                          />
+                          <Button size="icon" variant="outline" className="h-8 w-8 shrink-0" onClick={() => {
+                            navigator.clipboard.writeText(`${window.location.origin}/public/transfer?id=${h.id}`);
+                            toast({ title: 'Disalin', description: 'Link draft transfer disalin.' });
+                          }}>
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            size="icon" 
+                            variant="outline" 
+                            className="h-8 w-8 shrink-0 text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10" 
+                            onClick={() => window.open(`${window.location.origin}/public/transfer?id=${h.id}`, '_blank')}
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            size="icon" 
+                            variant="ghost" 
+                            className="h-8 w-8 shrink-0 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10" 
+                            onClick={() => handleDeleteTransfer(h.id, h.folderId)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="h-8 px-3 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs"
+                            onClick={() => handleApproveDraft(h)}
+                            disabled={isApprovingId === h.id}
+                          >
+                            {isApprovingId === h.id ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Send className="w-3 h-3 mr-1" />}
+                            Kirim
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 mt-2">
-                        <Input 
-                          readOnly 
-                          value={`${window.location.origin}/public/transfer?id=${h.id}`} 
-                          className="h-8 text-xs bg-white dark:bg-slate-950" 
-                        />
-                        <Button size="icon" variant="outline" className="h-8 w-8 shrink-0" onClick={() => {
-                          navigator.clipboard.writeText(`${window.location.origin}/public/transfer?id=${h.id}`);
-                          toast({ title: 'Disalin', description: 'Link draft transfer disalin.' });
-                        }}>
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          size="icon" 
-                          variant="outline" 
-                          className="h-8 w-8 shrink-0 text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10" 
-                          onClick={() => window.open(`${window.location.origin}/public/transfer?id=${h.id}`, '_blank')}
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          size="icon" 
-                          variant="ghost" 
-                          className="h-8 w-8 shrink-0 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10" 
-                          onClick={() => handleDeleteTransfer(h.id, h.folderId)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          className="h-8 px-3 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs"
-                          onClick={() => handleApproveDraft(h)}
-                          disabled={isApprovingId === h.id}
-                        >
-                          {isApprovingId === h.id ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Send className="w-3 h-3 mr-1" />}
-                          Kirim
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Riwayat Kirim (Active) */}
-            {history.filter(h => h.status !== 'draft').length > 0 && (
+              {/* Riwayat Kirim (Active) */}
+              {history.filter(h => h.status !== 'draft').length > 0 && (
               <div className="bg-white dark:bg-slate-950 p-6 rounded-[2.5rem] shadow-xl border border-slate-100 dark:border-slate-800 flex-1 flex flex-col min-h-0">
                 <h3 className="font-bold text-lg mb-4 text-slate-800 dark:text-white flex items-center gap-2">
                   <CheckCircle2 className="w-5 h-5 text-emerald-500" /> Riwayat Kiriman Anda
@@ -783,6 +802,7 @@ export default function CustomerSendPreviewPage() {
                 </div>
               </div>
             )}
+            </div>
           </div>
 
         </div>

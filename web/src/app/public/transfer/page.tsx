@@ -10,6 +10,7 @@ import { Download, File, Loader2, AlertTriangle, Eye, Folder, ChevronDown, Layou
 import { formatBytes } from '@/lib/utils'; // Optional formatting
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import ElectricLogo from '@/components/ui/ElectricLogo';
+import GlowCursor from '@/components/ui/GlowCursor';
 
 const formatFileSize = (bytes: number) => {
   if (bytes === 0) return '0 Bytes';
@@ -168,28 +169,50 @@ export default function TransferDownloadPage() {
 
   return (
     <div 
-      className="min-h-screen h-screen flex items-center justify-center p-4 md:p-8 relative overflow-hidden"
+      className="min-h-screen h-screen relative overflow-hidden"
       style={{ backgroundImage: 'url(/bg-filetransfer.jpeg)', backgroundSize: 'cover', backgroundPosition: 'center' }}
     >
+      <GlowCursor
+        color="#ecc7ff"
+        secondaryColor="#ad6dff"
+        trailLength={40}
+        trailWidth={8}
+        trailTaper={0.8}
+        followSpeed={0.16}
+        glowIntensity={1.9}
+        glowSpread={1.2}
+        hotspot={0.65}
+        brightness={1.25}
+        opacity={1}
+        pulseSpeed={1.1}
+        noiseStrength={0.035}
+        idleFade={true}
+        idleTimeout={700}
+        fadeDuration={900}
+        blendMode="screen"
+        className="w-full h-full"
+      >
       {/* Overlay to ensure readability */}
       <div className="absolute inset-0 bg-slate-900/60 z-0"></div>
 
-      <div className="w-full h-full z-10 overflow-hidden relative flex flex-col justify-center">
+      <div className="w-full h-full z-10 overflow-hidden relative flex flex-col justify-center p-4 md:p-8">
         <div 
-          className={`flex-1 flex flex-col md:flex-row md:w-[150%] transition-transform ease-[cubic-bezier(0.22,1,0.36,1)] items-center ${
+          className={`flex-1 w-full h-full relative flex md:w-[150%] md:flex-row transition-transform ease-[cubic-bezier(0.22,1,0.36,1)] items-center ${
             !showFilesList ? 'md:translate-x-[16.666%]' : previewImage ? 'md:-translate-x-1/3' : 'md:translate-x-0'
           }`}
           style={{ transitionDuration: '1200ms' }}
         >
           {/* Panel 1: Info (Left) */}
           <div 
-            className={`w-full md:w-1/3 px-4 flex flex-col justify-center items-center text-center space-y-4 mb-8 md:mb-0 transition-opacity ${
+            className={`absolute inset-0 md:relative md:inset-auto w-full md:w-1/3 px-4 flex flex-col justify-center items-center text-center space-y-4 transition-all duration-700 ${
+              showFilesList ? 'opacity-0 scale-95 pointer-events-none md:opacity-100 md:scale-100 md:pointer-events-auto' : 'opacity-100 scale-100 pointer-events-auto'
+            } ${
               previewImage ? 'md:opacity-0 md:pointer-events-none' : 'md:opacity-100'
             }`}
             style={{ transitionDuration: '1200ms' }}
           >
             <div 
-              className="w-full h-80 md:w-full md:h-[600px] mx-auto relative dark:mix-blend-screen flex items-center justify-center z-0"
+              className="w-full h-80 md:w-full md:h-[450px] mx-auto relative dark:mix-blend-screen flex items-center justify-center z-0"
               style={{ maskImage: 'linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%)' }}
             >
               <ElectricLogo 
@@ -210,7 +233,7 @@ export default function TransferDownloadPage() {
               <p className="text-sm text-white/80 font-medium drop-shadow-md">{transfer.files.length} item • {formatFileSize(totalSize)}</p>
             </div>
             {transfer.message && (
-              <div className="p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-lg relative max-w-xs md:max-w-md w-full">
+              <div className="p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-lg relative max-w-xs md:max-w-md w-full max-h-[120px] overflow-y-auto scrollbar-thin">
                 <div className="absolute top-0 left-0 w-1 h-full bg-blue-400 rounded-l-2xl"></div>
                 <p className="text-white italic text-sm">"{transfer.message}"</p>
               </div>
@@ -229,13 +252,13 @@ export default function TransferDownloadPage() {
 
           {/* Panel 2: Files (Center) */}
           <div 
-            className={`w-full md:w-1/3 px-4 h-full max-h-[85vh] transition-all ease-[cubic-bezier(0.22,1,0.36,1)] ${
-              !showFilesList ? 'opacity-0 scale-75 pointer-events-none translate-x-32 rotate-[12deg] translate-y-12' : 'opacity-100 scale-100 translate-x-0 rotate-0 translate-y-0'
+            className={`absolute inset-0 md:relative md:inset-auto flex flex-col justify-center items-center w-full md:w-1/3 px-4 max-h-[100vh] md:max-h-[85vh] transition-all ease-[cubic-bezier(0.22,1,0.36,1)] ${
+              !showFilesList ? 'opacity-0 scale-75 pointer-events-none translate-x-12 md:translate-x-32 rotate-6 md:rotate-[12deg]' : 'opacity-100 scale-100 translate-x-0 rotate-0'
             }`}
-            style={{ transitionDuration: '1200ms' }}
+            style={{ transitionDuration: '1200ms', height: '100%' }}
           >
             <Card 
-              className="rounded-[2.5rem] border border-white/60 dark:border-white/10 shadow-[0_40px_80px_-20px_rgba(0,0,0,0.15),_inset_0_2px_4px_rgba(255,255,255,0.9),_inset_0_-2px_4px_rgba(0,0,0,0.05)] dark:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.6),_inset_0_2px_4px_rgba(255,255,255,0.1),_inset_0_-2px_4px_rgba(0,0,0,0.3)] overflow-hidden bg-white/90 backdrop-blur-xl dark:bg-slate-950/90 flex flex-col h-full isolate transform transition-transform duration-500 hover:-translate-y-1 hover:shadow-[0_50px_100px_-20px_rgba(0,0,0,0.2),_inset_0_2px_4px_rgba(255,255,255,1),_inset_0_-2px_4px_rgba(0,0,0,0.05)]"
+              className="w-full rounded-[2.5rem] border border-white/60 dark:border-white/10 shadow-[0_40px_80px_-20px_rgba(0,0,0,0.15),_inset_0_2px_4px_rgba(255,255,255,0.9),_inset_0_-2px_4px_rgba(0,0,0,0.05)] dark:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.6),_inset_0_2px_4px_rgba(255,255,255,0.1),_inset_0_-2px_4px_rgba(0,0,0,0.3)] overflow-hidden bg-white/90 backdrop-blur-xl dark:bg-slate-950/90 flex flex-col h-full isolate transform transition-transform duration-500 hover:-translate-y-1 hover:shadow-[0_50px_100px_-20px_rgba(0,0,0,0.2),_inset_0_2px_4px_rgba(255,255,255,1),_inset_0_-2px_4px_rgba(0,0,0,0.05)]"
               style={{ maskImage: 'radial-gradient(white, black)', WebkitMaskImage: '-webkit-radial-gradient(white, black)' }}
             >
               <div className="p-6 border-b border-slate-100/80 dark:border-slate-800/80 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50 rounded-t-[2.5rem]">
@@ -388,11 +411,11 @@ export default function TransferDownloadPage() {
           </div>
 
           {/* Panel 3: Preview (Right) */}
-          <div className={`w-full md:w-1/3 px-4 h-full max-h-[85vh] mt-8 md:mt-0 transition-opacity duration-1000 ${
-            previewImage ? 'opacity-100' : 'opacity-0 h-0 md:h-auto overflow-hidden md:overflow-visible pointer-events-none'
+          <div className={`absolute inset-0 md:relative md:inset-auto flex flex-col justify-center items-center w-full md:w-1/3 px-4 h-full max-h-[100vh] md:max-h-[85vh] transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+            previewImage ? 'opacity-100 scale-100 pointer-events-auto translate-x-0' : 'opacity-0 scale-90 pointer-events-none translate-x-12 md:-translate-x-32'
           }`}>
             {previewImage && (
-              <div className="flex flex-col h-full bg-slate-900/80 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-4 relative overflow-hidden shadow-2xl">
+              <div className="w-full flex flex-col h-full bg-slate-900/80 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-4 relative overflow-hidden shadow-2xl">
                 <div className="flex items-center justify-between mb-4 px-2">
                   <h3 className="font-bold text-white truncate pr-4 drop-shadow-md">{previewImage.name}</h3>
                   <Button size="sm" variant="ghost" className="rounded-full shrink-0 text-white hover:bg-white/20" onClick={() => setPreviewImage(null)}>
@@ -442,6 +465,7 @@ export default function TransferDownloadPage() {
           </div>
         </div>
       </div>
+      </GlowCursor>
     </div>
   );
 }
